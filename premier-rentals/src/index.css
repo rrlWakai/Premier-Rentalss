@@ -1,0 +1,364 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Cormorant Garamond", serif;
+  --font-body: "Jost", sans-serif;
+
+  --color-cream: #f8f4ee;
+  --color-cream-dark: #ede8df;
+  --color-gold: #c9a96e;
+  --color-gold-light: #d4b97f;
+  --color-gold-dark: #a8833e;
+  --color-charcoal: #1a1a1a;
+  --color-charcoal-light: #2e2e2e;
+  --color-slate: #4a4a4a;
+  --color-muted: #8a8a7a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-cream);
+  color: var(--color-charcoal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-body {
+  font-family: var(--font-body);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--color-cream); }
+::-webkit-scrollbar-thumb { background: var(--color-gold); border-radius: 3px; }
+
+/* Fade in animation */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.8s ease forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 1s ease forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.6s ease forwards;
+}
+
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-400 { animation-delay: 0.4s; }
+.delay-500 { animation-delay: 0.5s; }
+.delay-600 { animation-delay: 0.6s; }
+
+.gold-text {
+  color: var(--color-gold);
+}
+
+.section-label {
+  font-family: var(--font-body);
+  font-size: 0.65rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+  font-weight: 500;
+}
+
+.divider-gold {
+  width: 40px;
+  height: 1px;
+  background: var(--color-gold);
+}
+
+/* Parallax hero overlay */
+.hero-overlay {
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.25) 0%,
+    rgba(0,0,0,0.1) 40%,
+    rgba(0,0,0,0.45) 100%
+  );
+}
+
+/* Card hover effect */
+.retreat-card {
+  overflow: hidden;
+  position: relative;
+}
+
+.retreat-card img {
+  transition: transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.retreat-card:hover img {
+  transform: scale(1.05);
+}
+
+.retreat-card-overlay {
+  background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.1) 60%, transparent 100%);
+}
+
+/* Stats counter */
+.stat-number {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 300;
+  color: var(--color-charcoal);
+  line-height: 1;
+}
+
+/* Testimonial quote */
+.testimonial-quote {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: clamp(1.3rem, 2.5vw, 1.8rem);
+  font-weight: 300;
+  line-height: 1.6;
+  color: white;
+}
+
+/* Gallery mosaic */
+.gallery-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 8px;
+}
+
+.gallery-grid .item-tall {
+  grid-row: span 2;
+}
+
+/* Nav link hover */
+.nav-link {
+  position: relative;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 400;
+  color: rgba(255,255,255,0.85);
+  transition: color 0.3s ease;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: var(--color-gold);
+  transition: width 0.3s ease;
+}
+
+.nav-link:hover {
+  color: white;
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+
+/* CTA button */
+.btn-gold {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--color-gold);
+  color: white;
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 500;
+  padding: 0.85rem 2rem;
+  transition: background 0.3s ease, transform 0.2s ease;
+  cursor: pointer;
+  border: none;
+}
+
+.btn-gold:hover {
+  background: var(--color-gold-dark);
+  transform: translateY(-1px);
+}
+
+.btn-outline-gold {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  color: var(--color-gold);
+  border: 1px solid var(--color-gold);
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 500;
+  padding: 0.85rem 2rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.btn-outline-gold:hover {
+  background: var(--color-gold);
+  color: white;
+}
+
+/* Booking bar */
+.booking-bar {
+  background: var(--color-charcoal);
+}
+
+.booking-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255,255,255,0.2);
+  color: white;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  padding: 0.5rem 0;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.3s;
+}
+
+.booking-input::placeholder {
+  color: rgba(255,255,255,0.4);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.booking-input:focus {
+  border-bottom-color: var(--color-gold);
+}
+
+/* Amenity card */
+.amenity-card {
+  transition: transform 0.3s ease;
+}
+
+.amenity-card:hover {
+  transform: translateY(-4px);
+}
+
+/* Form inputs */
+.form-input {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: white;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  padding: 0.75rem 1rem;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.3s;
+}
+
+.form-input::placeholder {
+  color: rgba(255,255,255,0.35);
+}
+
+.form-input:focus {
+  border-color: var(--color-gold);
+}
+
+/* ─── Mobile Responsive Additions ─────────────────────────────────────── */
+
+/* Ensure images never overflow */
+img { max-width: 100%; }
+
+/* Booking bar mobile select */
+.booking-input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) opacity(0.4);
+  cursor: pointer;
+}
+
+/* Fluid section padding on mobile */
+@media (max-width: 640px) {
+  section { padding-top: 4rem; padding-bottom: 4rem; }
+  .btn-gold, .btn-outline-gold { padding: 0.75rem 1.5rem; font-size: 0.65rem; }
+}
+
+/* Booking modal mobile full-screen */
+@media (max-width: 640px) {
+  /* Full height on very small screens */
+  .booking-modal-content { max-height: 100dvh; border-radius: 1rem 1rem 0 0; }
+}
+
+/* Property gallery grid on mobile */
+@media (max-width: 768px) {
+  .gallery-grid { grid-template-columns: 1fr 1fr; }
+  .gallery-grid .item-tall { grid-row: span 1; }
+}
+
+/* Admin dashboard mobile sidebar overlay */
+@media (max-width: 1024px) {
+  .admin-sidebar { display: none; }
+}
+
+/* Smooth page transitions */
+.page-enter { opacity: 0; transform: translateY(12px); }
+.page-enter-active { opacity: 1; transform: translateY(0); transition: all 0.4s ease; }
+.page-exit { opacity: 1; }
+.page-exit-active { opacity: 0; transition: opacity 0.25s ease; }
+
+/* Calendar day hover state */
+.calendar-day { transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease; }
+.calendar-day:hover:not(:disabled) { transform: scale(1.08); }
+
+/* Admin table row transitions */
+.admin-row { transition: background 0.15s ease; }
+
+/* Payment form focus ring */
+.payment-input:focus { outline: none; border-color: #c9a96e; box-shadow: 0 0 0 2px rgba(201,169,110,0.15); }
+
+/* Pulse animation for loading states */
+@keyframes pulse-gold {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.pulse-gold { animation: pulse-gold 1.5s ease-in-out infinite; }
+
+/* Toast override */
+.react-hot-toast { font-family: 'Jost', sans-serif !important; }
+
+/* Better touch targets on mobile */
+@media (max-width: 768px) {
+  button, a { min-height: 40px; }
+  input, select, textarea { font-size: 16px !important; } /* Prevents iOS zoom */
+}
+
+/* Scroll padding for fixed navbar */
+html { scroll-padding-top: 80px; }
+
+/* Framer Motion will-change hint */
+[data-framer-motion] { will-change: transform, opacity; }
