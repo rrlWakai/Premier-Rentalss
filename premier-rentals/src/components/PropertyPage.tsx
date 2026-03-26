@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, Users, MapPin, Car, ShieldCheck,
   Wifi, UtensilsCrossed, Waves, BedDouble,
-  ChevronDown, ChevronUp, Info
+  ChevronDown, ChevronUp, Info, X
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { POOL_HOUSE_DATA, PATIO_DATA, formatPHP, type PropertyData, type RatePackage } from '../lib/propertyData'
@@ -172,6 +172,8 @@ function PackageCard({ pkg, onBook }: { pkg: RatePackage; onBook: (pkg: RatePack
 export default function PropertyPage() {
   const { slug } = useParams<{ slug: string }>()
   const [activeImage, setActiveImage] = useState(0)
+  const [galleryModalOpen, setGalleryModalOpen] = useState(false)
+  const [modalImageIndex, setModalImageIndex] = useState(0)
   const [bookingPkg, setBookingPkg] = useState<RatePackage | null>(null)
   const [rulesOpen, setRulesOpen] = useState(false)
 
@@ -190,6 +192,19 @@ export default function PropertyPage() {
 
   const allLocal    = [property.coverImage, ...property.galleryImages]
   const allFallback = [COVER_FALLBACKS[slug!] ?? FALLBACK.poolHouseCover, ...(GALLERY_FALLBACKS[slug!] ?? FALLBACK.poolHouseGallery)]
+  const galleryPreview = property.galleryImages.slice(0, 5)
+  const remainingGalleryCount = property.galleryImages.length - galleryPreview.length
+
+  const selectGalleryImage = (imageIndex: number) => {
+    setModalImageIndex(imageIndex)
+    setActiveImage(imageIndex + 1)
+  }
+
+  const openGalleryModal = (imageIndex = 0) => {
+    selectGalleryImage(imageIndex)
+    setModalImageIndex(imageIndex)
+    setGalleryModalOpen(true)
+  }
 
   return (
     <div className="min-h-screen bg-[#f8f4ee]">
@@ -381,10 +396,26 @@ export default function PropertyPage() {
             {/* Gallery grid */}
             {property.galleryImages.length > 0 && (
               <div>
-                <p className="section-label mb-4">Gallery</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {property.galleryImages.map((localSrc, i) => (
-                    <button key={i} onClick={() => setActiveImage(i + 1)} className="overflow-hidden rounded-lg aspect-[4/3] group">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <p className="section-label">Gallery</p>
+                  <button
+                    onClick={() => openGalleryModal(0)}
+                    className="text-[11px] uppercase tracking-[0.18em] text-[#8a8a7a] transition-colors hover:text-[#1a1a1a]"
+                    style={{ fontFamily: 'Jost, sans-serif' }}
+                  >
+                    View More
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {galleryPreview.map((localSrc, i) => (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        selectGalleryImage(i)
+                        openGalleryModal(i)
+                      }}
+                      className="overflow-hidden rounded-lg aspect-[4/3] group border border-[#d9d0c2] bg-white shadow-[0_0_0_1px_rgba(237,232,223,0.65)]"
+                    >
                       <ImgWithFallback
                         local={localSrc}
                         fallback={(GALLERY_FALLBACKS[slug!] ?? FALLBACK.poolHouseGallery)[i] ?? FALLBACK.poolHouseGallery[0]}
@@ -393,6 +424,33 @@ export default function PropertyPage() {
                       />
                     </button>
                   ))}
+                  {remainingGalleryCount > 0 && (
+                    <button
+                      onClick={() => openGalleryModal(galleryPreview.length)}
+                      className="relative overflow-hidden rounded-lg aspect-[4/3] border border-[#d9d0c2] bg-[#1a1a1a] shadow-[0_0_0_1px_rgba(237,232,223,0.65)]"
+                    >
+                      <ImgWithFallback
+                        local={property.galleryImages[galleryPreview.length]}
+                        fallback={(GALLERY_FALLBACKS[slug!] ?? FALLBACK.poolHouseGallery)[galleryPreview.length] ?? FALLBACK.poolHouseGallery[0]}
+                        alt={`${property.name} more photos`}
+                        className="w-full h-full object-cover opacity-45"
+                      />
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/45 px-4 text-center">
+                        <span
+                          className="text-white"
+                          style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.8rem', fontWeight: 500 }}
+                        >
+                          +{remainingGalleryCount}
+                        </span>
+                        <span
+                          className="mt-1 text-[10px] uppercase tracking-[0.24em] text-white/75"
+                          style={{ fontFamily: 'Jost, sans-serif' }}
+                        >
+                          View More
+                        </span>
+                      </div>
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -449,6 +507,100 @@ export default function PropertyPage() {
           onClose={() => setBookingPkg(null)}
         />
       )}
+
+      {/* Gallery Modal */}
+      <AnimatePresence>
+        {galleryModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm"
+            onClick={() => setGalleryModalOpen(false)}
+          >
+            <div className="flex min-h-screen items-center justify-center p-4 sm:p-6">
+              <motion.div
+                initial={{ opacity: 0, y: 20, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.98 }}
+                transition={{ duration: 0.25 }}
+                className="w-full max-w-6xl overflow-hidden rounded-[28px] bg-[#111111] shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between border-b border-white/10 px-5 py-4 sm:px-6">
+                  <div>
+                    <p
+                      className="text-[10px] uppercase tracking-[0.24em] text-[#c9a96e]"
+                      style={{ fontFamily: 'Jost, sans-serif' }}
+                    >
+                      {property.name}
+                    </p>
+                    <p
+                      className="mt-1 text-white"
+                      style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.5rem', fontWeight: 400 }}
+                    >
+                      Photo Gallery
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setGalleryModalOpen(false)}
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/70 transition-colors hover:border-white/30 hover:text-white"
+                    aria-label="Close gallery"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="grid gap-4 p-4 sm:p-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(260px,0.8fr)]">
+                  <div className="overflow-hidden rounded-[24px] border border-white/10 bg-black shadow-[0_0_0_1px_rgba(255,255,255,0.06)]">
+                    <ImgWithFallback
+                      local={property.galleryImages[modalImageIndex]}
+                      fallback={(GALLERY_FALLBACKS[slug!] ?? FALLBACK.poolHouseGallery)[modalImageIndex] ?? FALLBACK.poolHouseGallery[0]}
+                      alt={`${property.name} ${modalImageIndex + 1}`}
+                      className="h-[52vh] w-full object-cover sm:h-[60vh]"
+                    />
+                  </div>
+
+                  <div className="flex flex-col">
+                    <div className="mb-3 flex items-center justify-between">
+                      <p
+                        className="text-[10px] uppercase tracking-[0.2em] text-white/45"
+                        style={{ fontFamily: 'Jost, sans-serif' }}
+                      >
+                        {modalImageIndex + 1} / {property.galleryImages.length}
+                      </p>
+                    </div>
+
+                    <div className="grid max-h-[60vh] grid-cols-2 gap-2 overflow-y-auto pr-1">
+                      {property.galleryImages.map((localSrc, i) => (
+                        <button
+                          key={i}
+                          onClick={() => {
+                            selectGalleryImage(i)
+                          }}
+                          className={`relative overflow-hidden rounded-xl aspect-[4/3] border transition-all ${
+                            i === modalImageIndex
+                              ? 'border-[#c9a96e] shadow-[0_0_0_1px_rgba(201,169,110,0.4)]'
+                              : 'border-white/10 hover:border-white/30'
+                          }`}
+                        >
+                          <ImgWithFallback
+                            local={localSrc}
+                            fallback={(GALLERY_FALLBACKS[slug!] ?? FALLBACK.poolHouseGallery)[i] ?? FALLBACK.poolHouseGallery[0]}
+                            alt={`${property.name} thumbnail ${i + 1}`}
+                            className="h-full w-full object-cover"
+                          />
+                          <div className={`absolute inset-0 transition-colors ${i === modalImageIndex ? 'bg-transparent' : 'bg-black/15'}`} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

@@ -64,6 +64,11 @@ export const PATIO_DATA: PropertyData = {
     '/images/properties/premier-patio/gallery-2.jpg',
     '/images/properties/premier-patio/gallery-3.jpg',
     '/images/properties/premier-patio/gallery-4.jpg',
+    '/images/properties/premier-patio/gallery-5.jpg',
+    '/images/properties/premier-patio/gallery-6.jpg',
+    '/images/properties/premier-patio/gallery-7.jpg',
+    '/images/properties/premier-patio/gallery-8.jpg',
+    '/images/properties/premier-patio/gallery-9.jpg',
   ],
   amenities: [
     {
@@ -92,6 +97,12 @@ export const PATIO_DATA: PropertyData = {
     },
   ],
   houseRules: [
+    ' Shower Before Swimming — Please rinse off in the shower before entering the pool.',
+    'Wear Proper Swimwear.',
+    ' No Running — Walk, don’t run. Stay safe around the pool.',
+    ' No Diving — Diving is prohibited to prevent injuries.',
+    ' No Food or Drinks — Keep snacks and beverages away from the pool area.',
+    ' Children Must Be Supervised — Kids must be accompanied by a responsible adult at all times.',
     'No 3rd party suppliers allowed for Staycation Rates. Ask for Family Group Rates.',
     'Additional guests: max 3 pax. Day time: PHP 500/head. Night/Overnight: PHP 1,000/head.',
     'Rates subject to change without prior notice.',
@@ -166,6 +177,11 @@ export const POOL_HOUSE_DATA: PropertyData = {
     '/images/properties/premier-pool-house/gallery-2.jpg',
     '/images/properties/premier-pool-house/gallery-3.jpg',
     '/images/properties/premier-pool-house/gallery-4.jpg',
+    '/images/properties/premier-pool-house/gallery-5.jpg',
+    '/images/properties/premier-pool-house/gallery-6.jpg',
+    '/images/properties/premier-pool-house/gallery-7.jpg',
+    '/images/properties/premier-pool-house/gallery-8.jpg',
+    '/images/properties/premier-pool-house/gallery-9.jpg',
   ],
   amenities: [
     {
@@ -194,6 +210,12 @@ export const POOL_HOUSE_DATA: PropertyData = {
     },
   ],
   houseRules: [
+    'Shower Before Swimming — Please rinse off in the shower before entering the pool.',
+    'Wear Proper Swimwear.',
+    'No Running — Walk, don’t run. Stay safe around the pool.',
+    'No Diving — Diving is prohibited to prevent injuries.',
+    'No Food or Drinks — Keep snacks and beverages away from the pool area.',
+    'Children Must Be Supervised — Kids must be accompanied by a responsible adult at all times.',
     'Strictly up to the package pax limit. Sleeping capacity is 25 pax only.',
     'Strictly up to 8 cars only. Additional fees will apply for more than 8 cars.',
     'Reservation should cover the entire day time, night time, or overnight hours (including ingress & egress). Additional fees apply for early check-in.',
