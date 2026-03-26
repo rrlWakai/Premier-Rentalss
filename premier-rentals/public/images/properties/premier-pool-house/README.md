@@ -9,5 +9,10 @@ Drop your photos here — filenames must match exactly:
 | `gallery-2.jpg` | Gallery tab 2                  | 900×675px         |
 | `gallery-3.jpg` | Gallery tab 3                  | 900×675px         |
 | `gallery-4.jpg` | Gallery tab 4                  | 900×675px         |
+| `gallery-5.jpg` | Gallery tab 5                  | 900×675px         |
+| `gallery-6.jpg` | Gallery tab 6                  | 900×675px         |
+| `gallery-7.jpg` | Gallery tab 7                  | 900×675px         |
+| `gallery-8.jpg` | Gallery tab 8                  | 900×675px         |
+| `gallery-9.jpg` | Gallery tab 9                  | 900×675px         |
 
 > If any file is missing the site will automatically show a fallback image.

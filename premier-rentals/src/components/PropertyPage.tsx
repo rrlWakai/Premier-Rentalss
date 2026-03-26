@@ -202,9 +202,22 @@ export default function PropertyPage() {
 
   const openGalleryModal = (imageIndex = 0) => {
     selectGalleryImage(imageIndex)
-    setModalImageIndex(imageIndex)
     setGalleryModalOpen(true)
   }
+
+  useEffect(() => {
+    if (!galleryModalOpen || property.galleryImages.length <= 1) return
+
+    const interval = window.setInterval(() => {
+      setModalImageIndex((current) => {
+        const next = (current + 1) % property.galleryImages.length
+        setActiveImage(next + 1)
+        return next
+      })
+    }, 3000)
+
+    return () => window.clearInterval(interval)
+  }, [galleryModalOpen, property.galleryImages.length])
 
   return (
     <div className="min-h-screen bg-[#f8f4ee]">
