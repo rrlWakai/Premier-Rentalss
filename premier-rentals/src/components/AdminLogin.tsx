@@ -39,7 +39,7 @@ export default function AdminLogin() {
         </div>
 
         {/* Card */}
-        <div className="bg-[#242424] rounded-xl border border-white/10 p-8">
+        <div className="rounded-xl border border-white/10 bg-[#242424] p-5 sm:p-8">
           <div className="flex items-center justify-center mb-6">
             <div
               className="w-12 h-12 rounded-full flex items-center justify-center"

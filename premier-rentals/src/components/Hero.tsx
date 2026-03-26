@@ -41,7 +41,7 @@ export default function Hero() {
       </div>
 
       {/* Hero Content */}
-      <div className="relative flex-1 flex flex-col items-center justify-center text-center px-6 pt-24 pb-40 sm:pb-32">
+      <div className="relative flex-1 flex flex-col items-center justify-center px-4 pt-24 pb-36 text-center sm:px-6 sm:pb-32">
         <motion.div
           className="flex flex-col items-center gap-4"
           variants={container}
@@ -69,15 +69,15 @@ export default function Hero() {
 
           <motion.p
             variants={item}
-            className="text-white/70 max-w-md mx-auto text-sm leading-relaxed"
+            className="mx-auto max-w-md text-sm leading-relaxed text-white/70"
             style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300, letterSpacing: '0.05em' }}
           >
             Curated private resort villas where every detail is tailored to your vision of paradise.
           </motion.p>
 
-          <motion.div variants={item} className="flex flex-col sm:flex-row gap-3 mt-3">
-            <a href="#retreats" className="btn-gold">Explore Properties</a>
-            <a href="#about" className="btn-outline-gold border-white/40 text-white hover:bg-white hover:text-[#1a1a1a]">
+          <motion.div variants={item} className="mt-3 flex w-full max-w-sm flex-col gap-3 sm:max-w-none sm:flex-row">
+            <a href="#retreats" className="btn-gold w-full justify-center sm:w-auto">Explore Properties</a>
+            <a href="#about" className="btn-outline-gold w-full justify-center border-white/40 text-white hover:bg-white hover:text-[#1a1a1a] sm:w-auto">
               Learn More
             </a>
           </motion.div>
@@ -86,8 +86,8 @@ export default function Hero() {
 
       {/* Booking Bar */}
       <div className="relative w-full" style={{ background: '#1a1a1a' }}>
-        <div className="max-w-6xl mx-auto px-5 lg:px-12 py-5">
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-6 items-end">
+        <div className="max-w-6xl mx-auto px-4 py-5 sm:px-5 lg:px-12">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5 lg:gap-6 items-end">
             <div className="flex flex-col gap-1">
               <label className="section-label text-[9px]">Property</label>
               <select
@@ -113,7 +113,7 @@ export default function Hero() {
               <input type="number" placeholder="2 Guests" min={1} value={guests}
                 onChange={(e) => setGuests(e.target.value)} className="booking-input" />
             </div>
-            <div className="col-span-2 lg:col-span-1">
+            <div className="sm:col-span-2 lg:col-span-1">
               <a href="#retreats" className="btn-gold w-full justify-center block text-center">
                 Check Availability
               </a>
@@ -125,7 +125,7 @@ export default function Hero() {
       {/* Scroll cue */}
       <motion.a
         href="#stats"
-        className="absolute bottom-48 sm:bottom-36 left-1/2 -translate-x-1/2 text-white/30 hover:text-white/60 transition-colors"
+        className="absolute bottom-44 left-1/2 -translate-x-1/2 text-white/30 transition-colors hover:text-white/60 sm:bottom-36"
         animate={{ y: [0, 6, 0] }}
         transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
       >

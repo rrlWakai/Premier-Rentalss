@@ -52,11 +52,11 @@ export function BookingFailed() {
         <p className="text-[#8a8a7a] text-sm mb-6" style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}>
           Your payment could not be processed. No charges have been made. Please try again or contact our team.
         </p>
-        <div className="flex gap-3 justify-center">
-          <Link to="/" className="btn-outline-gold inline-flex items-center gap-2">
+        <div className="flex flex-col justify-center gap-3 sm:flex-row">
+          <Link to="/" className="btn-outline-gold inline-flex items-center justify-center gap-2">
             <ArrowLeft size={14} /> Home
           </Link>
-          <Link to="/#retreats" className="btn-gold">
+          <Link to="/#retreats" className="btn-gold justify-center">
             Try Again
           </Link>
         </div>

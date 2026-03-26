@@ -44,10 +44,10 @@ export default function Testimonials() {
   }, []);
 
   return (
-    <section className="py-24 bg-white">
-      <div className="max-w-7xl mx-auto px-6 lg:px-12">
+    <section className="bg-white py-16 sm:py-20 lg:py-24">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-12">
         <motion.div
-          className="text-center mb-14"
+          className="mb-10 text-center sm:mb-14"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -72,7 +72,7 @@ export default function Testimonials() {
         </motion.div>
 
         <motion.div
-          className="grid grid-cols-1 md:grid-cols-3 gap-6"
+          className="grid grid-cols-1 gap-6 md:grid-cols-3"
           variants={containerVariant}
           initial="hidden"
           whileInView="visible"
@@ -83,7 +83,7 @@ export default function Testimonials() {
               key={review.id}
               variants={fadeUpVariant}
               custom={i}
-              className="p-8 bg-[#f8f4ee] flex flex-col gap-4"
+              className="flex flex-col gap-4 bg-[#f8f4ee] p-5 sm:p-8"
               whileHover={{ y: -4, transition: { duration: 0.25 } }}
             >
               <div className="flex gap-1">

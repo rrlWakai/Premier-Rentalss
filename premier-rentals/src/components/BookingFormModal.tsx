@@ -295,14 +295,14 @@ export default function BookingFormModal({
           />
 
           <motion.div
-            className="relative w-full max-w-xl bg-white rounded-t-2xl sm:rounded-2xl overflow-hidden shadow-2xl max-h-[95vh] flex flex-col"
+            className="booking-modal-content relative flex max-h-[95vh] w-full max-w-xl flex-col overflow-hidden bg-white shadow-2xl rounded-t-2xl sm:rounded-2xl"
             initial={{ y: 60, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 40, opacity: 0 }}
             transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#ede8df] shrink-0">
+            <div className="flex items-center justify-between border-b border-[#ede8df] px-4 py-4 shrink-0 sm:px-6">
               <div>
                 <p className="section-label text-[9px]">Reservation</p>
                 <h3
@@ -328,7 +328,7 @@ export default function BookingFormModal({
 
             {/* Step indicator */}
             {step !== "success" && (
-              <div className="flex items-center gap-2 px-6 py-3 bg-[#faf8f5] border-b border-[#ede8df] shrink-0">
+              <div className="flex items-center gap-2 overflow-x-auto border-b border-[#ede8df] bg-[#faf8f5] px-4 py-3 shrink-0 sm:px-6">
                 {STEPS.map((s, i) => (
                   <div key={s.id} className="flex items-center gap-2">
                     <div
@@ -368,7 +368,7 @@ export default function BookingFormModal({
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className="p-6 flex flex-col gap-4"
+                    className="flex flex-col gap-4 p-4 sm:p-6"
                   >
                     <p
                       className="text-xs text-[#8a8a7a] mb-1"
@@ -422,7 +422,7 @@ export default function BookingFormModal({
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className="p-6 flex flex-col gap-4"
+                    className="flex flex-col gap-4 p-4 sm:p-6"
                   >
                     {/* Package selector */}
                     <FieldRow icon={Package} label="Rate Package *">
@@ -483,7 +483,7 @@ export default function BookingFormModal({
                       </p>
                     </FieldRow>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <FieldRow
                         icon={Users}
                         label={`Guests (max ${selectedPkg.maxPax}) *`}
@@ -517,7 +517,7 @@ export default function BookingFormModal({
                     </div>
 
                     <FieldRow icon={Wallet} label="Mode of Payment *">
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         {(["GCash", "BDO"] as PaymentMode[]).map((mode) => (
                           <button
                             key={mode}
@@ -610,7 +610,7 @@ export default function BookingFormModal({
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className="p-6 flex flex-col gap-4"
+                    className="flex flex-col gap-4 p-4 sm:p-6"
                   >
                     <p
                       className="text-xs text-[#8a8a7a] mb-1"
@@ -687,7 +687,7 @@ export default function BookingFormModal({
                         ].map(({ icon: Icon, label, value }) => (
                           <div
                             key={label}
-                            className="flex items-start gap-3 px-5 py-3"
+                            className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:gap-3 sm:px-5"
                           >
                             <Icon
                               size={13}
@@ -696,13 +696,13 @@ export default function BookingFormModal({
                               strokeWidth={1.5}
                             />
                             <span
-                              className="text-[11px] text-[#8a8a7a] w-28 shrink-0"
+                              className="shrink-0 text-[11px] text-[#8a8a7a] sm:w-28"
                               style={{ fontFamily: "Jost, sans-serif" }}
                             >
                               {label}
                             </span>
                             <span
-                              className="text-[11px] text-[#1a1a1a] font-medium whitespace-pre-line"
+                              className="whitespace-pre-line break-words text-[11px] font-medium text-[#1a1a1a]"
                               style={{ fontFamily: "Jost, sans-serif" }}
                             >
                               {value}
@@ -710,7 +710,7 @@ export default function BookingFormModal({
                           </div>
                         ))}
                         {form.special_requests && (
-                          <div className="flex items-start gap-3 px-5 py-3">
+                          <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:gap-3 sm:px-5">
                             <Package
                               size={13}
                               color="#c9a96e"
@@ -718,7 +718,7 @@ export default function BookingFormModal({
                               strokeWidth={1.5}
                             />
                             <span
-                              className="text-[11px] text-[#8a8a7a] w-28 shrink-0"
+                              className="shrink-0 text-[11px] text-[#8a8a7a] sm:w-28"
                               style={{ fontFamily: "Jost, sans-serif" }}
                             >
                               Requests
@@ -733,7 +733,7 @@ export default function BookingFormModal({
                         )}
                       </div>
                       {/* Price estimate */}
-                      <div className="px-5 py-4 bg-[#faf8f5] border-t border-[#ede8df] flex items-center justify-between">
+                      <div className="flex flex-col gap-3 border-t border-[#ede8df] bg-[#faf8f5] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                         <div>
                           <p
                             className="text-[10px] text-[#8a8a7a] tracking-wider uppercase"
@@ -856,26 +856,26 @@ export default function BookingFormModal({
                       </p>
                     </div>
                     <div
-                      className="w-full p-4 bg-[#f8f4ee] rounded-lg border border-[#ede8df] text-xs text-left"
+                      className="w-full rounded-lg border border-[#ede8df] bg-[#f8f4ee] p-4 text-left text-xs"
                       style={{ fontFamily: "Jost, sans-serif" }}
                     >
-                      <div className="flex justify-between mb-2">
+                      <div className="mb-2 flex items-start justify-between gap-3">
                         <span className="text-[#8a8a7a]">Reference</span>
                         <span className="font-semibold text-[#1a1a1a]">
                           {bookingRef}
                         </span>
                       </div>
-                      <div className="flex justify-between mb-2">
+                      <div className="mb-2 flex items-start justify-between gap-3">
                         <span className="text-[#8a8a7a]">Property</span>
                         <span className="text-[#1a1a1a]">{property.name}</span>
                       </div>
-                      <div className="flex justify-between mb-2">
+                      <div className="mb-2 flex items-start justify-between gap-3">
                         <span className="text-[#8a8a7a]">Package</span>
                         <span className="text-[#1a1a1a]">
                           {selectedPkg.title}
                         </span>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex items-start justify-between gap-3">
                         <span className="text-[#8a8a7a]">Down Payment Due</span>
                         <span
                           className="font-semibold"
@@ -908,7 +908,7 @@ export default function BookingFormModal({
 
             {/* Footer nav */}
             {step !== "success" && (
-              <div className="flex items-center justify-between px-6 py-4 border-t border-[#ede8df] bg-[#faf8f5] shrink-0">
+              <div className="flex items-center justify-between gap-3 border-t border-[#ede8df] bg-[#faf8f5] px-4 py-4 shrink-0 sm:px-6">
                 <button
                   onClick={() => {
                     if (step === "details") onClose();

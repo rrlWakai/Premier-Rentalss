@@ -34,11 +34,11 @@ export default function Contact() {
 
   return (
     <section id="contact" className="relative">
-      <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[700px]">
+      <div className="grid min-h-[700px] grid-cols-1 lg:grid-cols-2">
 
         {/* Left — image + text */}
         <motion.div
-          className="relative flex flex-col justify-end p-10 lg:p-16 min-h-[400px] lg:min-h-0"
+          className="relative flex min-h-[400px] flex-col justify-end p-5 sm:p-8 lg:min-h-0 lg:p-16"
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
@@ -79,7 +79,7 @@ export default function Contact() {
 
         {/* Right — form */}
         <motion.div
-          className="flex flex-col justify-center px-10 lg:px-16 py-16"
+          className="flex flex-col justify-center px-5 py-12 sm:px-8 lg:px-16 lg:py-16"
           style={{ background: '#1a1a1a' }}
           initial={{ opacity: 0, x: 30 }}
           whileInView={{ opacity: 1, x: 0 }}
@@ -112,7 +112,7 @@ export default function Contact() {
                 <input type="email" name="email"     placeholder="Email Address"  required value={form.email}     onChange={handleChange} className="form-input" />
               </div>
               <input type="tel"    name="phone"     placeholder="Phone Number"             value={form.phone}     onChange={handleChange} className="form-input" />
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <input type="date" name="check_in"  value={form.check_in}  onChange={handleChange} className="form-input" />
                 <input type="date" name="check_out" value={form.check_out} onChange={handleChange} className="form-input" />
               </div>

@@ -50,7 +50,7 @@ export default function AdminCalendarView({ bookings, blockedDates, onAddBlock, 
   return (
     <div className="bg-white rounded-xl border border-[#ede8df] overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-[#ede8df]">
+      <div className="flex items-center justify-between border-b border-[#ede8df] px-4 py-4 sm:px-6">
         <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-2 hover:bg-[#f8f4ee] rounded-lg transition-colors">
           <ChevronLeft size={16} color="#8a8a7a" />
         </button>
@@ -64,10 +64,10 @@ export default function AdminCalendarView({ bookings, blockedDates, onAddBlock, 
 
       <div className="grid grid-cols-1 lg:grid-cols-3">
         {/* Calendar grid */}
-        <div className="lg:col-span-2 p-4">
+        <div className="p-3 sm:p-4 lg:col-span-2">
           <div className="grid grid-cols-7 mb-2">
             {WEEKDAYS.map(d => (
-              <div key={d} className="text-center text-[10px] text-[#8a8a7a] tracking-wider py-2" style={{ fontFamily: 'Jost, sans-serif', fontWeight: 500 }}>
+              <div key={d} className="py-2 text-center text-[9px] tracking-wider text-[#8a8a7a] sm:text-[10px]" style={{ fontFamily: 'Jost, sans-serif', fontWeight: 500 }}>
                 {d}
               </div>
             ))}
@@ -86,13 +86,13 @@ export default function AdminCalendarView({ bookings, blockedDates, onAddBlock, 
                   key={day.toISOString()}
                   onClick={() => setSelectedDay(isSameDay(day, selectedDay ?? new Date(0)) ? null : day)}
                   className={`
-                    relative min-h-[62px] p-1.5 rounded-lg border text-left transition-all duration-150
+                    relative min-h-[52px] p-1 rounded-lg border text-left transition-all duration-150 sm:min-h-[62px] sm:p-1.5
                     ${isSelected  ? 'border-[#c9a96e] bg-[#faf6ef]'   : 'border-transparent hover:border-[#ede8df] hover:bg-[#faf8f5]'}
                     ${todayDay    ? 'ring-1 ring-[#c9a96e]'            : ''}
                     ${blocked     ? 'bg-red-50'                        : ''}
                   `}
                 >
-                  <span className={`text-xs font-medium block mb-1 ${todayDay ? 'text-[#c9a96e]' : 'text-[#1a1a1a]'}`}
+                  <span className={`mb-1 block text-[11px] font-medium sm:text-xs ${todayDay ? 'text-[#c9a96e]' : 'text-[#1a1a1a]'}`}
                     style={{ fontFamily: 'Jost, sans-serif' }}>
                     {format(day, 'd')}
                   </span>
@@ -131,7 +131,7 @@ export default function AdminCalendarView({ bookings, blockedDates, onAddBlock, 
         </div>
 
         {/* Side panel */}
-        <div className="border-l border-[#ede8df] p-5 min-h-[400px]">
+        <div className="min-h-[320px] border-t border-[#ede8df] p-4 sm:p-5 lg:min-h-[400px] lg:border-l lg:border-t-0">
           {selectedDay ? (
             <div>
               <div className="flex items-center justify-between mb-4">

@@ -47,7 +47,8 @@ const TIER_LABELS: Record<string, string> = {
 function RateTable({ pkg }: { pkg: RatePackage }) {
   return (
     <div className="overflow-hidden rounded-xl border border-[#ede8df]">
-      <table className="w-full text-xs" style={{ fontFamily: 'Jost, sans-serif' }}>
+      <div className="overflow-x-auto">
+      <table className="min-w-[560px] w-full text-xs" style={{ fontFamily: 'Jost, sans-serif' }}>
         <thead>
           <tr style={{ background: '#1a1a1a' }}>
             <th className="px-4 py-3 text-left text-[10px] tracking-widest uppercase text-white/60 font-medium">Session</th>
@@ -67,8 +68,9 @@ function RateTable({ pkg }: { pkg: RatePackage }) {
           ))}
         </tbody>
       </table>
+      </div>
       {/* Additional pax note */}
-      <div className="px-4 py-3 bg-[#faf8f5] border-t border-[#ede8df] flex flex-wrap gap-x-6 gap-y-1">
+      <div className="flex flex-wrap gap-x-6 gap-y-1 border-t border-[#ede8df] bg-[#faf8f5] px-4 py-3">
         <span className="text-[10px] text-[#8a8a7a]" style={{ fontFamily: 'Jost, sans-serif' }}>
           <Info size={10} className="inline mr-1" />
           Max {pkg.maxAdditionalPax} additional pax:
@@ -87,8 +89,8 @@ function PackageCard({ pkg, onBook }: { pkg: RatePackage; onBook: (pkg: RatePack
   return (
     <div className="bg-white rounded-xl border border-[#ede8df] overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-5">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="flex items-start gap-3">
           <div className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
           <div>
             <span
@@ -108,7 +110,7 @@ function PackageCard({ pkg, onBook }: { pkg: RatePackage; onBook: (pkg: RatePack
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-2 sm:justify-end">
           <button
             onClick={() => onBook(pkg)}
             className="btn-gold text-[10px] py-2 px-4 hidden sm:flex"
@@ -125,7 +127,7 @@ function PackageCard({ pkg, onBook }: { pkg: RatePackage; onBook: (pkg: RatePack
       </div>
 
       {/* Starting from */}
-      <div className="px-6 pb-4 flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 px-4 pb-4 sm:px-6">
         <span className="text-[10px] text-[#8a8a7a] uppercase tracking-wider" style={{ fontFamily: 'Jost, sans-serif' }}>Starting from</span>
         <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.3rem', color: '#c9a96e', fontWeight: 500 }}>
           {formatPHP(Math.min(...pkg.rates.map(r => r.weekday)))}
@@ -194,22 +196,22 @@ export default function PropertyPage() {
 
       {/* ── Sticky top nav ───────────────────────────── */}
       <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-sm border-b border-[#ede8df]">
-        <div className="max-w-7xl mx-auto px-5 lg:px-12 h-14 flex items-center justify-between">
+        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-3 px-4 sm:px-5 lg:px-12">
           <Link to="/" className="flex items-center gap-2 text-[#8a8a7a] hover:text-[#1a1a1a] transition-colors text-xs tracking-wider uppercase"
             style={{ fontFamily: 'Jost, sans-serif' }}>
             <ArrowLeft size={14} /> Back
           </Link>
-          <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.1rem', color: '#1a1a1a' }}>
+          <span className="truncate text-center" style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.1rem', color: '#1a1a1a' }}>
             {property.name}
           </span>
-          <button onClick={() => setBookingPkg(property.packages[0])} className="btn-gold text-xs py-2 px-4">
+          <button onClick={() => setBookingPkg(property.packages[0])} className="btn-gold shrink-0 text-xs py-2 px-3 sm:px-4">
             Book Now
           </button>
         </div>
       </div>
 
       {/* ── Hero gallery ─────────────────────────────── */}
-      <div className="relative h-[55vh] lg:h-[68vh] overflow-hidden">
+      <div className="relative h-[52vh] overflow-hidden sm:h-[55vh] lg:h-[68vh]">
         <ImgWithFallback
           local={allLocal[activeImage]}
           fallback={allFallback[activeImage] ?? allFallback[0]}
@@ -219,15 +221,15 @@ export default function PropertyPage() {
         <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.45) 100%)' }} />
 
         {/* Tag badge */}
-        <div className="absolute top-5 left-5">
-          <span className="text-white/90 text-[10px] tracking-[0.2em] uppercase px-3 py-1 border border-white/30 backdrop-blur-sm"
+        <div className="absolute left-4 top-4 sm:left-5 sm:top-5">
+          <span className="border border-white/30 px-2.5 py-1 text-[9px] uppercase tracking-[0.18em] text-white/90 backdrop-blur-sm sm:px-3 sm:text-[10px]"
             style={{ background: 'rgba(0,0,0,0.25)', fontFamily: 'Jost, sans-serif' }}>
             {property.tagline}
           </span>
         </div>
 
         <div className="absolute inset-x-0 bottom-0">
-          <div className="max-w-7xl mx-auto px-5 lg:px-12 pb-6 lg:pb-8">
+          <div className="mx-auto max-w-7xl px-4 pb-5 sm:px-5 lg:px-12 lg:pb-8">
             {allLocal.length > 1 && (
               <div className="mb-5 flex gap-2 overflow-x-auto pb-1">
                 {allLocal.map((localSrc, i) => (
@@ -272,7 +274,7 @@ export default function PropertyPage() {
 
       {/* ── Body ─────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-5 lg:px-12 py-14">
-        <motion.div className="grid grid-cols-1 lg:grid-cols-3 gap-10" variants={containerVariant} initial="hidden" animate="visible">
+        <motion.div className="grid grid-cols-1 gap-8 lg:grid-cols-3 lg:gap-10" variants={containerVariant} initial="hidden" animate="visible">
 
           {/* LEFT: main content */}
           <motion.div className="lg:col-span-2 flex flex-col gap-12" variants={fadeUpVariant} custom={0}>
@@ -398,7 +400,7 @@ export default function PropertyPage() {
 
           {/* RIGHT: sticky booking card */}
           <motion.div variants={fadeUpVariant} custom={1}>
-            <div className="sticky top-20 bg-white rounded-xl border border-[#ede8df] overflow-hidden shadow-sm">
+            <div className="rounded-xl border border-[#ede8df] bg-white overflow-hidden shadow-sm lg:sticky lg:top-20">
               <div className="px-6 py-5 border-b border-[#ede8df]">
                 <p className="section-label mb-2">Quick Rates</p>
                 <div className="flex flex-col gap-3">

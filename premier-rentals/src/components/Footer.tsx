@@ -16,8 +16,8 @@ export default function Footer() {
   return (
     <footer style={{ background: '#111111' }}>
       {/* Main footer */}
-      <div className="max-w-7xl mx-auto px-6 lg:px-12 py-20">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
+      <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-12 lg:py-20">
+        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-5 lg:gap-12">
           {/* Brand */}
           <div className="lg:col-span-2">
             <p
@@ -96,14 +96,14 @@ export default function Footer() {
 
       {/* Bottom bar */}
       <div className="border-t border-white/5">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-6 text-center sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:text-left lg:px-12">
           <p
             className="text-white/20 text-[10px] tracking-widest uppercase"
             style={{ fontFamily: 'Jost, sans-serif' }}
           >
             © {new Date().getFullYear()} Premier Rentals. All rights reserved.
           </p>
-          <div className="flex gap-6">
+          <div className="flex flex-wrap justify-center gap-4 sm:justify-end sm:gap-6">
             {['Terms of Service', 'Privacy Policy', 'Cookie Policy'].map((item) => (
               <a
                 key={item}

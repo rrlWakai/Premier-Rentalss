@@ -117,7 +117,7 @@ export default function AdminDashboard() {
   ]
 
   return (
-    <div className="min-h-screen flex bg-[#f8f4ee]">
+    <div className="min-h-screen bg-[#f8f4ee] lg:flex">
       {/* Sidebar */}
       <aside className="w-64 bg-[#1a1a1a] flex-col shrink-0 hidden lg:flex">
         <div className="px-6 py-6 border-b border-white/10">
@@ -149,7 +149,7 @@ export default function AdminDashboard() {
       {/* Main */}
       <main className="flex-1 overflow-auto">
         {/* Top bar */}
-        <div className="bg-white border-b border-[#ede8df] px-5 lg:px-8 py-4 flex items-center justify-between">
+        <div className="flex items-center justify-between border-b border-[#ede8df] bg-white px-4 py-4 sm:px-5 lg:px-8">
           <h1 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.4rem', fontWeight: 400, color: '#1a1a1a' }}>
             {NAV.find(n => n.id === tab)?.label}
           </h1>
@@ -167,7 +167,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="p-5 lg:p-8">
+          <div className="p-4 sm:p-5 lg:p-8">
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <div className="w-8 h-8 border-2 border-[#c9a96e] border-t-transparent rounded-full animate-spin" />
@@ -177,7 +177,7 @@ export default function AdminDashboard() {
               {/* OVERVIEW */}
               {tab === 'overview' && (
                 <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-6">
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     {STATS.map(({ label, value, icon: Icon, color }) => (
                       <div key={label} className="bg-white rounded-xl border border-[#ede8df] p-5">
                         <div className="flex items-center justify-between mb-3">
@@ -194,7 +194,7 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="bg-white rounded-xl border border-[#ede8df] overflow-hidden">
-                    <div className="px-6 py-4 border-b border-[#ede8df] flex items-center justify-between">
+                    <div className="flex items-center justify-between border-b border-[#ede8df] px-4 py-4 sm:px-6">
                       <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.1rem', fontWeight: 400, color: '#1a1a1a' }}>Recent Bookings</h3>
                       <button onClick={() => setTab('bookings')} className="text-xs text-[#c9a96e] hover:underline" style={{ fontFamily: 'Jost, sans-serif' }}>View all</button>
                     </div>
@@ -237,14 +237,14 @@ export default function AdminDashboard() {
               {/* BOOKINGS */}
               {tab === 'bookings' && (
                 <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-5">
-                  <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex flex-col gap-3 sm:flex-row">
                     <div className="relative flex-1">
                       <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8a8a7a]" />
                       <input type="text" placeholder="Search by name or contact..." value={search} onChange={e => setSearch(e.target.value)}
                         className="w-full pl-9 pr-4 py-2.5 text-sm border border-[#ede8df] rounded-lg bg-white outline-none focus:border-[#c9a96e] transition-colors"
                         style={{ fontFamily: 'Jost, sans-serif' }} />
                     </div>
-                    <div className="relative">
+                    <div className="relative sm:w-[180px]">
                       <Filter size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8a8a7a]" />
                       <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
                         className="pl-9 pr-8 py-2.5 text-sm border border-[#ede8df] rounded-lg bg-white outline-none focus:border-[#c9a96e] appearance-none cursor-pointer"
@@ -259,8 +259,8 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                    <div className="lg:col-span-2 bg-white rounded-xl border border-[#ede8df] overflow-hidden">
+                  <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+                    <div className="bg-white rounded-xl border border-[#ede8df] overflow-hidden xl:col-span-2">
                       <div className="overflow-x-auto">
                         <table className="w-full text-xs" style={{ fontFamily: 'Jost, sans-serif' }}>
                           <thead>
@@ -303,7 +303,7 @@ export default function AdminDashboard() {
                     </div>
 
                     {/* Detail panel */}
-                    <div className="bg-white rounded-xl border border-[#ede8df] p-5 overflow-y-auto max-h-[620px]">
+                    <div className="max-h-[620px] overflow-y-auto rounded-xl border border-[#ede8df] bg-white p-4 sm:p-5 xl:sticky xl:top-6">
                       {selectedBooking ? (
                         <div>
                           <p className="section-label mb-3 text-[9px]">Booking Detail</p>
@@ -323,10 +323,10 @@ export default function AdminDashboard() {
                               [Wallet,      'Payment',   selectedBooking.mode_of_payment],
                               [AlertCircle, 'Amount',    formatPHP(selectedBooking.total_amount)],
                             ] as [typeof User | null, string, string][]).map(([Icon, label, value]) => (
-                              <div key={label} className="flex items-center gap-2.5 py-2 border-b border-[#ede8df] last:border-0">
+                              <div key={label} className="flex items-start gap-2.5 border-b border-[#ede8df] py-2 last:border-0">
                                 {Icon ? <Icon size={12} color="#c9a96e" strokeWidth={1.5} className="shrink-0" /> : <ClockSm />}
-                                <span className="text-[#8a8a7a] text-[10px] w-16 shrink-0">{label}</span>
-                                <span className="text-[#1a1a1a] font-medium">{value}</span>
+                                <span className="w-16 shrink-0 text-[10px] text-[#8a8a7a]">{label}</span>
+                                <span className="break-words text-[#1a1a1a] font-medium">{value}</span>
                               </div>
                             ))}
                           </div>

@@ -15,7 +15,7 @@ const features = [
 export default function MoreThanStay() {
   return (
     <section id="about" className="relative overflow-hidden">
-      <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[600px]">
+      <div className="grid min-h-[600px] grid-cols-1 lg:grid-cols-2">
 
         {/* Image — local /public/images/gallery/spa.jpg */}
         <motion.div
@@ -35,7 +35,7 @@ export default function MoreThanStay() {
 
         {/* Content */}
         <motion.div
-          className="flex flex-col justify-center px-10 lg:px-16 py-20"
+          className="flex flex-col justify-center px-5 py-14 sm:px-8 lg:px-16 lg:py-20"
           style={{ background: '#1a1a1a' }}
           initial={{ opacity: 0, x: 40 }}
           whileInView={{ opacity: 1, x: 0 }}
@@ -53,7 +53,7 @@ export default function MoreThanStay() {
             that transform your time into lasting memories. Each detail is considered, each moment designed.
           </p>
 
-          <ul className="flex flex-col gap-3 mb-10">
+          <ul className="mb-10 flex flex-col gap-3">
             {features.map((feature, i) => (
               <motion.li
                 key={feature}
@@ -75,7 +75,7 @@ export default function MoreThanStay() {
             ))}
           </ul>
 
-          <a href="#retreats" className="btn-gold w-fit">Begin Your Experience</a>
+          <a href="#retreats" className="btn-gold w-full justify-center sm:w-fit">Begin Your Experience</a>
         </motion.div>
       </div>
     </section>

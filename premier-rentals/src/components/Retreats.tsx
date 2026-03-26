@@ -17,11 +17,11 @@ export default function Retreats() {
   const [bookingState, setBookingState] = useState<{ property: PropertyData; pkg: RatePackage } | null>(null)
 
   return (
-    <section id="retreats" className="py-24 bg-[#f8f4ee]">
-      <div className="max-w-7xl mx-auto px-6 lg:px-12">
+    <section id="retreats" className="bg-[#f8f4ee] py-16 sm:py-20 lg:py-24">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-12">
 
         {/* Header */}
-        <div className="flex items-end justify-between mb-12">
+        <div className="mb-10 flex items-end justify-between sm:mb-12">
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
             <p className="section-label mb-3">Our Properties</p>
             <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 400, lineHeight: 1.1, color: '#1a1a1a' }}>
@@ -40,60 +40,60 @@ export default function Retreats() {
         >
           {PROPERTIES.map(({ data, local, fallback }, i) => (
             <motion.div key={data.slug} variants={fadeUpVariant} custom={i} className="retreat-card group cursor-pointer">
-              <div className="relative aspect-[4/3] overflow-hidden">
+              <div className="relative aspect-[4/5] overflow-hidden sm:aspect-[4/3]">
                 <ImgWithFallback local={local} fallback={fallback} alt={data.name} className="w-full h-full object-cover" />
                 <div className="retreat-card-overlay absolute inset-0" />
 
                 {/* Tag */}
-                <div className="absolute top-4 left-4">
-                  <span className="text-white/90 text-[10px] tracking-[0.2em] uppercase px-3 py-1 border border-white/30 backdrop-blur-sm"
+                <div className="absolute left-3 top-3 sm:left-4 sm:top-4">
+                  <span className="border border-white/30 px-2.5 py-1 text-[9px] uppercase tracking-[0.18em] text-white/90 backdrop-blur-sm sm:px-3 sm:text-[10px]"
                     style={{ background: 'rgba(0,0,0,0.25)', fontFamily: 'Jost, sans-serif' }}>
                     {data.tagline}
                   </span>
                 </div>
 
                 {/* Package count badge */}
-                <div className="absolute top-4 right-4">
-                  <span className="text-white/80 text-[10px] tracking-wider px-2.5 py-1 rounded-full"
+                <div className="absolute right-3 top-3 sm:right-4 sm:top-4">
+                  <span className="rounded-full px-2.5 py-1 text-[9px] tracking-wider text-white/80 sm:text-[10px]"
                     style={{ background: 'rgba(0,0,0,0.35)', fontFamily: 'Jost, sans-serif' }}>
                     {data.packages.length} Packages
                   </span>
                 </div>
 
                 {/* Bottom overlay */}
-                <div className="absolute bottom-0 left-0 right-0 p-6">
-                  <h3 className="text-white mb-1" style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.5rem', fontWeight: 400 }}>
+                <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6">
+                  <h3 className="mb-1 text-white" style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(1.3rem, 3vw, 1.5rem)', fontWeight: 400 }}>
                     {data.name}
                   </h3>
-                  <p className="text-white/60 text-xs mb-3 line-clamp-2" style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}>
+                  <p className="mb-3 line-clamp-3 text-[11px] text-white/60 sm:line-clamp-2 sm:text-xs" style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}>
                     {data.description}
                   </p>
 
                   {/* Capacity row */}
-                  <div className="flex items-center gap-4 mb-4 text-[10px] text-white/50" style={{ fontFamily: 'Jost, sans-serif' }}>
+                  <div className="mb-4 flex flex-col gap-2 text-[10px] text-white/50 sm:flex-row sm:items-center sm:gap-4" style={{ fontFamily: 'Jost, sans-serif' }}>
                     <span className="flex items-center gap-1.5"><Users size={11} />Up to {data.maxGuests} guests</span>
                     <span className="flex items-center gap-1.5"><Car size={11} />Max {data.maxCars} cars</span>
                   </div>
 
                   {/* Starting price */}
-                  <div className="flex items-center gap-3 mb-4">
+                  <div className="mb-4 flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-3">
                     <span className="text-[10px] text-white/40 uppercase tracking-wider" style={{ fontFamily: 'Jost, sans-serif' }}>Starting from</span>
                     <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.2rem', color: '#c9a96e', fontWeight: 500 }}>
                       {formatPHP(getStartingPrice(data))}
                     </span>
                   </div>
 
-                  {/* Action buttons — reveal on hover */}
-                  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  {/* Action buttons stay visible on touch devices and animate on larger screens */}
+                  <div className="flex flex-col gap-2 opacity-100 transition-opacity duration-300 sm:flex-row sm:opacity-0 sm:group-hover:opacity-100">
                     <button
                       onClick={() => setBookingState({ property: data, pkg: data.packages[0] })}
-                      className="btn-gold text-[10px] py-2 px-4"
+                      className="btn-gold px-4 py-2 text-[10px] w-full sm:w-auto"
                     >
                       Book Now
                     </button>
                     <Link
                       to={`/property/${data.slug}`}
-                      className="text-[10px] py-2 px-4 bg-white/10 border border-white/30 text-white hover:bg-white hover:text-[#1a1a1a] transition-all flex items-center gap-1.5"
+                      className="flex w-full items-center justify-center gap-1.5 border border-white/30 bg-white/10 px-4 py-2 text-[10px] text-white transition-all hover:bg-white hover:text-[#1a1a1a] sm:w-auto"
                       style={{ fontFamily: 'Jost, sans-serif', letterSpacing: '0.1em', textTransform: 'uppercase' }}
                     >
                       View Details <ArrowRight size={11} />

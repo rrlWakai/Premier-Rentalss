@@ -11,11 +11,11 @@ const images = GALLERY_IMAGES.map((img, i) => ({
 
 export default function Gallery() {
   return (
-    <section id="gallery" className="py-24 bg-[#f8f4ee]">
-      <div className="max-w-7xl mx-auto px-6 lg:px-12">
+    <section id="gallery" className="bg-[#f8f4ee] py-16 sm:py-20 lg:py-24">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-12">
 
         <motion.div
-          className="mb-12"
+          className="mb-10 sm:mb-12"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -77,7 +77,7 @@ export default function Gallery() {
         </motion.div>
 
         {/* Mobile grid — 2 columns */}
-        <div className="md:hidden grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2 md:hidden">
           {images.map((img, i) => (
             <motion.div
               key={img.src}
@@ -91,7 +91,7 @@ export default function Gallery() {
                 local={img.src}
                 fallback={img.fallback}
                 alt={img.alt}
-                className={`w-full object-cover ${i === 0 ? 'h-52' : 'h-36'}`}
+                className={`w-full object-cover ${i === 0 ? 'h-48 sm:h-52' : 'h-32 sm:h-36'}`}
               />
             </motion.div>
           ))}

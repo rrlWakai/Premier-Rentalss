@@ -181,10 +181,10 @@ export default function BookingModal({ retreat, open, onClose }: any) {
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4">
           <div className="absolute inset-0 bg-black/60" onClick={onClose} />
 
-          <div className="bg-white p-5 rounded-xl w-full max-w-md space-y-4">
+          <div className="relative max-h-[95vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-4 space-y-4 sm:rounded-xl sm:p-5">
             {/* DATE */}
             {step === "dates" && (
               <>

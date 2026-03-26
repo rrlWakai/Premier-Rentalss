@@ -15,10 +15,10 @@ const amenities = [
 
 export default function Amenities() {
   return (
-    <section id="amenities" className="py-24 bg-[#f8f4ee]">
-      <div className="max-w-7xl mx-auto px-6 lg:px-12">
+    <section id="amenities" className="bg-[#f8f4ee] py-16 sm:py-20 lg:py-24">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-12">
         <motion.div
-          className="mb-14"
+          className="mb-10 sm:mb-14"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -31,7 +31,7 @@ export default function Amenities() {
         </motion.div>
 
         <motion.div
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"
+          className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8"
           variants={containerVariant}
           initial="hidden"
           whileInView="visible"
