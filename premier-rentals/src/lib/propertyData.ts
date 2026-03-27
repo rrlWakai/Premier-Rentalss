@@ -55,7 +55,7 @@ export interface AmenityGroup {
 export const PATIO_DATA: PropertyData = {
   slug: 'premier-patio',
   name: 'Premier Patio',
-  tagline: 'Urban Patio Stay',
+  tagline: 'Patio Stay',
   description:
     'A sophisticated garden estate with lush tropical surroundings and open-air entertainment spaces — ideal for intimate celebrations and exclusive family gatherings.',
   location: '36 Amsterdam, Barangay 167, Caloocan, Metro Manila',
