@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   X,
   User,
   MapPin,
   Phone,
+  Mail,
   Calendar,
   Clock,
   Package,
@@ -14,19 +15,28 @@ import {
   ChevronRight,
   AlertCircle,
   Shield,
+  Lock,
+  CreditCard,
+  BadgeCheck,
 } from "lucide-react";
+const isPaymentReady = !!import.meta.env.VITE_PAYMONGO_READY;
 import { motion, AnimatePresence } from "framer-motion";
-import { createBooking } from "../lib/supabase";
+import {
+  createBookingReservation,
+  createPayMongoCheckout,
+} from "../lib/bookingApi";
 import {
   type PropertyData,
   type RatePackage,
-  type PaymentMode,
   type PreferredTime,
   type PreferredPlan,
   formatPHP,
 } from "../lib/propertyData";
 import toast from "react-hot-toast";
 
+if (!isPaymentReady) {
+  console.warn("Demo mode: Payment is not yet enabled.");
+}
 interface Props {
   property: PropertyData;
   initialPackage: RatePackage;
@@ -34,13 +44,26 @@ interface Props {
   onClose: () => void;
 }
 
-type Step = "details" | "booking" | "review" | "success";
+type Step = "details" | "booking" | "review";
+type SupportedPaymentMode = "GCash" | "Card";
 
 const STEPS: { id: Step; label: string }[] = [
   { id: "details", label: "Your Details" },
   { id: "booking", label: "Booking Info" },
   { id: "review", label: "Review" },
 ];
+
+const modalTransition = {
+  duration: 0.48,
+  ease: [0.22, 1, 0.36, 1] as const,
+};
+
+const stepMotionProps = {
+  initial: { opacity: 0, y: 18, filter: "blur(8px)" },
+  animate: { opacity: 1, y: 0, filter: "blur(0px)" },
+  exit: { opacity: 0, y: -14, filter: "blur(6px)" },
+  transition: { duration: 0.34, ease: [0.22, 1, 0.36, 1] as const },
+};
 
 // Map rate label → PreferredTime
 function labelToTime(label: string): PreferredTime {
@@ -72,6 +95,7 @@ function formatDisplayDate(value: string) {
 
 interface FormState {
   full_name: string;
+  email: string;
   address: string;
   contact_number: string;
   preferred_dates: string;
@@ -80,16 +104,16 @@ interface FormState {
   rate_label: string;
   num_guests: string;
   num_cars: string;
-  mode_of_payment: PaymentMode;
+  mode_of_payment: SupportedPaymentMode;
   special_requests: string;
 }
 
-interface PaymentDetailField {
-  key: "account_name" | "account_number" | "bank_branch";
+type IconComponent = typeof User;
+
+interface SummaryItemData {
+  icon: IconComponent;
   label: string;
-  placeholder: string;
-  type?: "text" | "tel";
-  optional?: boolean;
+  value: string;
 }
 
 function FieldRow({
@@ -102,9 +126,9 @@ function FieldRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2">
       <label
-        className="flex items-center gap-1.5 text-[10px] tracking-widest uppercase text-[#8a8a7a]"
+        className="flex items-center gap-1.5 text-[10px] tracking-[0.22em] uppercase text-[#8a8a7a]"
         style={{ fontFamily: "Jost, sans-serif" }}
       >
         <Icon size={11} color="#c9a96e" />
@@ -115,58 +139,166 @@ function FieldRow({
   );
 }
 
+function SummaryItem({ icon: Icon, label, value }: SummaryItemData) {
+  return (
+    <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:gap-3 sm:px-5">
+      <Icon
+        size={13}
+        color="#c9a96e"
+        className="mt-0.5 shrink-0"
+        strokeWidth={1.5}
+      />
+      <span
+        className="shrink-0 text-[11px] text-[#8a8a7a] sm:w-28"
+        style={{ fontFamily: "Jost, sans-serif" }}
+      >
+        {label}
+      </span>
+      <span
+        className="whitespace-pre-line break-words text-[11px] font-medium text-[#1a1a1a]"
+        style={{ fontFamily: "Jost, sans-serif" }}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function PaymentMethodCard({
+  mode,
+  active,
+  onSelect,
+}: {
+  mode: SupportedPaymentMode;
+  active: boolean;
+  onSelect: (mode: SupportedPaymentMode) => void;
+}) {
+  const meta = PAYMENT_METHOD_META[mode];
+  const Icon = meta.icon;
+
+  return (
+    <motion.button
+      type="button"
+      whileHover={{ y: -2, scale: 1.01 }}
+      whileTap={{ scale: 0.985 }}
+      onClick={() => onSelect(mode)}
+      className={`relative overflow-hidden rounded-2xl border px-4 py-4 text-left transition-all duration-300 ${
+        active
+          ? "border-[#c9a96e] bg-[linear-gradient(180deg,#fffaf1_0%,#f7efdf_100%)] shadow-[0_16px_34px_rgba(201,169,110,0.18)]"
+          : "border-[#e7ded2] bg-white hover:border-[#d8c3a0] hover:shadow-[0_12px_28px_rgba(17,14,10,0.06)]"
+      }`}
+      style={{ fontFamily: "Jost, sans-serif" }}
+    >
+      {meta.recommended && (
+        <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-[#f3ead7] px-2 py-1 text-[9px] uppercase tracking-[0.18em] text-[#a8833e]">
+          <BadgeCheck size={10} />
+          Recommended
+        </span>
+      )}
+      <div className="flex items-start gap-3">
+        <div
+          className={`mt-0.5 flex h-10 w-10 items-center justify-center rounded-full ${
+            active ? "bg-[#c9a96e]/16" : "bg-[#f5f0e8]"
+          }`}
+        >
+          <Icon
+            size={18}
+            color={active ? "#c9a96e" : "#8a8a7a"}
+            strokeWidth={1.6}
+          />
+        </div>
+        <div className="pr-12">
+          <p className="text-sm font-medium text-[#1a1a1a]">{mode}</p>
+          <p className="mt-1 text-[12px] leading-5 text-[#7e776b]">
+            {meta.description}
+          </p>
+        </div>
+      </div>
+    </motion.button>
+  );
+}
+
 const INPUT_CLS =
-  "w-full border border-[#ede8df] px-3 py-2.5 text-sm rounded-lg outline-none focus:border-[#c9a96e] transition-colors bg-white text-[#1a1a1a]";
+  "w-full rounded-xl border border-[#e9e2d7] bg-white px-4 py-3 text-sm text-[#1a1a1a] outline-none transition-all duration-300 focus:border-[#c9a96e] focus:shadow-[0_0_0_3px_rgba(201,169,110,0.10)]";
 const SELECT_CLS = INPUT_CLS + " appearance-none cursor-pointer";
 
-const PAYMENT_FORM_FIELDS: Record<PaymentMode, PaymentDetailField[]> = {
-  GCash: [
-    {
-      key: "account_name",
-      label: "GCash Account Name *",
-      placeholder: "Name registered in GCash",
-    },
-    {
-      key: "account_number",
-      label: "GCash Number *",
-      placeholder: "09XX XXX XXXX",
-      type: "tel",
-    },
-  ],
-  BDO: [
-    {
-      key: "account_name",
-      label: "Account Name *",
-      placeholder: "Name on the bank account",
-    },
-    {
-      key: "account_number",
-      label: "Account Number *",
-      placeholder: "Enter your BDO account number",
-      type: "tel",
-    },
-    {
-      key: "bank_branch",
-      label: "Branch",
-      placeholder: "Optional branch name",
-      optional: true,
-    },
-  ],
+const SUPPORTED_PAYMENT_METHODS: SupportedPaymentMode[] = ["GCash", "Card"];
+
+const PAYMENT_METHOD_META: Record<
+  SupportedPaymentMode,
+  {
+    description: string;
+    icon: typeof Wallet;
+    recommended?: boolean;
+  }
+> = {
+  GCash: {
+    description: "Fast mobile checkout with PayMongo",
+    icon: Wallet,
+    recommended: true,
+  },
+  Card: {
+    description: "Debit or credit card via secure checkout",
+    icon: CreditCard,
+  },
 };
 
-export default function BookingFormModal({
-  property,
-  initialPackage,
-  open,
-  onClose,
-}: Props) {
-  const [step, setStep] = useState<Step>("details");
-  const [selectedPkg, setSelectedPkg] = useState<RatePackage>(initialPackage);
-  const [bookingRef, setBookingRef] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+const PAYMENT_DETAILS: Record<SupportedPaymentMode, string> = {
+  GCash:
+    "Complete your downpayment using GCash on PayMongo's secure checkout page.",
+  Card: "Use your debit or credit card securely on PayMongo's encrypted checkout page.",
+};
 
-  const [form, setForm] = useState<FormState>({
+const staggerContainer = {
+  initial: {},
+  animate: {
+    transition: {
+      staggerChildren: 0.045,
+      delayChildren: 0.04,
+    },
+  },
+};
+
+const fieldItem = {
+  initial: { opacity: 0, y: 10 },
+  animate: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] as const },
+  },
+};
+
+const STEP_HEADING_CONTENT: Record<
+  Step,
+  {
+    eyebrow: string;
+    title: string;
+    description: string;
+  }
+> = {
+  details: {
+    eyebrow: "Step One",
+    title: "Guest Details",
+    description:
+      "Share your details to prepare your reservation and secure checkout.",
+  },
+  booking: {
+    eyebrow: "Step Two",
+    title: "Booking Preferences",
+    description: "",
+  },
+  review: {
+    eyebrow: "Step Three",
+    title: "Confirm And Pay",
+    description:
+      "Review your booking details before continuing to secure payment.",
+  },
+};
+
+function createInitialFormState(initialPackage: RatePackage): FormState {
+  return {
     full_name: "",
+    email: "",
     address: "",
     contact_number: "",
     preferred_dates: "",
@@ -177,17 +309,63 @@ export default function BookingFormModal({
     num_cars: "",
     mode_of_payment: "GCash",
     special_requests: "",
-  });
-  const [paymentForm, setPaymentForm] = useState({
-    account_name: "",
-    account_number: "",
-    bank_branch: "",
-  });
+  };
+}
 
-  const stepIndex = ["details", "booking", "review", "success"].indexOf(step);
+function getFriendlyErrorMessage(message: string) {
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("booking expired")) {
+    return "Your booking hold expired. Please review your details and try again.";
+  }
+
+  if (
+    normalized.includes("slot already booked") ||
+    normalized.includes("slot already taken")
+  ) {
+    return "This time slot was just taken. Please choose another date or session.";
+  }
+
+  if (
+    normalized.includes("checkout already initialized") ||
+    normalized.includes("failed to initialize payment checkout")
+  ) {
+    return "Payment initialization failed. Please try again in a moment.";
+  }
+
+  if (normalized.includes("failed to save checkout details")) {
+    return "We couldn't prepare secure checkout right now. Please try again.";
+  }
+
+  return "We couldn't start secure checkout. Please try again.";
+}
+
+export default function BookingFormModal({
+  property,
+  initialPackage,
+  open,
+  onClose,
+}: Props) {
+  const [step, setStep] = useState<Step>("details");
+  const [submitting, setSubmitting] = useState(false);
+  const [selectedPkg, setSelectedPkg] = useState<RatePackage>(initialPackage);
+
+  const [form, setForm] = useState<FormState>(() =>
+    createInitialFormState(initialPackage),
+  );
+
+  const stepIndex = STEPS.findIndex((item) => item.id === step);
 
   const set = (field: keyof FormState, value: string) =>
     setForm((p) => ({ ...p, [field]: value }));
+
+  useEffect(() => {
+    if (!open) return;
+    setStep("details");
+    setSubmitting(false);
+    setSelectedPkg(initialPackage);
+    setForm(createInitialFormState(initialPackage));
+  }, [open, initialPackage, property.slug]);
 
   // When rate changes, auto-set preferred_time and preferred_plan
   function handleRateChange(label: string) {
@@ -200,13 +378,16 @@ export default function BookingFormModal({
   const selectedRate = selectedPkg.rates.find(
     (r) => r.label === form.rate_label,
   );
-  const isWeekend = false; // user picks — show both; admin confirms actual rate
   const estimatedAmount =
     selectedRate?.weekday ?? selectedPkg.rates[0]?.weekday ?? 0;
   const downPayment = estimatedAmount * 0.5;
+  const remainingBalance = estimatedAmount - downPayment;
 
   const canProceedDetails =
-    form.full_name.trim() && form.address.trim() && form.contact_number.trim();
+    form.full_name.trim() &&
+    form.email.trim() &&
+    form.address.trim() &&
+    form.contact_number.trim();
   const canProceedBooking =
     form.preferred_dates.trim() &&
     form.rate_label &&
@@ -215,70 +396,97 @@ export default function BookingFormModal({
     Number(form.num_guests) <= selectedPkg.maxPax &&
     form.num_cars &&
     Number(form.num_cars) >= 1 &&
-    Number(form.num_cars) <= property.maxCars &&
-    PAYMENT_FORM_FIELDS[form.mode_of_payment].every(
-      (field) => field.optional || paymentForm[field.key].trim(),
-    );
+    Number(form.num_cars) <= property.maxCars;
 
-  const paymentDetailsSummary = PAYMENT_FORM_FIELDS[form.mode_of_payment]
-    .filter((field) => paymentForm[field.key].trim())
-    .map(
-      (field) => `${field.label.replace(" *", "")}: ${paymentForm[field.key]}`,
-    )
-    .join("\n");
-
-  const mergedSpecialRequests = [
-    form.special_requests.trim(),
-    paymentDetailsSummary
-      ? `Payment Details:\n${paymentDetailsSummary}`
-      : "",
-  ]
-    .filter(Boolean)
-    .join("\n\n");
+  const reviewSummaryItems: SummaryItemData[] = [
+    {
+      icon: User,
+      label: "Full Name",
+      value: form.full_name,
+    },
+    {
+      icon: Mail,
+      label: "Email",
+      value: form.email,
+    },
+    {
+      icon: MapPin,
+      label: "Address",
+      value: form.address,
+    },
+    {
+      icon: Phone,
+      label: "Contact Number",
+      value: form.contact_number,
+    },
+    {
+      icon: Calendar,
+      label: "Preferred Date(s)",
+      value: formatDisplayDate(form.preferred_dates),
+    },
+    {
+      icon: Clock,
+      label: "Session",
+      value: `${form.rate_label} (${form.preferred_time})`,
+    },
+    {
+      icon: Package,
+      label: "Package",
+      value: selectedPkg.title,
+    },
+    {
+      icon: Users,
+      label: "Guests",
+      value: `${form.num_guests} pax`,
+    },
+    {
+      icon: Car,
+      label: "Cars",
+      value: `${form.num_cars} car(s)`,
+    },
+    {
+      icon: Wallet,
+      label: "Payment Method",
+      value: form.mode_of_payment,
+    },
+  ];
 
   async function handleSubmit() {
     setSubmitting(true);
-    const ref = `PR-${Date.now().toString(36).toUpperCase()}`;
-    setBookingRef(ref);
 
-    // Find retreat_id by matching slug (fallback to known slugs)
-    const retreat_id =
-      property.slug === "premier-pool-house"
-        ? "premier-pool-house"
-        : "premier-patio";
+    try {
+      const timeSlot =
+        form.preferred_time === "Day"
+          ? "daytime"
+          : form.preferred_time === "Night"
+            ? "nighttime"
+            : "overnight";
 
-    const ok = await createBooking({
-      retreat_id,
-      full_name: form.full_name,
-      address: form.address,
-      phone: form.contact_number,
-      contact_number: form.contact_number,
-      preferred_dates: form.preferred_dates,
-      preferred_plan: form.preferred_plan,
-      num_guests: Number(form.num_guests),
-      num_cars: Number(form.num_cars),
-      mode_of_payment: form.mode_of_payment,
-      rate_tier: selectedPkg.tier,
-      total_amount: estimatedAmount,
-      status: "pending",
-      payment_status: "unpaid",
-      special_requests: mergedSpecialRequests || undefined,
-    });
+      const booking = await createBookingReservation({
+        property_id: property.slug,
+        date: form.preferred_dates,
+        time_slot: timeSlot,
+        guests: Number(form.num_guests),
+        cars: Number(form.num_cars),
+        full_name: form.full_name,
+        email: form.email,
+        phone: form.contact_number,
+        address: form.address,
+        rate_tier: selectedPkg.tier,
+        rate_label: form.rate_label,
+        mode_of_payment: form.mode_of_payment,
+        special_requests: form.special_requests.trim() || undefined,
+      });
 
-    setSubmitting(false);
-    if (ok) {
-      setStep("success");
-      toast.success("Booking request submitted!");
-    } else {
-      toast.error("Failed to submit. Please try again.");
+      const checkout = await createPayMongoCheckout(booking.booking_id);
+      toast.success("Redirecting to secure checkout...");
+      window.location.href = checkout.checkout_url;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      toast.error(getFriendlyErrorMessage(message));
+      setSubmitting(false);
     }
   }
-
-  const PAYMENT_DETAILS: Record<PaymentMode, string> = {
-    GCash:
-      "GCash — Our team will send you the payment link after confirmation.",
-    BDO: "BDO Bank Transfer — Account details will be sent via your contact number.",
-  };
 
   return (
     <AnimatePresence>
@@ -290,58 +498,74 @@ export default function BookingFormModal({
           exit={{ opacity: 0 }}
         >
           <motion.div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={onClose}
+            className="absolute inset-0 bg-[rgba(12,12,10,0.56)] backdrop-blur-[10px]"
+            onClick={submitting ? undefined : onClose}
           />
 
           <motion.div
-            className="booking-modal-content relative flex max-h-[95vh] w-full max-w-xl flex-col overflow-hidden bg-white shadow-2xl rounded-t-2xl sm:rounded-2xl"
-            initial={{ y: 60, opacity: 0 }}
+            className="booking-modal-content relative flex max-h-[95vh] w-full max-w-[42rem] flex-col overflow-hidden rounded-t-[1.75rem] bg-[#fcfaf7] shadow-[0_32px_90px_rgba(20,18,14,0.24)] sm:rounded-[1.75rem]"
+            initial={{ y: 42, opacity: 0, scale: 0.985 }}
             animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 40, opacity: 0 }}
-            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+            exit={{ y: 28, opacity: 0, scale: 0.99 }}
+            transition={modalTransition}
           >
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-[#ede8df] px-4 py-4 shrink-0 sm:px-6">
+            <div className="flex items-start justify-between border-b border-[#ede8df] px-5 py-5 shrink-0 sm:px-7">
               <div>
                 <p className="section-label text-[9px]">Reservation</p>
                 <h3
                   style={{
                     fontFamily: "Cormorant Garamond, serif",
-                    fontSize: "1.2rem",
+                    fontSize: "1.55rem",
                     fontWeight: 400,
                     color: "#1a1a1a",
+                    lineHeight: 1,
                   }}
                 >
                   {property.name}
                 </h3>
-              </div>
-              {step !== "success" && (
-                <button
-                  onClick={onClose}
-                  className="p-1.5 hover:bg-[#f8f4ee] rounded-full transition-colors"
+                <p
+                  className="mt-2 text-[12px] text-[#7b7468]"
+                  style={{ fontFamily: "Jost, sans-serif" }}
                 >
-                  <X size={17} color="#8a8a7a" />
-                </button>
-              )}
+                  Private city stay with secure online checkout
+                </p>
+              </div>
+              <button
+                onClick={onClose}
+                disabled={submitting}
+                className="rounded-full border border-[#ece5da] bg-white/80 p-2 transition-all duration-300 hover:border-[#d8c3a0] hover:bg-[#f8f4ee] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <X size={17} color="#8a8a7a" />
+              </button>
             </div>
 
-            {/* Step indicator */}
-            {step !== "success" && (
-              <div className="flex items-center gap-2 overflow-x-auto border-b border-[#ede8df] bg-[#faf8f5] px-4 py-3 shrink-0 sm:px-6">
-                {STEPS.map((s, i) => (
-                  <div key={s.id} className="flex items-center gap-2">
+            <div className="flex items-center gap-2 overflow-x-auto border-b border-[#ede8df] bg-[linear-gradient(180deg,#fcfaf7_0%,#f7f2ea_100%)] px-5 py-4 shrink-0 sm:px-7">
+              {STEPS.map((s, i) => (
+                <div key={s.id} className="flex items-center gap-2">
+                  <div
+                    className={`flex items-center gap-2 ${i <= stepIndex ? "opacity-100" : "opacity-40"}`}
+                  >
                     <div
-                      className={`flex items-center gap-1.5 ${i <= stepIndex ? "opacity-100" : "opacity-30"}`}
+                      className={`flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-semibold transition-all duration-300 ${
+                        i < stepIndex
+                          ? "bg-[#c9a96e] text-white shadow-[0_8px_20px_rgba(201,169,110,0.28)]"
+                          : i === stepIndex
+                            ? "bg-[#1a1a1a] text-white shadow-[0_10px_24px_rgba(26,26,26,0.18)]"
+                            : "border border-[#e8e0d4] bg-white text-[#8a8a7a]"
+                      }`}
                     >
-                      <div
-                        className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors
-                        ${i < stepIndex ? "bg-[#c9a96e] text-white" : i === stepIndex ? "bg-[#1a1a1a] text-white" : "bg-[#ede8df] text-[#8a8a7a]"}`}
-                      >
-                        {i < stepIndex ? <Check size={10} /> : i + 1}
-                      </div>
+                      {i < stepIndex ? <Check size={10} /> : i + 1}
+                    </div>
+                    <div className="hidden sm:flex sm:flex-col">
                       <span
-                        className="text-[10px] tracking-wide hidden sm:inline"
+                        className="text-[9px] uppercase tracking-[0.24em] text-[#a0988b]"
+                        style={{ fontFamily: "Jost, sans-serif" }}
+                      >
+                        Step {i + 1}
+                      </span>
+                      <span
+                        className="text-[12px] text-[#1a1a1a]"
                         style={{
                           fontFamily: "Jost, sans-serif",
                           fontWeight: i === stepIndex ? 600 : 400,
@@ -350,13 +574,13 @@ export default function BookingFormModal({
                         {s.label}
                       </span>
                     </div>
-                    {i < STEPS.length - 1 && (
-                      <div className="w-4 h-px bg-[#ede8df]" />
-                    )}
                   </div>
-                ))}
-              </div>
-            )}
+                  {i < STEPS.length - 1 && (
+                    <div className="h-px w-6 bg-[#dfd5c8]" />
+                  )}
+                </div>
+              ))}
+            </div>
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto">
@@ -365,19 +589,32 @@ export default function BookingFormModal({
                 {step === "details" && (
                   <motion.div
                     key="details"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    className="flex flex-col gap-4 p-4 sm:p-6"
+                    {...stepMotionProps}
+                    className="flex flex-col gap-6 p-5 sm:p-7"
                   >
+                    <div className="space-y-2">
+                      <p className="section-label text-[9px]">Step One</p>
+                      <h4
+                        style={{
+                          fontFamily: "Cormorant Garamond, serif",
+                          fontSize: "1.65rem",
+                          fontWeight: 400,
+                          color: "#1a1a1a",
+                          lineHeight: 1,
+                        }}
+                      >
+                        Guest Details
+                      </h4>
+                    </div>
                     <p
-                      className="text-xs text-[#8a8a7a] mb-1"
+                      className="max-w-lg text-[13px] leading-6 text-[#8a8a7a]"
                       style={{
                         fontFamily: "Jost, sans-serif",
                         fontWeight: 300,
                       }}
                     >
-                      Please fill in your personal information.
+                      Share your details to prepare your reservation and secure
+                      checkout.
                     </p>
 
                     <FieldRow icon={User} label="Full Name *">
@@ -386,6 +623,17 @@ export default function BookingFormModal({
                         value={form.full_name}
                         onChange={(e) => set("full_name", e.target.value)}
                         placeholder="Juan Dela Cruz"
+                        className={INPUT_CLS}
+                        style={{ fontFamily: "Jost, sans-serif" }}
+                      />
+                    </FieldRow>
+
+                    <FieldRow icon={Mail} label="Email Address *">
+                      <input
+                        type="email"
+                        value={form.email}
+                        onChange={(e) => set("email", e.target.value)}
+                        placeholder="name@example.com"
                         className={INPUT_CLS}
                         style={{ fontFamily: "Jost, sans-serif" }}
                       />
@@ -419,11 +667,23 @@ export default function BookingFormModal({
                 {step === "booking" && (
                   <motion.div
                     key="booking"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    className="flex flex-col gap-4 p-4 sm:p-6"
+                    {...stepMotionProps}
+                    className="flex flex-col gap-6 p-5 sm:p-7"
                   >
+                    <div className="space-y-2">
+                      <p className="section-label text-[9px]">Step Two</p>
+                      <h4
+                        style={{
+                          fontFamily: "Cormorant Garamond, serif",
+                          fontSize: "1.65rem",
+                          fontWeight: 400,
+                          color: "#1a1a1a",
+                          lineHeight: 1,
+                        }}
+                      >
+                        Booking Preferences
+                      </h4>
+                    </div>
                     {/* Package selector */}
                     <FieldRow icon={Package} label="Rate Package *">
                       <select
@@ -516,37 +776,17 @@ export default function BookingFormModal({
                       </FieldRow>
                     </div>
 
-                    <FieldRow icon={Wallet} label="Mode of Payment *">
+                    <FieldRow icon={Wallet} label="Payment Method *">
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        {(["GCash", "BDO"] as PaymentMode[]).map((mode) => (
-                          <button
+                        {SUPPORTED_PAYMENT_METHODS.map((mode) => (
+                          <PaymentMethodCard
                             key={mode}
-                            type="button"
-                            onClick={() => {
-                              set("mode_of_payment", mode);
-                              setPaymentForm({
-                                account_name: "",
-                                account_number: "",
-                                bank_branch: "",
-                              });
-                            }}
-                            className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg border-2 text-sm font-medium transition-all duration-200 ${
-                              form.mode_of_payment === mode
-                                ? "border-[#c9a96e] bg-[#faf6ef] text-[#1a1a1a]"
-                                : "border-[#ede8df] text-[#8a8a7a] hover:border-[#c9a96e]/50"
-                            }`}
-                            style={{ fontFamily: "Jost, sans-serif" }}
-                          >
-                            <Wallet
-                              size={14}
-                              color={
-                                form.mode_of_payment === mode
-                                  ? "#c9a96e"
-                                  : "#8a8a7a"
-                              }
-                            />
-                            {mode}
-                          </button>
+                            mode={mode}
+                            active={form.mode_of_payment === mode}
+                            onSelect={(selectedMode) =>
+                              set("mode_of_payment", selectedMode)
+                            }
+                          />
                         ))}
                       </div>
                       <p
@@ -559,32 +799,35 @@ export default function BookingFormModal({
                         {PAYMENT_DETAILS[form.mode_of_payment]}
                       </p>
 
-                      <div className="mt-3 grid gap-3">
-                        {PAYMENT_FORM_FIELDS[form.mode_of_payment].map(
-                          (field) => (
-                            <div key={field.key} className="flex flex-col gap-1.5">
-                              <label
-                                className="text-[10px] tracking-widest uppercase text-[#8a8a7a]"
-                                style={{ fontFamily: "Jost, sans-serif" }}
-                              >
-                                {field.label}
-                              </label>
-                              <input
-                                type={field.type ?? "text"}
-                                value={paymentForm[field.key]}
-                                onChange={(e) =>
-                                  setPaymentForm((prev) => ({
-                                    ...prev,
-                                    [field.key]: e.target.value,
-                                  }))
-                                }
-                                placeholder={field.placeholder}
-                                className={INPUT_CLS}
-                                style={{ fontFamily: "Jost, sans-serif" }}
-                              />
-                            </div>
-                          ),
-                        )}
+                      <div className="mt-3 rounded-xl border border-[#ede8df] bg-[#faf8f5] px-4 py-3">
+                        <div className="flex items-start gap-2.5">
+                          <Lock
+                            size={14}
+                            color="#c9a96e"
+                            className="mt-0.5 shrink-0"
+                          />
+                          <div className="space-y-1">
+                            <p
+                              className="text-[11px] font-medium text-[#1a1a1a]"
+                              style={{ fontFamily: "Jost, sans-serif" }}
+                            >
+                              Secure payment powered by PayMongo
+                            </p>
+                            <p
+                              className="text-[11px] leading-relaxed text-[#6d6d61]"
+                              style={{ fontFamily: "Jost, sans-serif" }}
+                            >
+                              You will be redirected to a secure payment page.
+                              Only 50% is required today to secure your booking.
+                            </p>
+                            <p
+                              className="text-[10px] uppercase tracking-[0.24em] text-[#8a8a7a]"
+                              style={{ fontFamily: "Jost, sans-serif" }}
+                            >
+                              Payments are encrypted and processed securely
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </FieldRow>
 
@@ -607,24 +850,37 @@ export default function BookingFormModal({
                 {step === "review" && (
                   <motion.div
                     key="review"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    className="flex flex-col gap-4 p-4 sm:p-6"
+                    {...stepMotionProps}
+                    className="flex flex-col gap-6 p-5 sm:p-7"
                   >
+                    <div className="space-y-2">
+                      <p className="section-label text-[9px]">Step Three</p>
+                      <h4
+                        style={{
+                          fontFamily: "Cormorant Garamond, serif",
+                          fontSize: "1.65rem",
+                          fontWeight: 400,
+                          color: "#1a1a1a",
+                          lineHeight: 1,
+                        }}
+                      >
+                        Confirm And Pay
+                      </h4>
+                    </div>
                     <p
-                      className="text-xs text-[#8a8a7a] mb-1"
+                      className="max-w-lg text-[13px] leading-6 text-[#8a8a7a]"
                       style={{
                         fontFamily: "Jost, sans-serif",
                         fontWeight: 300,
                       }}
                     >
-                      Please review your booking details before submitting.
+                      Review your booking details before continuing to secure
+                      payment.
                     </p>
 
                     {/* Summary card */}
-                    <div className="rounded-xl border border-[#ede8df] overflow-hidden">
-                      <div className="px-5 py-3 bg-[#1a1a1a]">
+                    <div className="overflow-hidden rounded-[1.25rem] border border-[#e6ddd1] bg-white shadow-[0_18px_45px_rgba(17,14,10,0.05)]">
+                      <div className="bg-[#1a1a1a] px-5 py-4">
                         <p
                           className="text-[10px] tracking-widest uppercase text-[#c9a96e]"
                           style={{ fontFamily: "Jost, sans-serif" }}
@@ -633,81 +889,8 @@ export default function BookingFormModal({
                         </p>
                       </div>
                       <div className="divide-y divide-[#ede8df]">
-                        {[
-                          {
-                            icon: User,
-                            label: "Full Name",
-                            value: form.full_name,
-                          },
-                          {
-                            icon: MapPin,
-                            label: "Address",
-                            value: form.address,
-                          },
-                          {
-                            icon: Phone,
-                            label: "Contact Number",
-                            value: form.contact_number,
-                          },
-                          {
-                            icon: Calendar,
-                            label: "Preferred Date(s)",
-                            value: formatDisplayDate(form.preferred_dates),
-                          },
-                          {
-                            icon: Clock,
-                            label: "Session",
-                            value: `${form.rate_label} (${form.preferred_time})`,
-                          },
-                          {
-                            icon: Package,
-                            label: "Package",
-                            value: selectedPkg.title,
-                          },
-                          {
-                            icon: Users,
-                            label: "Guests",
-                            value: `${form.num_guests} pax`,
-                          },
-                          {
-                            icon: Car,
-                            label: "Cars",
-                            value: `${form.num_cars} car(s)`,
-                          },
-                          {
-                            icon: Wallet,
-                            label: "Payment Mode",
-                            value: form.mode_of_payment,
-                          },
-                          {
-                            icon: Wallet,
-                            label: "Payment Details",
-                            value: paymentDetailsSummary || "Not provided",
-                          },
-                        ].map(({ icon: Icon, label, value }) => (
-                          <div
-                            key={label}
-                            className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:gap-3 sm:px-5"
-                          >
-                            <Icon
-                              size={13}
-                              color="#c9a96e"
-                              className="mt-0.5 shrink-0"
-                              strokeWidth={1.5}
-                            />
-                            <span
-                              className="shrink-0 text-[11px] text-[#8a8a7a] sm:w-28"
-                              style={{ fontFamily: "Jost, sans-serif" }}
-                            >
-                              {label}
-                            </span>
-                            <span
-                              className="whitespace-pre-line break-words text-[11px] font-medium text-[#1a1a1a]"
-                              style={{ fontFamily: "Jost, sans-serif" }}
-                            >
-                              {value}
-                            </span>
-                          </div>
+                        {reviewSummaryItems.map((item) => (
+                          <SummaryItem key={item.label} {...item} />
                         ))}
                         {form.special_requests && (
                           <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:gap-3 sm:px-5">
@@ -732,49 +915,65 @@ export default function BookingFormModal({
                           </div>
                         )}
                       </div>
-                      {/* Price estimate */}
-                      <div className="flex flex-col gap-3 border-t border-[#ede8df] bg-[#faf8f5] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                      <div className="grid gap-3 border-t border-[#ede8df] bg-[linear-gradient(180deg,#fcfaf7_0%,#f6f1e9_100%)] px-4 py-5 sm:grid-cols-3 sm:px-5">
                         <div>
                           <p
                             className="text-[10px] text-[#8a8a7a] tracking-wider uppercase"
                             style={{ fontFamily: "Jost, sans-serif" }}
                           >
-                            Estimated Amount
+                            Total Amount
                           </p>
                           <p
                             style={{
                               fontFamily: "Cormorant Garamond, serif",
-                              fontSize: "1.4rem",
+                              fontSize: "1.35rem",
                               fontWeight: 500,
-                              color: "#c9a96e",
+                              color: "#1a1a1a",
                             }}
                           >
                             {formatPHP(estimatedAmount)}
                           </p>
                         </div>
-                        <div className="text-right">
+                        <div>
                           <p
                             className="text-[10px] text-[#8a8a7a] tracking-wider uppercase"
                             style={{ fontFamily: "Jost, sans-serif" }}
                           >
-                            50% Down Payment
+                            Downpayment
                           </p>
                           <p
                             style={{
                               fontFamily: "Cormorant Garamond, serif",
-                              fontSize: "1.1rem",
+                              fontSize: "1.35rem",
                               fontWeight: 500,
-                              color: "#1a1a1a",
+                              color: "#c9a96e",
                             }}
                           >
                             {formatPHP(downPayment)}
                           </p>
                         </div>
+                        <div>
+                          <p
+                            className="text-[10px] text-[#8a8a7a] tracking-wider uppercase"
+                            style={{ fontFamily: "Jost, sans-serif" }}
+                          >
+                            Remaining Balance
+                          </p>
+                          <p
+                            style={{
+                              fontFamily: "Cormorant Garamond, serif",
+                              fontSize: "1.35rem",
+                              fontWeight: 500,
+                              color: "#1a1a1a",
+                            }}
+                          >
+                            {formatPHP(remainingBalance)}
+                          </p>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Payment note */}
-                    <div className="flex items-start gap-3 p-4 rounded-lg border border-amber-200 bg-amber-50">
+                    <div className="flex items-start gap-3 rounded-[1.1rem] border border-amber-200 bg-amber-50/90 px-4 py-4 shadow-[0_12px_30px_rgba(217,119,6,0.08)]">
                       <AlertCircle
                         size={14}
                         color="#d97706"
@@ -784,14 +983,15 @@ export default function BookingFormModal({
                         className="text-[11px] text-amber-700 leading-relaxed"
                         style={{ fontFamily: "Jost, sans-serif" }}
                       >
-                        Final rate may vary based on weekday/weekend. Our team
-                        will confirm the exact amount and send payment
-                        instructions via your contact number.{" "}
-                        <strong>Down payment is non-refundable.</strong>
+                        After confirming, you will be redirected to PayMongo's
+                        secure checkout. Only 50% is required today to secure
+                        your booking. No bank or card details are collected on
+                        this page.{" "}
+                        <strong>Downpayment is non-refundable.</strong>
                       </p>
                     </div>
 
-                    <div className="flex items-start gap-3 p-4 rounded-lg border border-[#ede8df] bg-[#faf8f5]">
+                    <div className="flex items-start gap-3 rounded-[1.1rem] border border-[#e6ddd1] bg-[#faf8f5] px-4 py-4 shadow-[0_12px_28px_rgba(17,14,10,0.04)]">
                       <Shield
                         size={14}
                         color="#c9a96e"
@@ -801,150 +1001,65 @@ export default function BookingFormModal({
                         className="text-[11px] text-[#4a4a4a] leading-relaxed"
                         style={{ fontFamily: "Jost, sans-serif" }}
                       >
-                        By submitting, you agree to our House Rules and confirm
-                        that 50% down payment will be sent to secure your
-                        reservation.
+                        Secure Checkout. Payments are encrypted and processed
+                        securely through PayMongo. By continuing, you agree to
+                        our House Rules and acknowledge the required
+                        downpayment.
                       </p>
                     </div>
-                  </motion.div>
-                )}
-
-                {/* SUCCESS */}
-                {step === "success" && (
-                  <motion.div
-                    key="success"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="p-10 flex flex-col items-center text-center gap-5"
-                  >
-                    <div
-                      className="w-20 h-20 rounded-full flex items-center justify-center"
-                      style={{
-                        background: "rgba(201,169,110,0.12)",
-                        border: "2px solid #c9a96e",
-                      }}
-                    >
-                      <Check size={36} color="#c9a96e" strokeWidth={2} />
-                    </div>
-                    <div>
-                      <h3
-                        style={{
-                          fontFamily: "Cormorant Garamond, serif",
-                          fontSize: "1.8rem",
-                          fontWeight: 400,
-                          color: "#1a1a1a",
-                        }}
-                      >
-                        Request Submitted!
-                      </h3>
-                      <p
-                        className="text-[#8a8a7a] text-sm mt-2"
-                        style={{
-                          fontFamily: "Jost, sans-serif",
-                          fontWeight: 300,
-                        }}
-                      >
-                        Thank you,{" "}
-                        <strong className="text-[#4a4a4a]">
-                          {form.full_name}
-                        </strong>
-                        . Our team will contact you at{" "}
-                        <strong className="text-[#4a4a4a]">
-                          {form.contact_number}
-                        </strong>{" "}
-                        to confirm your booking and send payment details.
-                      </p>
-                    </div>
-                    <div
-                      className="w-full rounded-lg border border-[#ede8df] bg-[#f8f4ee] p-4 text-left text-xs"
-                      style={{ fontFamily: "Jost, sans-serif" }}
-                    >
-                      <div className="mb-2 flex items-start justify-between gap-3">
-                        <span className="text-[#8a8a7a]">Reference</span>
-                        <span className="font-semibold text-[#1a1a1a]">
-                          {bookingRef}
-                        </span>
-                      </div>
-                      <div className="mb-2 flex items-start justify-between gap-3">
-                        <span className="text-[#8a8a7a]">Property</span>
-                        <span className="text-[#1a1a1a]">{property.name}</span>
-                      </div>
-                      <div className="mb-2 flex items-start justify-between gap-3">
-                        <span className="text-[#8a8a7a]">Package</span>
-                        <span className="text-[#1a1a1a]">
-                          {selectedPkg.title}
-                        </span>
-                      </div>
-                      <div className="flex items-start justify-between gap-3">
-                        <span className="text-[#8a8a7a]">Down Payment Due</span>
-                        <span
-                          className="font-semibold"
-                          style={{ color: "#c9a96e" }}
-                        >
-                          {formatPHP(downPayment)}
-                        </span>
-                      </div>
-                    </div>
-                    <p
-                      className="text-[11px] text-[#8a8a7a] text-center max-w-xs"
-                      style={{
-                        fontFamily: "Jost, sans-serif",
-                        fontWeight: 300,
-                      }}
-                    >
-                      First down payment, first reservation. Please send your
-                      down payment promptly to secure your date.
-                    </p>
-                    <button
-                      onClick={onClose}
-                      className="btn-gold w-full justify-center"
-                    >
-                      Done
-                    </button>
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
 
-            {/* Footer nav */}
-            {step !== "success" && (
-              <div className="flex items-center justify-between gap-3 border-t border-[#ede8df] bg-[#faf8f5] px-4 py-4 shrink-0 sm:px-6">
+            <div className="flex items-center justify-between gap-3 border-t border-[#ede8df] bg-[linear-gradient(180deg,#fcfaf7_0%,#f6f1e9_100%)] px-5 py-5 shrink-0 sm:px-7">
+              <button
+                onClick={() => {
+                  if (submitting) return;
+                  if (step === "details") onClose();
+                  else if (step === "booking") setStep("details");
+                  else if (step === "review") setStep("booking");
+                }}
+                disabled={submitting}
+                className="text-xs tracking-wider uppercase text-[#8a8a7a] hover:text-[#1a1a1a] transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                style={{ fontFamily: "Jost, sans-serif" }}
+              >
+                {step === "details" ? "Cancel" : "← Back"}
+              </button>
+
+              {step === "review" ? (
+                <button
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  className="btn-gold min-w-[16rem] justify-center disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {submitting ? (
+                    <>
+                      <Lock size={14} />
+                      Redirecting to secure checkout...
+                    </>
+                  ) : (
+                    <>
+                      Proceed to Secure Payment ({formatPHP(downPayment)})
+                      <ChevronRight size={14} />
+                    </>
+                  )}
+                </button>
+              ) : (
                 <button
                   onClick={() => {
-                    if (step === "details") onClose();
-                    else if (step === "booking") setStep("details");
-                    else if (step === "review") setStep("booking");
+                    if (step === "details" && canProceedDetails)
+                      setStep("booking");
+                    else if (step === "booking" && canProceedBooking)
+                      setStep("review");
+                    else toast.error("Please fill in all required fields.");
                   }}
-                  className="text-xs tracking-wider uppercase text-[#8a8a7a] hover:text-[#1a1a1a] transition-colors"
-                  style={{ fontFamily: "Jost, sans-serif" }}
+                  className="btn-gold min-w-[10rem] justify-center"
                 >
-                  {step === "details" ? "Cancel" : "← Back"}
+                  Continue <ChevronRight size={14} />
                 </button>
-
-                {step === "review" ? (
-                  <button
-                    onClick={handleSubmit}
-                    disabled={submitting}
-                    className="btn-gold disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {submitting ? "Submitting..." : "Submit Booking"}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      if (step === "details" && canProceedDetails)
-                        setStep("booking");
-                      else if (step === "booking" && canProceedBooking)
-                        setStep("review");
-                      else toast.error("Please fill in all required fields.");
-                    }}
-                    className="btn-gold"
-                  >
-                    Continue <ChevronRight size={14} />
-                  </button>
-                )}
-              </div>
-            )}
+              )}
+            </div>
           </motion.div>
         </motion.div>
       )}

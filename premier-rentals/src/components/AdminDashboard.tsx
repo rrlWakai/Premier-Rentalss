@@ -48,6 +48,7 @@ export default function AdminDashboard() {
   const [bookings, setBookings]               = useState<Booking[]>([])
   const [blockedDates, setBlockedDates]       = useState<BlockedDate[]>([])
   const [retreats, setRetreats]               = useState<Retreat[]>([])
+  const [selectedRetreatId, setSelectedRetreatId] = useState('')
   const [loading, setLoading]                 = useState(true)
   const [search, setSearch]                   = useState('')
   const [statusFilter, setStatusFilter]       = useState<string>('all')
@@ -55,7 +56,13 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     Promise.all([fetchBookings(), fetchBlockedDates(), fetchRetreats()])
-      .then(([b, bd, r]) => { setBookings(b); setBlockedDates(bd); setRetreats(r); setLoading(false) })
+      .then(([b, bd, r]) => {
+        setBookings(b)
+        setBlockedDates(bd)
+        setRetreats(r)
+        setSelectedRetreatId(r[0]?.id ?? '')
+        setLoading(false)
+      })
   }, [])
 
   async function handleSignOut() {
@@ -80,8 +87,12 @@ export default function AdminDashboard() {
     }
   }
 
-  async function handleAddBlock(date: string) {
-    const ok = await addBlockedDate(retreats[0]?.id ?? '', date)
+  async function handleAddBlock(date: string, retreatId: string) {
+    if (!retreatId) {
+      toast.error('Select a property first')
+      return
+    }
+    const ok = await addBlockedDate(retreatId, date)
     if (ok) { const bd = await fetchBlockedDates(); setBlockedDates(bd); toast.success(`${date} blocked`) }
   }
 
@@ -381,6 +392,9 @@ export default function AdminDashboard() {
               {tab === 'calendar' && (
                 <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
                   <AdminCalendarView
+                    retreats={retreats}
+                    selectedRetreatId={selectedRetreatId}
+                    onSelectRetreat={setSelectedRetreatId}
                     bookings={bookings}
                     blockedDates={blockedDates}
                     onAddBlock={handleAddBlock}

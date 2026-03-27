@@ -7,9 +7,12 @@ import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react'
 import type { Booking, BlockedDate } from '../lib/supabase'
 
 interface Props {
+  retreats: { id: string; name: string }[]
+  selectedRetreatId: string
+  onSelectRetreat: (retreatId: string) => void
   bookings: Booking[]
   blockedDates: BlockedDate[]
-  onAddBlock: (date: string) => void
+  onAddBlock: (date: string, retreatId: string) => void
   onRemoveBlock: (id: string) => void
 }
 
@@ -20,7 +23,15 @@ const STATUS_COLORS: Record<string, string> = {
   completed: '#8b5cf6',
 }
 
-export default function AdminCalendarView({ bookings, blockedDates, onAddBlock, onRemoveBlock }: Props) {
+export default function AdminCalendarView({
+  retreats,
+  selectedRetreatId,
+  onSelectRetreat,
+  bookings,
+  blockedDates,
+  onAddBlock,
+  onRemoveBlock,
+}: Props) {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDay, setSelectedDay]   = useState<Date | null>(null)
 
@@ -35,13 +46,14 @@ export default function AdminCalendarView({ bookings, blockedDates, onAddBlock, 
     const readable = format(date, 'MMMM d')
     const short    = format(date, 'MMM d')
     return bookings.filter(b => {
+      if (selectedRetreatId && b.retreat_id !== selectedRetreatId) return false
       const d = b.preferred_dates ?? ''
-      return d.includes(dateStr) || d.includes(readable) || d.includes(short)
+      return d === dateStr || d.includes(readable) || d.includes(short)
     })
   }
 
   function getDayBlocked(date: Date): BlockedDate | undefined {
-    return blockedDates.find(b => b.date === format(date, 'yyyy-MM-dd'))
+    return blockedDates.find(b => b.retreat_id === selectedRetreatId && b.date === format(date, 'yyyy-MM-dd'))
   }
 
   const selectedBookings = selectedDay ? getDayBookings(selectedDay) : []
@@ -54,9 +66,23 @@ export default function AdminCalendarView({ bookings, blockedDates, onAddBlock, 
         <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-2 hover:bg-[#f8f4ee] rounded-lg transition-colors">
           <ChevronLeft size={16} color="#8a8a7a" />
         </button>
-        <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.2rem', fontWeight: 400, color: '#1a1a1a' }}>
-          {format(currentMonth, 'MMMM yyyy')}
-        </h3>
+        <div className="flex flex-col items-center gap-2">
+          <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.2rem', fontWeight: 400, color: '#1a1a1a' }}>
+            {format(currentMonth, 'MMMM yyyy')}
+          </h3>
+          <select
+            value={selectedRetreatId}
+            onChange={(e) => onSelectRetreat(e.target.value)}
+            className="rounded-full border border-[#ede8df] bg-[#faf8f5] px-3 py-1 text-[10px] uppercase tracking-[0.16em] text-[#4a4a4a] outline-none focus:border-[#c9a96e]"
+            style={{ fontFamily: 'Jost, sans-serif' }}
+          >
+            {retreats.map((retreat) => (
+              <option key={retreat.id} value={retreat.id}>
+                {retreat.name}
+              </option>
+            ))}
+          </select>
+        </div>
         <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-2 hover:bg-[#f8f4ee] rounded-lg transition-colors">
           <ChevronRight size={16} color="#8a8a7a" />
         </button>
@@ -142,7 +168,7 @@ export default function AdminCalendarView({ bookings, blockedDates, onAddBlock, 
                   </p>
                 </div>
                 {!selectedBlocked ? (
-                  <button onClick={() => onAddBlock(format(selectedDay, 'yyyy-MM-dd'))}
+                  <button onClick={() => onAddBlock(format(selectedDay, 'yyyy-MM-dd'), selectedRetreatId)}
                     className="flex items-center gap-1.5 text-[10px] text-red-400 hover:text-red-600 border border-red-200 hover:border-red-400 px-2 py-1.5 rounded transition-colors"
                     style={{ fontFamily: 'Jost, sans-serif' }}>
                     <Plus size={11} /> Block

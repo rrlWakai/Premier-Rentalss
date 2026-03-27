@@ -121,26 +121,9 @@ export async function fetchRetreatBySlug(slug: string): Promise<Retreat | null> 
 
 // ✅ CREATE BOOKING (with downpayment)
 export async function createBooking(
-  booking: Omit<Booking, "id" | "created_at" | "retreat" | "approved_at">
+  _booking?: Omit<Booking, "id" | "created_at" | "retreat" | "approved_at">
 ): Promise<Booking | null> {
-  const { data, error } = await supabase
-    .from("bookings")
-    .insert([
-      {
-        ...booking,
-        status: "pending",
-        payment_status: "unpaid",
-      },
-    ])
-    .select()
-    .single();
-
-  if (error) {
-    console.error("createBooking:", error);
-    return null;
-  }
-
-  return data;
+  throw new Error("Direct client-side booking creation is disabled. Use /api/bookings/create.");
 }
 
 // ✅ FETCH BOOKINGS

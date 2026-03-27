@@ -1,5 +1,5 @@
 -- ================================================================
--- Premier Rentals — Supabase Schema v4 (Aligned with Frontend)
+-- Premier Rentals — Supabase Schema v5 (PayMongo + Slot Booking)
 -- ================================================================
 
 create extension if not exists "pgcrypto";
@@ -84,7 +84,7 @@ create policy "Admin update bookings"
 on public.bookings for update
 using (auth.role() = 'authenticated');
 
--- ── blocked_dates (AUTO BLOCKING READY) ──────────────────────────
+-- ── blocked_dates (MANUAL FULL-DATE BLOCKS) ──────────────────────
 create table if not exists public.blocked_dates (
   id          uuid primary key default gen_random_uuid(),
   retreat_id  uuid references public.retreats(id) on delete cascade,
@@ -104,26 +104,15 @@ create policy "Admin write blocked_dates"
 on public.blocked_dates for all
 using (auth.role() = 'authenticated');
 
--- ── AUTO BLOCK WHEN CONFIRMED (IMPORTANT FEATURE) ────────────────
-create or replace function block_date_on_confirm()
-returns trigger as $$
-begin
-  if new.status = 'confirmed' then
-    insert into public.blocked_dates (retreat_id, date, reason)
-    values (new.retreat_id, new.checkin, 'Booked')
-    on conflict do nothing;
-  end if;
-
-  return new;
-end;
-$$ language plpgsql;
-
+-- NOTE:
+-- blocked_dates is reserved for manual whole-date closures such as maintenance,
+-- owner holds, or dates intentionally closed by admins.
+--
+-- Confirmed bookings are NOT auto-inserted into blocked_dates because availability
+-- is now checked per property + booking_date + time_slot. Auto-blocking the full
+-- date would incorrectly prevent multiple valid time slots on the same day.
 drop trigger if exists trg_block_date on public.bookings;
-
-create trigger trg_block_date
-after update on public.bookings
-for each row
-execute function block_date_on_confirm();
+drop function if exists block_date_on_confirm();
 
 -- ── testimonials ────────────────────────────────────────────────
 create table if not exists public.testimonials (
@@ -167,6 +156,81 @@ with check (true);
 create policy "Admin read inquiries"
 on public.inquiries for select
 using (auth.role() = 'authenticated');
+
+-- ── schema alignment for request-style + checkout booking flow ───────────
+alter table public.bookings
+  add column if not exists property_id text,
+  add column if not exists booking_date date,
+  add column if not exists time_slot text,
+  add column if not exists locked_until timestamptz,
+  add column if not exists checkout_session_id text,
+  add column if not exists contact_number text,
+  add column if not exists address text default '',
+  add column if not exists preferred_dates text,
+  add column if not exists preferred_time text,
+  add column if not exists preferred_plan text,
+  add column if not exists rate_tier text,
+  add column if not exists mode_of_payment text,
+  add column if not exists num_guests int,
+  add column if not exists num_cars int,
+  add column if not exists approved_at timestamptz;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'bookings_time_slot_check'
+      and conrelid = 'public.bookings'::regclass
+  ) then
+    alter table public.bookings
+      add constraint bookings_time_slot_check
+      check (time_slot is null or time_slot in ('daytime', 'nighttime', 'overnight'));
+  end if;
+end $$;
+
+create index if not exists idx_bookings_slot_lookup
+on public.bookings (property_id, booking_date, time_slot, status, locked_until);
+
+create table if not exists public.payments (
+  id                  uuid primary key default gen_random_uuid(),
+  booking_id          uuid references public.bookings(id) on delete cascade,
+  checkout_session_id text,
+  amount              numeric(10,2) not null default 0,
+  status              text not null default 'pending',
+  created_at          timestamptz default now()
+);
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'payments_status_check'
+      and conrelid = 'public.payments'::regclass
+  ) then
+    alter table public.payments
+      add constraint payments_status_check
+      check (status in ('pending', 'paid', 'failed', 'cancelled', 'expired'));
+  end if;
+end $$;
+
+alter table public.payments enable row level security;
+
+create policy "Admin read payments"
+on public.payments for select
+using (auth.role() = 'authenticated');
+
+create policy "Admin write payments"
+on public.payments for all
+using (auth.role() = 'authenticated');
+
+create index if not exists idx_payments_booking_id
+on public.payments (booking_id);
+
+create unique index if not exists idx_payments_checkout_session_id
+on public.payments (checkout_session_id)
+where checkout_session_id is not null;
 
 -- ── useful view ─────────────────────────────────────────────────
 create or replace view public.bookings_detail as

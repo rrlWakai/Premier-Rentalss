@@ -1,67 +1,74 @@
-import { Facebook, Instagram, MapPin } from 'lucide-react'
-import { motion } from 'framer-motion'
-import { ImgWithFallback } from '../lib/useImage'
-import { CONTACT_BG, FALLBACK } from '../lib/images'
+import { Facebook, Instagram, MapPin } from "lucide-react";
+import { motion } from "framer-motion";
+import { ImgWithFallback } from "../lib/useImage";
+import { CONTACT_BG, FALLBACK } from "../lib/images";
 
 type SocialLink = {
-  label: string
-  href: string
-  icon: typeof Instagram
-}
+  label: string;
+  href: string;
+  icon: typeof Instagram;
+};
 
 type ContactCard = {
-  name: string
-  subtitle: string
-  location: string
-  locationNote: string
-  socials: SocialLink[]
-}
+  name: string;
+  subtitle: string;
+  location: string;
+  locationNote: string;
+  socials: SocialLink[];
+};
 
 const CONTACTS: ContactCard[] = [
   {
-    name: 'Premier Pool House',
-    subtitle: 'Private resort for big-group escapes and family celebrations.',
-    location: '22 Love Bird St, Novaliches, Quezon City, Metro Manila',
-    locationNote: 'A private and accessible space ideal for quick getaways and intimate gatherings.',
+    name: "Premier Pool House",
+    subtitle: "Private resort for big-group escapes and family celebrations.",
+    location: "22 Love Bird St, Novaliches, Quezon City, Metro Manila",
+    locationNote:
+      "A private and accessible space ideal for quick getaways and intimate gatherings.",
     socials: [
-      { label: 'Instagram', href: '#', icon: Instagram },
-      { label: 'Facebook', href: '#', icon: Facebook },
+      { label: "Instagram", href: "#", icon: Instagram },
+      { label: "Facebook", href: "#", icon: Facebook },
     ],
   },
   {
-    name: 'Premier Patio',
-    subtitle: 'Garden estate for intimate stays, gatherings, and special moments.',
-    location: '36 Amsterdam, Barangay 167, Caloocan, Metro Manila',
-    locationNote: 'Conveniently located with easy access to major roads, dining spots, and city essentials.',
+    name: "Premier Patio",
+    subtitle:
+      "Garden estate for intimate stays, gatherings, and special moments.",
+    location: "36 Amsterdam, Barangay 167, Caloocan, Metro Manila",
+    locationNote:
+      "Conveniently located with easy access to major roads, dining spots, and city essentials.",
     socials: [
-      { label: 'Instagram', href: '#', icon: Instagram },
-      { label: 'Facebook', href: '#', icon: Facebook },
+      { label: "Instagram", href: "#", icon: Instagram },
+      { label: "Facebook", href: "#", icon: Facebook },
     ],
   },
-]
+];
 
 function ContactInfoCard({ card }: { card: ContactCard }) {
   return (
     <div
       className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 sm:p-6"
-      style={{ boxShadow: '0 18px 50px rgba(0,0,0,0.18)' }}
+      style={{ boxShadow: "0 18px 50px rgba(0,0,0,0.18)" }}
     >
       <div className="mb-5">
         <p
           className="mb-2 text-[10px] uppercase tracking-[0.26em] text-[#c9a96e]"
-          style={{ fontFamily: 'Jost, sans-serif', fontWeight: 500 }}
+          style={{ fontFamily: "Jost, sans-serif", fontWeight: 500 }}
         >
           Premier Rentals
         </p>
         <h3
           className="text-white"
-          style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.9rem', fontWeight: 400 }}
+          style={{
+            fontFamily: "Cormorant Garamond, serif",
+            fontSize: "1.9rem",
+            fontWeight: 400,
+          }}
         >
           {card.name}
         </h3>
         <p
           className="mt-2 max-w-md text-sm leading-relaxed text-white/55"
-          style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}
+          style={{ fontFamily: "Jost, sans-serif", fontWeight: 300 }}
         >
           {card.subtitle}
         </p>
@@ -71,26 +78,29 @@ function ContactInfoCard({ card }: { card: ContactCard }) {
         <div className="flex items-start gap-3">
           <div
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-            style={{ background: 'rgba(201,169,110,0.16)', border: '1px solid rgba(201,169,110,0.4)' }}
+            style={{
+              background: "rgba(201,169,110,0.16)",
+              border: "1px solid rgba(201,169,110,0.4)",
+            }}
           >
             <MapPin size={16} color="#c9a96e" />
           </div>
           <div>
             <p
               className="text-[10px] uppercase tracking-[0.22em] text-white/35"
-              style={{ fontFamily: 'Jost, sans-serif' }}
+              style={{ fontFamily: "Jost, sans-serif" }}
             >
               Location
             </p>
             <p
               className="mt-1 text-sm leading-relaxed text-white/72"
-              style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}
+              style={{ fontFamily: "Jost, sans-serif", fontWeight: 300 }}
             >
               {card.location}
             </p>
             <p
               className="mt-2 text-xs leading-relaxed text-white/48"
-              style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}
+              style={{ fontFamily: "Jost, sans-serif", fontWeight: 300 }}
             >
               {card.locationNote}
             </p>
@@ -102,13 +112,13 @@ function ContactInfoCard({ card }: { card: ContactCard }) {
         <div>
           <p
             className="text-[10px] uppercase tracking-[0.22em] text-white/35"
-            style={{ fontFamily: 'Jost, sans-serif' }}
+            style={{ fontFamily: "Jost, sans-serif" }}
           >
             Social Media
           </p>
           <p
             className="mt-1 text-xs text-white/45"
-            style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}
+            style={{ fontFamily: "Jost, sans-serif", fontWeight: 300 }}
           >
             Connect with {card.name.toLowerCase()} online.
           </p>
@@ -122,13 +132,17 @@ function ContactInfoCard({ card }: { card: ContactCard }) {
               aria-label={`${card.name} ${label}`}
               className="flex h-11 w-11 items-center justify-center rounded-full border border-white/12 bg-white/[0.03] transition-all duration-300 hover:border-[#c9a96e] hover:bg-[#c9a96e]/10"
             >
-              <Icon size={16} color="rgba(255,255,255,0.72)" strokeWidth={1.75} />
+              <Icon
+                size={16}
+                color="rgba(255,255,255,0.72)"
+                strokeWidth={1.75}
+              />
             </a>
           ))}
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 export default function Contact() {
@@ -148,29 +162,41 @@ export default function Contact() {
             alt="Premier Rentals contact"
             className="absolute inset-0 h-full w-full object-cover"
           />
-          <div className="absolute inset-0" style={{ background: 'rgba(10,10,10,0.62)' }} />
+          <div
+            className="absolute inset-0"
+            style={{ background: "rgba(10,10,10,0.62)" }}
+          />
           <div className="relative z-10">
-            <p className="section-label mb-4" style={{ color: '#c9a96e' }}>
+            <p className="section-label mb-4" style={{ color: "#c9a96e" }}>
               Stay Connected
             </p>
             <h2
               className="mb-5 text-white"
-              style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2rem, 3.5vw, 2.8rem)', fontWeight: 400, lineHeight: 1.15 }}
+              style={{
+                fontFamily: "Cormorant Garamond, serif",
+                fontSize: "clamp(2rem, 3.5vw, 2.8rem)",
+                fontWeight: 400,
+                lineHeight: 1.15,
+              }}
             >
-              Reach <span style={{ color: '#c9a96e', fontStyle: 'italic' }}>Premier Rentals</span>
+              Reach{" "}
+              <span style={{ color: "#c9a96e", fontStyle: "italic" }}>
+                Premier Rentals
+              </span>
             </h2>
             <p
               className="mb-8 max-w-sm text-sm leading-relaxed text-white/55"
-              style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}
+              style={{ fontFamily: "Jost, sans-serif", fontWeight: 300 }}
             >
-              Explore the contact details for each property and connect with Premier Pool House or Premier Patio through their social channels.
+              Explore the contact details for each property and connect with
+              Premier Pool House or Premier Patio through their social channels.
             </p>
           </div>
         </motion.div>
 
         <motion.div
           className="flex flex-col justify-center px-5 py-12 sm:px-8 lg:px-16 lg:py-16"
-          style={{ background: '#1a1a1a' }}
+          style={{ background: "#1a1a1a" }}
           initial={{ opacity: 0, x: 30 }}
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true }}
@@ -179,13 +205,17 @@ export default function Contact() {
           <div className="mb-8">
             <h3
               className="text-white"
-              style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.8rem', fontWeight: 400 }}
+              style={{
+                fontFamily: "Cormorant Garamond, serif",
+                fontSize: "1.8rem",
+                fontWeight: 400,
+              }}
             >
               Contact Information
             </h3>
             <p
               className="mt-2 max-w-xl text-sm leading-relaxed text-white/50"
-              style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}
+              style={{ fontFamily: "Jost, sans-serif", fontWeight: 300 }}
             >
               Choose the property you want to follow or inquire about.
             </p>
@@ -199,5 +229,5 @@ export default function Contact() {
         </motion.div>
       </div>
     </section>
-  )
+  );
 }

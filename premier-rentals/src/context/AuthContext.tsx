@@ -31,8 +31,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
+  const isAdmin = session?.user?.app_metadata?.role === 'admin'
+
   return (
-    <AuthContext.Provider value={{ session, loading, isAdmin: !!session }}>
+    <AuthContext.Provider value={{ session, loading, isAdmin }}>
       {children}
     </AuthContext.Provider>
   )
