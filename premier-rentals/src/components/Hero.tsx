@@ -19,7 +19,10 @@ export default function Hero() {
   };
 
   return (
-    <section id="home" className="relative flex min-h-[100svh] flex-col py-0">
+    <section
+      id="home"
+      className="hero-section relative flex min-h-[100svh] flex-col overflow-hidden py-0"
+    >
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
           className="h-full w-full"
@@ -37,10 +40,10 @@ export default function Hero() {
         <div className="hero-overlay absolute inset-0" />
       </div>
 
-      <div className="relative flex flex-1 items-center">
-        <div className="mx-auto flex w-full max-w-7xl px-4 pb-24 pt-28 sm:px-6 sm:pb-20 sm:pt-32 lg:px-12 lg:pt-36">
+      <div className="relative flex flex-1 items-center justify-center">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-center px-4 pb-16 pt-24 sm:px-6 sm:pb-16 sm:pt-28 lg:px-12 lg:pb-20 lg:pt-32">
           <motion.div
-            className="mx-auto flex w-full max-w-4xl flex-col items-center gap-5 text-center"
+            className="mx-auto flex w-full max-w-3xl flex-col items-center gap-6 text-center sm:gap-7"
             variants={container}
             initial="hidden"
             animate="visible"
@@ -50,7 +53,7 @@ export default function Hero() {
               className="section-label"
               style={{ color: "#d4b97f" }}
             >
-              Private City Stays
+              PRIVATE CITY STAYS
             </motion.p>
 
             <motion.h1
@@ -58,33 +61,32 @@ export default function Hero() {
               className="text-white"
               style={{
                 fontFamily: "Cormorant Garamond, serif",
-                fontSize: "clamp(3.25rem, 9vw, 7.25rem)",
+                fontSize: "clamp(3.25rem, 8vw, 6.5rem)",
                 fontWeight: 300,
-                lineHeight: 0.94,
+                lineHeight: 0.96,
               }}
             >
-              Premier
-              <br />
-              <span style={{ color: "#c9a96e", fontStyle: "italic" }}>
-                Rentals
-              </span>
+              Premier Rentals
             </motion.h1>
+
+            <motion.p
+              variants={item}
+              className="max-w-2xl text-sm leading-relaxed text-white/72 sm:text-base"
+              style={{ fontFamily: "Jost, sans-serif", fontWeight: 300 }}
+            >
+              Your private space in the city designed for comfort, convenience,
+              and memorable moments.
+            </motion.p>
 
             <motion.div
               variants={item}
-              className="mt-2 flex w-full max-w-md flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center"
+              className="mt-1 flex w-full max-w-sm flex-col items-center sm:max-w-md"
             >
               <a
                 href="#retreats"
-                className="btn-gold w-full justify-center sm:w-auto sm:min-w-[210px]"
+                className="btn-gold w-full justify-center px-6 py-4 text-xs sm:min-w-[240px]"
               >
-                Explore Properties
-              </a>
-              <a
-                href="#about"
-                className="btn-outline-gold w-full justify-center border-white/40 text-white hover:bg-white hover:text-[#1a1a1a] sm:w-auto sm:min-w-[180px]"
-              >
-                Learn More
+                Check Availability
               </a>
             </motion.div>
           </motion.div>
