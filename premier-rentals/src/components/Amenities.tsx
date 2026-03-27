@@ -1,60 +1,120 @@
 import { motion } from 'framer-motion'
-import { Waves, Flame, Sparkles, PhoneCall, Home, UtensilsCrossed, Coffee, Star } from 'lucide-react'
+import {
+  Bath,
+  Sofa,
+  Wifi,
+  UtensilsCrossed,
+  CarFront,
+  Waves,
+  Tv,
+  Trees,
+} from 'lucide-react'
 import { containerVariant, fadeUpVariant } from '../lib/animations'
 
-const amenities = [
-  { icon: Waves,          title: 'Private Pool',      description: 'Your own infinity pool with stunning views, heated to the perfect temperature year-round.' },
-  { icon: Flame,          title: 'Private BBQ',       description: 'Equipped outdoor grilling stations for memorable al fresco dining experiences.' },
-  { icon: Sparkles,       title: 'In-Villa Spa',      description: 'On-demand wellness treatments including massages, facials, and holistic therapies.' },
-  { icon: PhoneCall,      title: 'Chauffeur Service', description: 'Luxury vehicle transfers and a dedicated driver available for every excursion.' },
-  { icon: Home,           title: 'Home Cinema',       description: 'Private screening room with 4K projection and a curated entertainment library.' },
-  { icon: UtensilsCrossed,title: 'Vitamins & Juices', description: 'Bespoke wellness packages including custom nutrition and morning ritual programs.' },
-  { icon: Coffee,         title: 'Barista Coffee',    description: 'Artisan coffee station with a personal barista to start your mornings just right.' },
-  { icon: Star,           title: 'Meal Plating',      description: 'Private chef service with curated menus crafted around your dietary preferences.' },
+const amenityGroups = [
+  {
+    title: 'Comfort',
+    items: [
+      { icon: Bath, label: 'Air-conditioned Rooms' },
+      { icon: Sofa, label: 'Spacious Living Area' },
+    ],
+  },
+  {
+    title: 'Essentials',
+    items: [
+      { icon: Wifi, label: 'Fast Wi-Fi' },
+      { icon: UtensilsCrossed, label: 'Fully Equipped Kitchen' },
+      { icon: CarFront, label: 'Parking' },
+    ],
+  },
+  {
+    title: 'Experience',
+    items: [
+      { icon: Waves, label: 'Private Pool' },
+      { icon: Tv, label: 'Entertainment Area' },
+      { icon: Trees, label: 'Outdoor Lounge' },
+    ],
+  },
 ]
 
 export default function Amenities() {
   return (
-    <section id="amenities" className="bg-[#f8f4ee] py-16 sm:py-20 lg:py-24">
+    <section
+      id="amenities"
+      className="relative overflow-hidden bg-[#f6f1ea] py-18 sm:py-22 lg:py-28"
+    >
+      <div
+        className="absolute inset-x-0 top-0 h-32 opacity-70"
+        style={{ background: 'linear-gradient(180deg, rgba(201,169,110,0.08) 0%, rgba(246,241,234,0) 100%)' }}
+      />
+
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-12">
         <motion.div
-          className="mb-10 sm:mb-14"
-          initial={{ opacity: 0, y: 20 }}
+          className="mb-12 max-w-3xl sm:mb-16"
+          initial={{ opacity: 0, y: 18 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
+          viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: 0.6 }}
         >
-          <p className="section-label mb-3">What We Offer</p>
-          <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 400, lineHeight: 1.1, color: '#1a1a1a' }}>
-            World-Class <span style={{ color: '#c9a96e', fontStyle: 'italic' }}>Amenities</span>
+          <p className="section-label mb-3">Amenities</p>
+          <h2
+            className="text-[#161616]"
+            style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2.15rem, 4vw, 3.5rem)', fontWeight: 400, lineHeight: 1.02 }}
+          >
+            Thoughtful essentials for a <span style={{ color: '#b79458', fontStyle: 'italic' }}>premium city stay</span>
           </h2>
+          <p
+            className="mt-4 max-w-2xl text-sm leading-relaxed text-[#6f6b63] sm:text-[15px]"
+            style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}
+          >
+            Designed for short stays that feel elevated, calm, and effortlessly comfortable.
+          </p>
         </motion.div>
 
         <motion.div
-          className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8"
+          className="grid grid-cols-1 gap-10 md:grid-cols-3 md:gap-8 lg:gap-12"
           variants={containerVariant}
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, amount: 0.1 }}
+          viewport={{ once: true, amount: 0.2 }}
         >
-          {amenities.map(({ icon: Icon, title, description }, i) => (
+          {amenityGroups.map((group, index) => (
             <motion.div
-              key={title}
+              key={group.title}
               variants={fadeUpVariant}
-              custom={i}
-              className="amenity-card group"
-              whileHover={{ y: -6, transition: { duration: 0.25 } }}
+              custom={index}
+              className="group"
             >
-              <div className="w-10 h-10 mb-4 flex items-center justify-center rounded-full transition-all duration-300"
-                style={{ background: 'rgba(201,169,110,0.12)', border: '1px solid rgba(201,169,110,0.3)' }}>
-                <Icon size={18} color="#c9a96e" strokeWidth={1.5} />
+              <div className="mb-5 h-px w-full bg-[#d9cfbf]" />
+              <div className="mb-6">
+                <h3
+                  className="text-[#1b1b1b]"
+                  style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.95rem', fontWeight: 400 }}
+                >
+                  {group.title}
+                </h3>
               </div>
-              <h3 className="mb-2" style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.15rem', fontWeight: 500, color: '#1a1a1a' }}>
-                {title}
-              </h3>
-              <p className="text-[#8a8a7a] text-xs leading-relaxed" style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}>
-                {description}
-              </p>
+
+              <div className="flex flex-col gap-4">
+                {group.items.map(({ icon: Icon, label }) => (
+                  <motion.div
+                    key={label}
+                    className="flex items-center gap-3.5 text-[#2b2a27]"
+                    whileHover={{ x: 4, opacity: 0.9 }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
+                  >
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#fbf8f3]">
+                      <Icon size={17} color="#b79458" strokeWidth={1.4} />
+                    </div>
+                    <p
+                      className="text-sm tracking-[0.01em] text-[#35332f]"
+                      style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}
+                    >
+                      {label}
+                    </p>
+                  </motion.div>
+                ))}
+              </div>
             </motion.div>
           ))}
         </motion.div>

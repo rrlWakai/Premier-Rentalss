@@ -44,6 +44,10 @@ const TIER_LABELS: Record<string, string> = {
   big_group:  'Big Group',
 }
 
+function getGoogleMapsEmbedUrl(address: string) {
+  return `https://maps.google.com/maps?q=${encodeURIComponent(address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`
+}
+
 function RateTable({ pkg }: { pkg: RatePackage }) {
   return (
     <div className="overflow-hidden rounded-xl border border-[#ede8df]">
@@ -175,11 +179,16 @@ export default function PropertyPage() {
   const [galleryModalOpen, setGalleryModalOpen] = useState(false)
   const [modalImageIndex, setModalImageIndex] = useState(0)
   const [bookingPkg, setBookingPkg] = useState<RatePackage | null>(null)
+  const [selectedQuickPkgTier, setSelectedQuickPkgTier] = useState<string | null>(null)
   const [rulesOpen, setRulesOpen] = useState(false)
 
   const property = slug ? PROPERTIES[slug] : null
 
   useEffect(() => { window.scrollTo(0, 0) }, [slug])
+  useEffect(() => {
+    if (!property) return
+    setSelectedQuickPkgTier(property.packages[0]?.tier ?? null)
+  }, [property])
 
   if (!property) {
     return (
@@ -194,6 +203,7 @@ export default function PropertyPage() {
   const allFallback = [COVER_FALLBACKS[slug!] ?? FALLBACK.poolHouseCover, ...(GALLERY_FALLBACKS[slug!] ?? FALLBACK.poolHouseGallery)]
   const galleryPreview = property.galleryImages.slice(0, 5)
   const remainingGalleryCount = property.galleryImages.length - galleryPreview.length
+  const selectedQuickPkg = property.packages.find(pkg => pkg.tier === selectedQuickPkgTier) ?? property.packages[0]
 
   const selectGalleryImage = (imageIndex: number) => {
     setModalImageIndex(imageIndex)
@@ -293,7 +303,7 @@ export default function PropertyPage() {
               <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-white/60" style={{ fontFamily: 'Jost, sans-serif' }}>
                 <span className="flex items-center gap-1.5"><Users size={12} />Up to {property.maxGuests} guests</span>
                 <span className="flex items-center gap-1.5"><Car size={12} />Max {property.maxCars} cars</span>
-                <span className="flex items-center gap-1.5"><MapPin size={12} />Private Estate</span>
+                <span className="flex items-center gap-1.5"><MapPin size={12} />{property.location}</span>
               </div>
             </div>
           </div>
@@ -313,6 +323,32 @@ export default function PropertyPage() {
               <p className="text-[#4a4a4a] text-sm leading-relaxed" style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300, lineHeight: 1.9 }}>
                 {property.description}
               </p>
+            </div>
+
+            {/* Location */}
+            <div>
+              <p className="section-label mb-2">Our Location</p>
+              <h2 className="mb-2" style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(1.5rem,3vw,2rem)', fontWeight: 400, color: '#1a1a1a' }}>
+                Find <span style={{ color: '#c9a96e', fontStyle: 'italic' }}>{property.name}</span>
+              </h2>
+              <p className="mb-5 flex items-start gap-2 text-sm leading-relaxed text-[#4a4a4a]" style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}>
+                <MapPin size={15} color="#c9a96e" className="mt-1 shrink-0" />
+                <span>{property.location}</span>
+              </p>
+              <p className="mb-6 max-w-2xl text-sm leading-relaxed text-[#8a8a7a]" style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}>
+                {property.locationDescription}
+              </p>
+
+              <div className="overflow-hidden rounded-[24px] border border-[#ede8df] bg-white shadow-sm">
+                <iframe
+                  title={`${property.name} location map`}
+                  src={getGoogleMapsEmbedUrl(property.location)}
+                  className="h-[320px] w-full border-0 sm:h-[420px]"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  allowFullScreen
+                />
+              </div>
             </div>
 
             {/* Amenities */}
@@ -476,24 +512,41 @@ export default function PropertyPage() {
                 <p className="section-label mb-2">Quick Rates</p>
                 <div className="flex flex-col gap-3">
                   {property.packages.map(pkg => (
-                    <div key={pkg.tier} className="flex items-center justify-between py-2 border-b border-[#ede8df] last:border-0">
-                      <div>
-                        <p className="text-xs font-medium text-[#1a1a1a]" style={{ fontFamily: 'Jost, sans-serif' }}>{pkg.title}</p>
-                        <p className="text-[10px] text-[#8a8a7a]" style={{ fontFamily: 'Jost, sans-serif' }}>Up to {pkg.maxPax} pax</p>
+                    <label
+                      key={pkg.tier}
+                      className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-3 transition-colors ${
+                        selectedQuickPkg?.tier === pkg.tier
+                          ? 'border-[#c9a96e] bg-[#fbf8f3]'
+                          : 'border-transparent hover:border-[#ede8df]'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="quick-rate-package"
+                        value={pkg.tier}
+                        checked={selectedQuickPkg?.tier === pkg.tier}
+                        onChange={() => setSelectedQuickPkgTier(pkg.tier)}
+                        className="mt-1 h-4 w-4 accent-[#c9a96e]"
+                      />
+                      <div className="flex flex-1 items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-medium text-[#1a1a1a]" style={{ fontFamily: 'Jost, sans-serif' }}>{pkg.title}</p>
+                          <p className="text-[10px] text-[#8a8a7a]" style={{ fontFamily: 'Jost, sans-serif' }}>Up to {pkg.maxPax} pax</p>
+                        </div>
+                        <div className="text-right">
+                          <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1rem', fontWeight: 500, color: '#c9a96e' }}>
+                            {formatPHP(Math.min(...pkg.rates.map(r => r.weekday)))}
+                          </span>
+                          <p className="text-[9px] text-[#8a8a7a]" style={{ fontFamily: 'Jost, sans-serif' }}>starting from</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1rem', fontWeight: 500, color: '#c9a96e' }}>
-                          {formatPHP(Math.min(...pkg.rates.map(r => r.weekday)))}
-                        </span>
-                        <p className="text-[9px] text-[#8a8a7a]" style={{ fontFamily: 'Jost, sans-serif' }}>starting from</p>
-                      </div>
-                    </div>
+                    </label>
                   ))}
                 </div>
               </div>
               <div className="p-5 flex flex-col gap-3">
-                <button onClick={() => setBookingPkg(property.packages[0])} className="btn-gold w-full justify-center">
-                  Reserve Now
+                <button onClick={() => setBookingPkg(selectedQuickPkg)} className="btn-gold w-full justify-center">
+                  Reserve {selectedQuickPkg?.title ?? 'Now'}
                 </button>
                 <div className="flex flex-col gap-2">
                   <div className="flex items-start gap-2">

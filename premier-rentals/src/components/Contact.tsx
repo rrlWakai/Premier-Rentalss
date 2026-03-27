@@ -1,42 +1,140 @@
-import { useState } from 'react'
-import { Send, Check } from 'lucide-react'
+import { Facebook, Instagram, MapPin } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { submitInquiry } from '../lib/supabase'
 import { ImgWithFallback } from '../lib/useImage'
 import { CONTACT_BG, FALLBACK } from '../lib/images'
-import toast from 'react-hot-toast'
+
+type SocialLink = {
+  label: string
+  href: string
+  icon: typeof Instagram
+}
+
+type ContactCard = {
+  name: string
+  subtitle: string
+  location: string
+  locationNote: string
+  socials: SocialLink[]
+}
+
+const CONTACTS: ContactCard[] = [
+  {
+    name: 'Premier Pool House',
+    subtitle: 'Private resort for big-group escapes and family celebrations.',
+    location: '22 Love Bird St, Novaliches, Quezon City, Metro Manila',
+    locationNote: 'A private and accessible space ideal for quick getaways and intimate gatherings.',
+    socials: [
+      { label: 'Instagram', href: '#', icon: Instagram },
+      { label: 'Facebook', href: '#', icon: Facebook },
+    ],
+  },
+  {
+    name: 'Premier Patio',
+    subtitle: 'Garden estate for intimate stays, gatherings, and special moments.',
+    location: '36 Amsterdam, Barangay 167, Caloocan, Metro Manila',
+    locationNote: 'Conveniently located with easy access to major roads, dining spots, and city essentials.',
+    socials: [
+      { label: 'Instagram', href: '#', icon: Instagram },
+      { label: 'Facebook', href: '#', icon: Facebook },
+    ],
+  },
+]
+
+function ContactInfoCard({ card }: { card: ContactCard }) {
+  return (
+    <div
+      className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 sm:p-6"
+      style={{ boxShadow: '0 18px 50px rgba(0,0,0,0.18)' }}
+    >
+      <div className="mb-5">
+        <p
+          className="mb-2 text-[10px] uppercase tracking-[0.26em] text-[#c9a96e]"
+          style={{ fontFamily: 'Jost, sans-serif', fontWeight: 500 }}
+        >
+          Premier Rentals
+        </p>
+        <h3
+          className="text-white"
+          style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.9rem', fontWeight: 400 }}
+        >
+          {card.name}
+        </h3>
+        <p
+          className="mt-2 max-w-md text-sm leading-relaxed text-white/55"
+          style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}
+        >
+          {card.subtitle}
+        </p>
+      </div>
+
+      <div className="rounded-[22px] border border-white/8 bg-black/20 p-4">
+        <div className="flex items-start gap-3">
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+            style={{ background: 'rgba(201,169,110,0.16)', border: '1px solid rgba(201,169,110,0.4)' }}
+          >
+            <MapPin size={16} color="#c9a96e" />
+          </div>
+          <div>
+            <p
+              className="text-[10px] uppercase tracking-[0.22em] text-white/35"
+              style={{ fontFamily: 'Jost, sans-serif' }}
+            >
+              Location
+            </p>
+            <p
+              className="mt-1 text-sm leading-relaxed text-white/72"
+              style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}
+            >
+              {card.location}
+            </p>
+            <p
+              className="mt-2 text-xs leading-relaxed text-white/48"
+              style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}
+            >
+              {card.locationNote}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-5 flex items-center justify-between gap-4">
+        <div>
+          <p
+            className="text-[10px] uppercase tracking-[0.22em] text-white/35"
+            style={{ fontFamily: 'Jost, sans-serif' }}
+          >
+            Social Media
+          </p>
+          <p
+            className="mt-1 text-xs text-white/45"
+            style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}
+          >
+            Connect with {card.name.toLowerCase()} online.
+          </p>
+        </div>
+
+        <div className="flex gap-3">
+          {card.socials.map(({ label, href, icon: Icon }) => (
+            <a
+              key={label}
+              href={href}
+              aria-label={`${card.name} ${label}`}
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-white/12 bg-white/[0.03] transition-all duration-300 hover:border-[#c9a96e] hover:bg-[#c9a96e]/10"
+            >
+              <Icon size={16} color="rgba(255,255,255,0.72)" strokeWidth={1.75} />
+            </a>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function Contact() {
-  const [form, setForm] = useState({
-    full_name: '', email: '', phone: '',
-    message: '', check_in: '', check_out: '', guests: '',
-  })
-  const [submitting, setSubmitting] = useState(false)
-  const [submitted, setSubmitted]   = useState(false)
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSubmitting(true)
-    const ok = await submitInquiry({
-      full_name: form.full_name, email: form.email,
-      phone: form.phone || undefined, message: form.message || undefined,
-      check_in: form.check_in || undefined, check_out: form.check_out || undefined,
-      guests: form.guests ? parseInt(form.guests) : undefined,
-    })
-    setSubmitting(false)
-    if (ok) { setSubmitted(true); toast.success("Inquiry sent! We'll be in touch.") }
-    else toast.error('Something went wrong. Please try again.')
-  }
-
   return (
     <section id="contact" className="relative">
       <div className="grid min-h-[700px] grid-cols-1 lg:grid-cols-2">
-
-        {/* Left — image + text */}
         <motion.div
           className="relative flex min-h-[400px] flex-col justify-end p-5 sm:p-8 lg:min-h-0 lg:p-16"
           initial={{ opacity: 0 }}
@@ -44,40 +142,32 @@ export default function Contact() {
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
         >
-          {/* LOCAL /public/images/gallery/villa.jpg */}
           <ImgWithFallback
             local={CONTACT_BG}
             fallback={FALLBACK.contact}
-            alt="Begin your journey"
-            className="absolute inset-0 w-full h-full object-cover"
+            alt="Premier Rentals contact"
+            className="absolute inset-0 h-full w-full object-cover"
           />
           <div className="absolute inset-0" style={{ background: 'rgba(10,10,10,0.62)' }} />
           <div className="relative z-10">
-            <p className="section-label mb-4" style={{ color: '#c9a96e' }}>Reserve Your Escape</p>
-            <h2 className="text-white mb-5"
-              style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2rem, 3.5vw, 2.8rem)', fontWeight: 400, lineHeight: 1.15 }}>
-              Begin Your <span style={{ color: '#c9a96e', fontStyle: 'italic' }}>Journey</span>
-            </h2>
-            <p className="text-white/55 text-sm leading-relaxed max-w-sm mb-8"
-              style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}>
-              Our reservations team is ready to craft your ideal escape. Share your vision and we'll handle every detail.
+            <p className="section-label mb-4" style={{ color: '#c9a96e' }}>
+              Stay Connected
             </p>
-            <div className="flex flex-col gap-3">
-              {['Personalized itinerary planning', 'Private transfer arrangements', 'Special occasion experiences'].map((item) => (
-                <div key={item} className="flex items-center gap-3">
-                  <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0"
-                    style={{ background: 'rgba(201,169,110,0.2)', border: '1px solid #c9a96e' }}>
-                    <Check size={8} color="#c9a96e" strokeWidth={3} />
-                  </div>
-                  <span className="text-white/60 text-xs"
-                    style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}>{item}</span>
-                </div>
-              ))}
-            </div>
+            <h2
+              className="mb-5 text-white"
+              style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2rem, 3.5vw, 2.8rem)', fontWeight: 400, lineHeight: 1.15 }}
+            >
+              Reach <span style={{ color: '#c9a96e', fontStyle: 'italic' }}>Premier Rentals</span>
+            </h2>
+            <p
+              className="mb-8 max-w-sm text-sm leading-relaxed text-white/55"
+              style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}
+            >
+              Explore the contact details for each property and connect with Premier Pool House or Premier Patio through their social channels.
+            </p>
           </div>
         </motion.div>
 
-        {/* Right — form */}
         <motion.div
           className="flex flex-col justify-center px-5 py-12 sm:px-8 lg:px-16 lg:py-16"
           style={{ background: '#1a1a1a' }}
@@ -86,49 +176,26 @@ export default function Contact() {
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
         >
-          <h3 className="text-white mb-8"
-            style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.6rem', fontWeight: 400 }}>
-            Request Information
-          </h3>
+          <div className="mb-8">
+            <h3
+              className="text-white"
+              style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.8rem', fontWeight: 400 }}
+            >
+              Contact Information
+            </h3>
+            <p
+              className="mt-2 max-w-xl text-sm leading-relaxed text-white/50"
+              style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}
+            >
+              Choose the property you want to follow or inquire about.
+            </p>
+          </div>
 
-          {submitted ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
-              <div className="w-14 h-14 rounded-full flex items-center justify-center"
-                style={{ background: 'rgba(201,169,110,0.15)', border: '1px solid #c9a96e' }}>
-                <Check size={24} color="#c9a96e" />
-              </div>
-              <p className="text-white text-lg"
-                style={{ fontFamily: 'Cormorant Garamond, serif', fontStyle: 'italic' }}>
-                Thank you for reaching out.
-              </p>
-              <p className="text-white/50 text-xs max-w-xs" style={{ fontFamily: 'Jost, sans-serif' }}>
-                Our reservations team will be in touch within 24 hours.
-              </p>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <input type="text"  name="full_name" placeholder="Full Name"      required value={form.full_name} onChange={handleChange} className="form-input" />
-                <input type="email" name="email"     placeholder="Email Address"  required value={form.email}     onChange={handleChange} className="form-input" />
-              </div>
-              <input type="tel"    name="phone"     placeholder="Phone Number"             value={form.phone}     onChange={handleChange} className="form-input" />
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <input type="date" name="check_in"  value={form.check_in}  onChange={handleChange} className="form-input" />
-                <input type="date" name="check_out" value={form.check_out} onChange={handleChange} className="form-input" />
-              </div>
-              <input type="number" name="guests"    placeholder="Number of Guests" min={1} value={form.guests} onChange={handleChange} className="form-input" />
-              <textarea name="message" placeholder="Tell us about your ideal experience..." rows={4}
-                value={form.message} onChange={handleChange} className="form-input resize-none" />
-              <motion.button
-                type="submit" disabled={submitting}
-                className="btn-gold justify-center mt-2 disabled:opacity-60"
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
-              >
-                {submitting ? 'Sending...' : <><Send size={13} /> Send Inquiry</>}
-              </motion.button>
-            </form>
-          )}
+          <div className="flex flex-col gap-5">
+            {CONTACTS.map((card) => (
+              <ContactInfoCard key={card.name} card={card} />
+            ))}
+          </div>
         </motion.div>
       </div>
     </section>

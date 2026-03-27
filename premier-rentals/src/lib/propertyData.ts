@@ -30,6 +30,8 @@ export interface PropertyData {
   name: string
   tagline: string
   description: string
+  location: string
+  locationDescription: string
   maxGuests: number   // overall max (biggest tier)
   maxCars: number
   coverImage: string
@@ -53,9 +55,12 @@ export interface AmenityGroup {
 export const PATIO_DATA: PropertyData = {
   slug: 'premier-patio',
   name: 'Premier Patio',
-  tagline: 'Garden Estate',
+  tagline: 'Urban Patio Stay',
   description:
     'A sophisticated garden estate with lush tropical surroundings and open-air entertainment spaces — ideal for intimate celebrations and exclusive family gatherings.',
+  location: '36 Amsterdam, Barangay 167, Caloocan, Metro Manila',
+  locationDescription:
+    'Conveniently located with easy access to major roads, dining spots, and city essentials.',
   maxGuests: 20,
   maxCars: 4,
   coverImage: '/images/properties/premier-patio/cover.jpg',
@@ -166,9 +171,12 @@ export const PATIO_DATA: PropertyData = {
 export const POOL_HOUSE_DATA: PropertyData = {
   slug: 'premier-pool-house',
   name: 'Premier Pool House',
-  tagline: 'Beachfront',
+  tagline: 'Private Pool Stay',
   description:
     'An expansive private pool estate with resort-grade amenities — ideal for staycations, large family gatherings, and exclusive big-group events.',
+  location: '22 Love Bird St, Novaliches, Quezon City, Metro Manila',
+  locationDescription:
+    'A private and accessible space ideal for quick getaways and intimate gatherings.',
   maxGuests: 40,
   maxCars: 8,
   coverImage: '/images/properties/premier-pool-house/cover.jpg',

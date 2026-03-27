@@ -1,120 +1,133 @@
-import { Instagram, Facebook, Twitter, Mail, Phone, MapPin } from 'lucide-react'
+import { Facebook, Instagram, Mail, MapPin } from 'lucide-react'
 
-const links = {
-  Explore: ['Properties', 'Amenities', 'Gallery', 'About Us'],
-  Services: ['Private Chef', 'Concierge', 'Transfers', 'Spa & Wellness'],
-  Company: ['Our Story', 'Press', 'Careers', 'Privacy Policy'],
-}
-
-const socials = [
-  { icon: Instagram, href: '#', label: 'Instagram' },
-  { icon: Facebook, href: '#', label: 'Facebook' },
-  { icon: Twitter, href: '#', label: 'Twitter' },
+const locations = [
+  {
+    name: 'Premier Pool House',
+    address: '22 Love Bird St, Novaliches, Quezon City, Metro Manila',
+  },
+  {
+    name: 'Premier Patio',
+    address: '36 Amsterdam, Barangay 167, Caloocan, Metro Manila',
+  },
 ]
+
+const connectLinks = [
+  { label: 'Facebook', href: '#', icon: Facebook },
+  { label: 'Instagram', href: '#', icon: Instagram },
+  { label: 'Email', href: 'mailto:hello@premierrentals.com', icon: Mail },
+]
+
+const legalLinks = ['Privacy Policy', 'Cookie Policy', 'Terms of Service']
 
 export default function Footer() {
   return (
     <footer style={{ background: '#111111' }}>
-      {/* Main footer */}
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-12 lg:py-20">
-        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-5 lg:gap-12">
-          {/* Brand */}
-          <div className="lg:col-span-2">
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.95fr)_minmax(0,0.8fr)_minmax(0,0.8fr)] lg:gap-12">
+          <div>
             <p
-              className="text-white text-2xl tracking-[0.2em] uppercase mb-4"
-              style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 300 }}
+              className="mb-4 text-white"
+              style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '2rem', fontWeight: 400 }}
             >
-              Premier
+              Premier Rentals
             </p>
             <p
-              className="text-white/40 text-xs leading-relaxed max-w-xs mb-8"
-              style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300, lineHeight: 1.9 }}
+              className="max-w-sm text-sm leading-relaxed text-white/72"
+              style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}
             >
-              Redefining luxury private resort experiences for the world's most discerning travelers. Every stay is a masterpiece of comfort, elegance, and unforgettable moments.
+              Your private space in the city.
             </p>
+            <p
+              className="mt-3 max-w-md text-sm leading-relaxed text-white/45"
+              style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}
+            >
+              Modern, comfortable, and fully-equipped stays designed for convenience and memorable moments within Metro Manila.
+            </p>
+          </div>
 
-            {/* Contact info */}
-            <div className="flex flex-col gap-3 mb-8">
-              {[
-                { icon: Phone, text: '+1 (800) 555-0199' },
-                { icon: Mail, text: 'reservations@premierrentals.com' },
-                { icon: MapPin, text: 'Worldwide Properties' },
-              ].map(({ icon: Icon, text }) => (
-                <div key={text} className="flex items-center gap-3">
-                  <Icon size={13} color="#c9a96e" strokeWidth={1.5} />
-                  <span
-                    className="text-white/40 text-xs"
-                    style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}
+          <div>
+            <p
+              className="mb-5 text-[10px] uppercase tracking-[0.25em] text-[#c9a96e]"
+              style={{ fontFamily: 'Jost, sans-serif', fontWeight: 500 }}
+            >
+              Locations
+            </p>
+            <div className="flex flex-col gap-5">
+              {locations.map((location) => (
+                <div key={location.name}>
+                  <p
+                    className="text-sm text-white"
+                    style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.2rem', fontWeight: 400 }}
                   >
-                    {text}
-                  </span>
+                    {location.name}
+                  </p>
+                  <div className="mt-2 flex items-start gap-2.5">
+                    <MapPin size={14} color="#c9a96e" className="mt-0.5 shrink-0" />
+                    <p
+                      className="text-xs leading-relaxed text-white/45"
+                      style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}
+                    >
+                      {location.address}
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
+          </div>
 
-            {/* Socials */}
-            <div className="flex gap-3">
-              {socials.map(({ icon: Icon, href, label }) => (
+          <div>
+            <p
+              className="mb-5 text-[10px] uppercase tracking-[0.25em] text-[#c9a96e]"
+              style={{ fontFamily: 'Jost, sans-serif', fontWeight: 500 }}
+            >
+              Connect With Us
+            </p>
+            <div className="flex flex-col gap-3">
+              {connectLinks.map(({ label, href, icon: Icon }) => (
                 <a
                   key={label}
                   href={href}
-                  aria-label={label}
-                  className="w-9 h-9 flex items-center justify-center border border-white/10 hover:border-[#c9a96e] hover:bg-[#c9a96e]/10 transition-all duration-300"
+                  className="flex items-center gap-3 text-xs text-white/45 transition-colors hover:text-white/75"
+                  style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}
                 >
-                  <Icon size={14} color="rgba(255,255,255,0.5)" strokeWidth={1.5} />
+                  <Icon size={14} color="#c9a96e" strokeWidth={1.5} />
+                  <span>{label}</span>
                 </a>
               ))}
             </div>
           </div>
 
-          {/* Link columns */}
-          {Object.entries(links).map(([category, items]) => (
-            <div key={category}>
-              <p
-                className="text-[#c9a96e] text-[10px] tracking-[0.25em] uppercase mb-5"
-                style={{ fontFamily: 'Jost, sans-serif', fontWeight: 500 }}
-              >
-                {category}
-              </p>
-              <ul className="flex flex-col gap-3">
-                {items.map((item) => (
-                  <li key={item}>
-                    <a
-                      href="#"
-                      className="text-white/35 hover:text-white/70 transition-colors text-xs"
-                      style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300, letterSpacing: '0.04em' }}
-                    >
-                      {item}
-                    </a>
-                  </li>
-                ))}
-              </ul>
+          <div>
+            <p
+              className="mb-5 text-[10px] uppercase tracking-[0.25em] text-[#c9a96e]"
+              style={{ fontFamily: 'Jost, sans-serif', fontWeight: 500 }}
+            >
+              Legal
+            </p>
+            <div className="flex flex-col gap-3">
+              {legalLinks.map((item) => (
+                <a
+                  key={item}
+                  href="#"
+                  className="text-xs text-white/45 transition-colors hover:text-white/75"
+                  style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}
+                >
+                  {item}
+                </a>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       </div>
 
-      {/* Bottom bar */}
-      <div className="border-t border-white/5">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-6 text-center sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:text-left lg:px-12">
+      <div className="border-t border-white/8">
+        <div className="mx-auto max-w-7xl px-4 py-6 text-center sm:px-6 lg:px-12">
           <p
-            className="text-white/20 text-[10px] tracking-widest uppercase"
+            className="text-[10px] tracking-[0.2em] text-white/25 uppercase"
             style={{ fontFamily: 'Jost, sans-serif' }}
           >
-            © {new Date().getFullYear()} Premier Rentals. All rights reserved.
+            © 2026 Premier Rentals. All rights reserved.
           </p>
-          <div className="flex flex-wrap justify-center gap-4 sm:justify-end sm:gap-6">
-            {['Terms of Service', 'Privacy Policy', 'Cookie Policy'].map((item) => (
-              <a
-                key={item}
-                href="#"
-                className="text-white/20 hover:text-white/45 transition-colors text-[10px] tracking-wider"
-                style={{ fontFamily: 'Jost, sans-serif' }}
-              >
-                {item}
-              </a>
-            ))}
-          </div>
         </div>
       </div>
     </footer>

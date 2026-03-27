@@ -41,9 +41,9 @@ export default function HomePage() {
       <Retreats />
       <MoreThanStay />
       <Amenities />
-      <TestimonialBanner />
       <Gallery />
-      <Testimonials />
+      {/* <Testimonials /> */}
+      <TestimonialBanner />
       <Contact />
       <Footer />
     </motion.div>

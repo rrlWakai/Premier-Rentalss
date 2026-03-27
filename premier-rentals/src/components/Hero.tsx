@@ -1,136 +1,104 @@
-import { useState } from 'react'
-import { ChevronDown } from 'lucide-react'
-import { motion } from 'framer-motion'
-import { ImgWithFallback } from '../lib/useImage'
-import { HERO_BG, FALLBACK } from '../lib/images'
+import { ChevronDown } from "lucide-react";
+import { motion } from "framer-motion";
+import { ImgWithFallback } from "../lib/useImage";
+import { HERO_BG, FALLBACK } from "../lib/images";
 
 export default function Hero() {
-  const [checkIn, setCheckIn]   = useState('')
-  const [checkOut, setCheckOut] = useState('')
-  const [guests, setGuests]     = useState('')
-  const [property, setProperty] = useState('')
-
   const container = {
-    hidden:  {},
+    hidden: {},
     visible: { transition: { staggerChildren: 0.15, delayChildren: 0.3 } },
-  }
+  };
+
   const item = {
-    hidden:  { opacity: 0, y: 30 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] } },
-  }
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] },
+    },
+  };
 
   return (
-    <section id="home" className="relative min-h-screen flex flex-col">
-
-      {/* Background — local file, Unsplash fallback */}
+    <section id="home" className="relative flex min-h-[100svh] flex-col py-0">
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
-          className="w-full h-full"
+          className="h-full w-full"
           initial={{ scale: 1.08 }}
           animate={{ scale: 1 }}
-          transition={{ duration: 1.8, ease: 'easeOut' }}
+          transition={{ duration: 1.8, ease: "easeOut" }}
         >
           <ImgWithFallback
             local={HERO_BG}
             fallback={FALLBACK.heroBg}
-            alt="Premier Rentals resort"
-            className="w-full h-full object-cover object-center"
+            alt="Premier Rentals city stay"
+            className="h-full w-full object-cover object-center"
           />
         </motion.div>
         <div className="hero-overlay absolute inset-0" />
       </div>
 
-      {/* Hero Content */}
-      <div className="relative flex-1 flex flex-col items-center justify-center px-4 pt-24 pb-36 text-center sm:px-6 sm:pb-32">
-        <motion.div
-          className="flex flex-col items-center gap-4"
-          variants={container}
-          initial="hidden"
-          animate="visible"
-        >
-          <motion.p variants={item} className="section-label text-xs tracking-[0.3em]" style={{ color: '#c9a96e' }}>
-            Luxury Private Experiences
-          </motion.p>
-
-          <motion.h1
-            variants={item}
-            className="text-white"
-            style={{
-              fontFamily: 'Cormorant Garamond, serif',
-              fontSize: 'clamp(3.5rem, 10vw, 7.5rem)',
-              fontWeight: 300,
-              lineHeight: 1.0,
-            }}
+      <div className="relative flex flex-1 items-center">
+        <div className="mx-auto flex w-full max-w-7xl px-4 pb-24 pt-28 sm:px-6 sm:pb-20 sm:pt-32 lg:px-12 lg:pt-36">
+          <motion.div
+            className="mx-auto flex w-full max-w-4xl flex-col items-center gap-5 text-center"
+            variants={container}
+            initial="hidden"
+            animate="visible"
           >
-            Premier
-            <br />
-            <span style={{ color: '#c9a96e', fontStyle: 'italic' }}>Rentals</span>
-          </motion.h1>
+            <motion.p
+              variants={item}
+              className="section-label"
+              style={{ color: "#d4b97f" }}
+            >
+              Private City Stays
+            </motion.p>
 
-          <motion.p
-            variants={item}
-            className="mx-auto max-w-md text-sm leading-relaxed text-white/70"
-            style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300, letterSpacing: '0.05em' }}
-          >
-            Curated private resort villas where every detail is tailored to your vision of paradise.
-          </motion.p>
+            <motion.h1
+              variants={item}
+              className="text-white"
+              style={{
+                fontFamily: "Cormorant Garamond, serif",
+                fontSize: "clamp(3.25rem, 9vw, 7.25rem)",
+                fontWeight: 300,
+                lineHeight: 0.94,
+              }}
+            >
+              Premier
+              <br />
+              <span style={{ color: "#c9a96e", fontStyle: "italic" }}>
+                Rentals
+              </span>
+            </motion.h1>
 
-          <motion.div variants={item} className="mt-3 flex w-full max-w-sm flex-col gap-3 sm:max-w-none sm:flex-row">
-            <a href="#retreats" className="btn-gold w-full justify-center sm:w-auto">Explore Properties</a>
-            <a href="#about" className="btn-outline-gold w-full justify-center border-white/40 text-white hover:bg-white hover:text-[#1a1a1a] sm:w-auto">
-              Learn More
-            </a>
-          </motion.div>
-        </motion.div>
-      </div>
-
-      {/* Booking Bar */}
-      <div className="relative w-full" style={{ background: '#1a1a1a' }}>
-        <div className="max-w-6xl mx-auto px-4 py-5 sm:px-5 lg:px-12">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5 lg:gap-6 items-end">
-            <div className="flex flex-col gap-1">
-              <label className="section-label text-[9px]">Property</label>
-              <select
-                value={property}
-                onChange={(e) => setProperty(e.target.value)}
-                className="booking-input bg-transparent appearance-none cursor-pointer"
+            <motion.div
+              variants={item}
+              className="mt-2 flex w-full max-w-md flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center"
+            >
+              <a
+                href="#retreats"
+                className="btn-gold w-full justify-center sm:w-auto sm:min-w-[210px]"
               >
-                <option value="">All Properties</option>
-                <option value="pool-house">Premier Pool House</option>
-                <option value="patio">Premier Patio</option>
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="section-label text-[9px]">Check In</label>
-              <input type="date" value={checkIn} onChange={(e) => setCheckIn(e.target.value)} className="booking-input" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="section-label text-[9px]">Check Out</label>
-              <input type="date" value={checkOut} onChange={(e) => setCheckOut(e.target.value)} className="booking-input" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="section-label text-[9px]">Guests</label>
-              <input type="number" placeholder="2 Guests" min={1} value={guests}
-                onChange={(e) => setGuests(e.target.value)} className="booking-input" />
-            </div>
-            <div className="sm:col-span-2 lg:col-span-1">
-              <a href="#retreats" className="btn-gold w-full justify-center block text-center">
-                Check Availability
+                Explore Properties
               </a>
-            </div>
-          </div>
+              <a
+                href="#about"
+                className="btn-outline-gold w-full justify-center border-white/40 text-white hover:bg-white hover:text-[#1a1a1a] sm:w-auto sm:min-w-[180px]"
+              >
+                Learn More
+              </a>
+            </motion.div>
+          </motion.div>
         </div>
       </div>
 
-      {/* Scroll cue */}
       <motion.a
         href="#stats"
-        className="absolute bottom-44 left-1/2 -translate-x-1/2 text-white/30 transition-colors hover:text-white/60 sm:bottom-36"
+        className="absolute bottom-10 left-1/2 -translate-x-1/2 text-white/30 transition-colors hover:text-white/60 sm:bottom-8"
         animate={{ y: [0, 6, 0] }}
-        transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
+        transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
       >
         <ChevronDown size={20} />
       </motion.a>
     </section>
-  )
+  );
 }

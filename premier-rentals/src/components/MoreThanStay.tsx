@@ -1,16 +1,7 @@
-import { Check } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { slideLeftVariant } from '../lib/animations'
 import { ImgWithFallback } from '../lib/useImage'
 import { MORE_THAN_BG, FALLBACK } from '../lib/images'
-
-const features = [
-  'Dedicated personal concierge from arrival to departure',
-  'Chef-prepared private dining experiences on request',
-  'Curated local excursions and cultural immersions',
-  'Luxury transfers and private airport pickups',
-  '24/7 on-call support for every need',
-]
 
 export default function MoreThanStay() {
   return (
@@ -45,35 +36,61 @@ export default function MoreThanStay() {
           <p className="section-label mb-4" style={{ color: '#c9a96e' }}>The Premier Difference</p>
           <h2 className="text-white mb-6"
             style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2rem, 3.5vw, 2.8rem)', fontWeight: 400, lineHeight: 1.15 }}>
-            More Than a <span style={{ color: '#c9a96e', fontStyle: 'italic' }}>Stay</span>
+            About <span style={{ color: '#c9a96e', fontStyle: 'italic' }}>Premier Rentals</span>
           </h2>
-          <p className="text-white/55 text-sm leading-relaxed mb-8 max-w-md"
+          <p className="text-white/55 text-sm leading-relaxed mb-5 max-w-2xl"
             style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}>
-            At Premier Rentals, we don't simply offer a place to sleep — we craft immersive luxury experiences
-            that transform your time into lasting memories. Each detail is considered, each moment designed.
+            Premier Rentals offers private, thoughtfully designed spaces across Metro Manila, each with its own unique experience, but built on the same promise of comfort, privacy, and convenience.
           </p>
 
-          <ul className="mb-10 flex flex-col gap-3">
-            {features.map((feature, i) => (
-              <motion.li
-                key={feature}
-                className="flex items-start gap-3"
-                initial={{ opacity: 0, x: 20 }}
+          <div className="mb-10 flex flex-col gap-4">
+            {[
+              'Premier Pool House, located in Novaliches, Quezon City, is designed for fun, gatherings, and shared moments. With its spacious layout, private pool, and entertainment areas, it is the perfect space for celebrations, family time, and group staycations.',
+              'Premier Patio, located in Caloocan, offers a more relaxed and intimate setting. With its clean, modern design and cozy atmosphere, it is ideal for small gatherings, quiet stays, and laid-back city escapes.',
+              'Whether you are planning a celebration or simply looking for a private space to unwind, Premier Rentals gives you the flexibility to choose the experience that fits your moment, right within the city.',
+            ].map((paragraph, i) => (
+              <motion.p
+                key={paragraph}
+                className="max-w-2xl text-sm leading-relaxed text-white/65"
+                style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}
+                initial={{ opacity: 0, x: 18 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.1, duration: 0.5 }}
+                transition={{ delay: i * 0.08, duration: 0.45 }}
               >
-                <span className="mt-0.5 shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
-                  style={{ background: 'rgba(201,169,110,0.15)', border: '1px solid #c9a96e' }}>
-                  <Check size={10} color="#c9a96e" strokeWidth={2.5} />
-                </span>
-                <span className="text-white/65 text-xs leading-relaxed"
-                  style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}>
-                  {feature}
-                </span>
-              </motion.li>
+                {paragraph}
+              </motion.p>
             ))}
-          </ul>
+          </div>
+
+          <motion.div
+            className="mb-10 rounded-[24px] border border-white/10 bg-white/[0.04] p-5 sm:p-6"
+            initial={{ opacity: 0, y: 18 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.45, delay: 0.2 }}
+          >
+            <p
+              className="mb-3 text-[10px] uppercase tracking-[0.24em] text-[#c9a96e]"
+              style={{ fontFamily: 'Jost, sans-serif', fontWeight: 500 }}
+            >
+              Choose Your Stay
+            </p>
+            <div className="flex flex-col gap-3">
+              <p
+                className="text-sm leading-relaxed text-white/70"
+                style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}
+              >
+                Looking for a fun, activity-filled space? Go with Premier Pool House.
+              </p>
+              <p
+                className="text-sm leading-relaxed text-white/70"
+                style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}
+              >
+                Prefer something calm and minimal? Premier Patio is perfect for you.
+              </p>
+            </div>
+          </motion.div>
 
           <a href="#retreats" className="btn-gold w-full justify-center sm:w-fit">Begin Your Experience</a>
         </motion.div>
