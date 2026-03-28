@@ -24,6 +24,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   createBookingReservation,
   createPayMongoCheckout,
+  savePendingBooking,
 } from "../lib/bookingApi";
 import {
   type PropertyData,
@@ -32,6 +33,7 @@ import {
   type PreferredPlan,
   formatPHP,
 } from "../lib/propertyData";
+import { getBookingPriceBreakdown } from "../lib/bookingPricing";
 import toast from "react-hot-toast";
 
 if (!isPaymentReady) {
@@ -374,14 +376,17 @@ export default function BookingFormModal({
     set("preferred_plan", labelToPlan(label));
   }
 
-  // Compute estimated amount
   const selectedRate = selectedPkg.rates.find(
     (r) => r.label === form.rate_label,
   );
-  const estimatedAmount =
-    selectedRate?.weekday ?? selectedPkg.rates[0]?.weekday ?? 0;
-  const downPayment = estimatedAmount * 0.5;
-  const remainingBalance = estimatedAmount - downPayment;
+  const {
+    priceType,
+    totalAmount,
+    downpaymentAmount,
+    remainingBalance,
+  } = getBookingPriceBreakdown(selectedRate, form.preferred_dates);
+  const priceTypeLabel =
+    priceType === "weekend" ? "Weekend Rate Applied" : "Weekday Rate Applied";
 
   const canProceedDetails =
     form.full_name.trim() &&
@@ -478,12 +483,31 @@ export default function BookingFormModal({
         special_requests: form.special_requests.trim() || undefined,
       });
 
+      savePendingBooking({
+        bookingId: booking.booking_id,
+        propertyId: property.slug,
+        propertyName: property.name,
+        guestName: form.full_name,
+        lockedUntil: booking.locked_until,
+        createdAt: new Date().toISOString(),
+      });
+
       const checkout = await createPayMongoCheckout(booking.booking_id);
       toast.success("Redirecting to secure checkout...");
       window.location.href = checkout.checkout_url;
     } catch (error) {
       const message = error instanceof Error ? error.message : "";
-      toast.error(getFriendlyErrorMessage(message));
+      if (
+        message.toLowerCase().includes("network") ||
+        message.toLowerCase().includes("failed to fetch") ||
+        message.toLowerCase().includes("internal server error")
+      ) {
+        toast.error(
+          "We couldn't complete checkout right now. If your reservation hold was created, you can resume from the return page after refreshing.",
+        );
+      } else {
+        toast.error(getFriendlyErrorMessage(message));
+      }
       setSubmitting(false);
     }
   }
@@ -931,7 +955,13 @@ export default function BookingFormModal({
                               color: "#1a1a1a",
                             }}
                           >
-                            {formatPHP(estimatedAmount)}
+                            {formatPHP(totalAmount)}
+                          </p>
+                          <p
+                            className="mt-1 text-[10px] uppercase tracking-[0.18em] text-[#8a8a7a]"
+                            style={{ fontFamily: "Jost, sans-serif" }}
+                          >
+                            {priceTypeLabel}
                           </p>
                         </div>
                         <div>
@@ -949,7 +979,7 @@ export default function BookingFormModal({
                               color: "#c9a96e",
                             }}
                           >
-                            {formatPHP(downPayment)}
+                            {formatPHP(downpaymentAmount)}
                           </p>
                         </div>
                         <div>
@@ -988,6 +1018,21 @@ export default function BookingFormModal({
                         your booking. No bank or card details are collected on
                         this page.{" "}
                         <strong>Downpayment is non-refundable.</strong>
+                      </p>
+                    </div>
+
+                    <div className="rounded-[1.1rem] border border-[#e6ddd1] bg-white px-4 py-3">
+                      <p
+                        className="text-[10px] uppercase tracking-[0.18em] text-[#8a8a7a]"
+                        style={{ fontFamily: "Jost, sans-serif" }}
+                      >
+                        Pricing Applied
+                      </p>
+                      <p
+                        className="mt-1 text-[12px] text-[#4a4a4a]"
+                        style={{ fontFamily: "Jost, sans-serif" }}
+                      >
+                        {priceTypeLabel}
                       </p>
                     </div>
 
@@ -1040,7 +1085,7 @@ export default function BookingFormModal({
                     </>
                   ) : (
                     <>
-                      Proceed to Secure Payment ({formatPHP(downPayment)})
+                      Proceed to Secure Payment ({formatPHP(downpaymentAmount)})
                       <ChevronRight size={14} />
                     </>
                   )}

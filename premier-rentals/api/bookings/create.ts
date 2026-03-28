@@ -1,9 +1,10 @@
 import {
   BOOKING_CATALOG,
-  getRateForSelection,
+  getBookingAmounts,
   labelToTimeSlot,
   normalizeTimeSlot,
 } from "../_shared/catalog";
+import { enforceRateLimit } from "../_shared/rateLimit";
 import { supabaseAdmin } from "../_shared/supabaseAdmin";
 
 export const config = {
@@ -20,12 +21,40 @@ function json(data: unknown, init?: ResponseInit) {
   });
 }
 
+function isPastDate(date: string) {
+  const [year, month, day] = date.split("-").map(Number);
+  const candidate = Date.UTC(year, month - 1, day);
+  const now = new Date();
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+
+  return candidate < today;
+}
+
 export default async function handler(request: Request) {
   if (request.method !== "POST") {
     return json({ error: "Method not allowed" }, { status: 405 });
   }
 
   try {
+    const bookingRateLimit = await enforceRateLimit({
+      request,
+      scope: "bookings.create",
+      maxRequests: 8,
+      windowSeconds: 60,
+    });
+
+    if (!bookingRateLimit.allowed) {
+      return json(
+        { error: "Too many booking attempts. Please try again shortly." },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(bookingRateLimit.retryAfterSeconds),
+          },
+        },
+      );
+    }
+
     const body = await request.json();
     const {
       property_id,
@@ -76,6 +105,10 @@ export default async function handler(request: Request) {
       return json({ error: "Missing or invalid booking details" }, { status: 400 });
     }
 
+    if (isPastDate(reservationDate)) {
+      return json({ error: "Past dates are not allowed" }, { status: 400 });
+    }
+
     if (
       trimmedName.length > 120 ||
       trimmedPhone.length > 30 ||
@@ -86,6 +119,10 @@ export default async function handler(request: Request) {
       trimmedSpecialRequests.length > 1000
     ) {
       return json({ error: "Booking details exceed allowed length" }, { status: 400 });
+    }
+
+    if (!["GCash", "Card"].includes(trimmedModeOfPayment)) {
+      return json({ error: "Unsupported payment method" }, { status: 400 });
     }
 
     const property = BOOKING_CATALOG[propertyId];
@@ -101,10 +138,11 @@ export default async function handler(request: Request) {
       return json({ error: "Invalid car count" }, { status: 400 });
     }
 
-    const selection = getRateForSelection({
+    const selection = getBookingAmounts({
       propertyId,
-      rateTier: String(rate_tier),
-      rateLabel: String(rate_label),
+      rateTier: trimmedRateTier,
+      rateLabel: trimmedRateLabel,
+      reservationDate,
     });
 
     if (!selection) {
@@ -158,7 +196,8 @@ export default async function handler(request: Request) {
         p_mode_of_payment: trimmedModeOfPayment,
         p_num_guests: guestCount,
         p_num_cars: carCount,
-        p_total_amount: selection.rate.weekday,
+        p_total_amount: selection.totalAmount,
+        p_downpayment_amount: selection.downpaymentAmount,
         p_special_requests: trimmedSpecialRequests || null,
         p_locked_until: lockedUntil,
       },
@@ -180,6 +219,7 @@ export default async function handler(request: Request) {
       {
         booking_id: row.id,
         amount: row.total_amount,
+        downpayment_amount: row.downpayment_amount,
         locked_until: row.locked_until,
       },
       { status: 201 },

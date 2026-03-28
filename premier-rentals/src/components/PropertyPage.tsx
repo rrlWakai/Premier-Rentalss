@@ -1,116 +1,197 @@
-import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useState, useEffect } from "react";
+import { useParams, Link } from "react-router-dom";
 import {
-  ArrowLeft, Users, MapPin, Car, ShieldCheck,
-  Wifi, UtensilsCrossed, Waves, BedDouble,
-  ChevronDown, ChevronUp, Info, X
-} from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { POOL_HOUSE_DATA, PATIO_DATA, formatPHP, type PropertyData, type RatePackage } from '../lib/propertyData'
-import { ImgWithFallback } from '../lib/useImage'
-import { FALLBACK, POOL_HOUSE, PATIO } from '../lib/images'
-import BookingFormModal from './BookingFormModal'
-import { fadeUpVariant, containerVariant } from '../lib/animations'
+  ArrowLeft,
+  Users,
+  MapPin,
+  Car,
+  ShieldCheck,
+  Wifi,
+  UtensilsCrossed,
+  Waves,
+  BedDouble,
+  ChevronDown,
+  ChevronUp,
+  Info,
+  X,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  POOL_HOUSE_DATA,
+  PATIO_DATA,
+  formatPHP,
+  type PropertyData,
+  type RatePackage,
+} from "../lib/propertyData";
+import { ImgWithFallback } from "../lib/useImage";
+import { FALLBACK, POOL_HOUSE, PATIO } from "../lib/images";
+import BookingFormModal from "./BookingFormModal";
+import { fadeUpVariant, containerVariant } from "../lib/animations";
 
 const PROPERTIES: Record<string, PropertyData> = {
-  'premier-pool-house': POOL_HOUSE_DATA,
-  'premier-patio': PATIO_DATA,
-}
+  "premier-pool-house": POOL_HOUSE_DATA,
+  "premier-patio": PATIO_DATA,
+};
 
 const COVER_FALLBACKS: Record<string, string> = {
-  'premier-pool-house': FALLBACK.poolHouseCover,
-  'premier-patio': FALLBACK.patioCover,
-}
+  "premier-pool-house": FALLBACK.poolHouseCover,
+  "premier-patio": FALLBACK.patioCover,
+};
 const GALLERY_FALLBACKS: Record<string, string[]> = {
-  'premier-pool-house': FALLBACK.poolHouseGallery,
-  'premier-patio': FALLBACK.patioGallery,
-}
+  "premier-pool-house": FALLBACK.poolHouseGallery,
+  "premier-patio": FALLBACK.patioGallery,
+};
 
 const AMENITY_ICONS: Record<string, typeof Wifi> = {
-  'Wifi Access': Wifi,
-  'Swimming Pool': Waves, 'Pool Deck': Waves, 'Kiddie Pool': Waves,
-  'Indoor Kitchen': UtensilsCrossed, 'Outdoor Kitchen': UtensilsCrossed,
-  'Bedroom 1': BedDouble, 'Bedroom 2': BedDouble,
-}
+  "Wifi Access": Wifi,
+  "Swimming Pool": Waves,
+  "Pool Deck": Waves,
+  "Kiddie Pool": Waves,
+  "Indoor Kitchen": UtensilsCrossed,
+  "Outdoor Kitchen": UtensilsCrossed,
+  "Bedroom 1": BedDouble,
+  "Bedroom 2": BedDouble,
+};
 
 const TIER_COLORS: Record<string, string> = {
-  staycation: '#4a7c9e',
-  family:     '#c9a96e',
-  big_group:  '#6b5b8a',
-}
+  staycation: "#4a7c9e",
+  family: "#c9a96e",
+  big_group: "#6b5b8a",
+};
 const TIER_LABELS: Record<string, string> = {
-  staycation: 'Staycation',
-  family:     'Family',
-  big_group:  'Big Group',
-}
+  staycation: "Staycation",
+  family: "Family",
+  big_group: "Big Group",
+};
 
 function getGoogleMapsEmbedUrl(address: string) {
-  return `https://maps.google.com/maps?q=${encodeURIComponent(address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`
+  return `https://maps.google.com/maps?q=${encodeURIComponent(address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
 }
+
+const galleryModalBackdropTransition = {
+  duration: 0.24,
+  ease: [0.22, 1, 0.36, 1],
+};
+const galleryModalPanelTransition = {
+  duration: 0.32,
+  ease: [0.22, 1, 0.36, 1],
+};
 
 function RateTable({ pkg }: { pkg: RatePackage }) {
   return (
     <div className="overflow-hidden rounded-xl border border-[#ede8df]">
       <div className="overflow-x-auto">
-      <table className="min-w-[560px] w-full text-xs" style={{ fontFamily: 'Jost, sans-serif' }}>
-        <thead>
-          <tr style={{ background: '#1a1a1a' }}>
-            <th className="px-4 py-3 text-left text-[10px] tracking-widest uppercase text-white/60 font-medium">Session</th>
-            <th className="px-4 py-3 text-left text-[10px] tracking-widest uppercase text-white/60 font-medium">Hours</th>
-            <th className="px-4 py-3 text-right text-[10px] tracking-widest uppercase text-white/60 font-medium">Weekday</th>
-            <th className="px-4 py-3 text-right text-[10px] tracking-widest uppercase text-[#c9a96e] font-medium">Weekend</th>
-          </tr>
-        </thead>
-        <tbody>
-          {pkg.rates.map((rate, i) => (
-            <tr key={rate.label} className={`border-t border-[#ede8df] ${i % 2 === 0 ? 'bg-white' : 'bg-[#faf8f5]'}`}>
-              <td className="px-4 py-3 font-medium text-[#1a1a1a] text-xs">{rate.label}</td>
-              <td className="px-4 py-3 text-[#8a8a7a] text-[10px]">{rate.hours}</td>
-              <td className="px-4 py-3 text-right font-medium text-[#4a4a4a]">{formatPHP(rate.weekday)}</td>
-              <td className="px-4 py-3 text-right font-medium" style={{ color: '#c9a96e' }}>{formatPHP(rate.weekend)}</td>
+        <table
+          className="min-w-[560px] w-full text-xs"
+          style={{ fontFamily: "Jost, sans-serif" }}
+        >
+          <thead>
+            <tr style={{ background: "#1a1a1a" }}>
+              <th className="px-4 py-3 text-left text-[10px] tracking-widest uppercase text-white/60 font-medium">
+                Session
+              </th>
+              <th className="px-4 py-3 text-left text-[10px] tracking-widest uppercase text-white/60 font-medium">
+                Hours
+              </th>
+              <th className="px-4 py-3 text-right text-[10px] tracking-widest uppercase text-white/60 font-medium">
+                Weekday
+              </th>
+              <th className="px-4 py-3 text-right text-[10px] tracking-widest uppercase text-[#c9a96e] font-medium">
+                Weekend
+              </th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {pkg.rates.map((rate, i) => (
+              <tr
+                key={rate.label}
+                className={`border-t border-[#ede8df] ${i % 2 === 0 ? "bg-white" : "bg-[#faf8f5]"}`}
+              >
+                <td className="px-4 py-3 font-medium text-[#1a1a1a] text-xs">
+                  {rate.label}
+                </td>
+                <td className="px-4 py-3 text-[#8a8a7a] text-[10px]">
+                  {rate.hours}
+                </td>
+                <td className="px-4 py-3 text-right font-medium text-[#4a4a4a]">
+                  {formatPHP(rate.weekday)}
+                </td>
+                <td
+                  className="px-4 py-3 text-right font-medium"
+                  style={{ color: "#c9a96e" }}
+                >
+                  {formatPHP(rate.weekend)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
       {/* Additional pax note */}
       <div className="flex flex-wrap gap-x-6 gap-y-1 border-t border-[#ede8df] bg-[#faf8f5] px-4 py-3">
-        <span className="text-[10px] text-[#8a8a7a]" style={{ fontFamily: 'Jost, sans-serif' }}>
+        <span
+          className="text-[10px] text-[#8a8a7a]"
+          style={{ fontFamily: "Jost, sans-serif" }}
+        >
           <Info size={10} className="inline mr-1" />
           Max {pkg.maxAdditionalPax} additional pax:
-          <strong className="text-[#4a4a4a] ml-1">Day {formatPHP(pkg.additionalPaxDay)}/head</strong>
-          <strong className="text-[#4a4a4a] ml-2">Night/Overnight {formatPHP(pkg.additionalPaxNight)}/head</strong>
+          <strong className="text-[#4a4a4a] ml-1">
+            Day {formatPHP(pkg.additionalPaxDay)}/head
+          </strong>
+          <strong className="text-[#4a4a4a] ml-2">
+            Night/Overnight {formatPHP(pkg.additionalPaxNight)}/head
+          </strong>
         </span>
       </div>
     </div>
-  )
+  );
 }
 
-function PackageCard({ pkg, onBook }: { pkg: RatePackage; onBook: (pkg: RatePackage) => void }) {
-  const [open, setOpen] = useState(false)
-  const color = TIER_COLORS[pkg.tier] ?? '#c9a96e'
+function PackageCard({
+  pkg,
+  onBook,
+}: {
+  pkg: RatePackage;
+  onBook: (pkg: RatePackage) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const color = TIER_COLORS[pkg.tier] ?? "#c9a96e";
 
   return (
     <div className="bg-white rounded-xl border border-[#ede8df] overflow-hidden">
       {/* Header */}
       <div className="flex flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="flex items-start gap-3">
-          <div className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
+          <div
+            className="w-2.5 h-2.5 rounded-full"
+            style={{ background: color }}
+          />
           <div>
             <span
               className="text-[10px] font-medium tracking-widest uppercase px-2 py-0.5 rounded-full text-white"
-              style={{ background: color, fontFamily: 'Jost, sans-serif' }}
+              style={{ background: color, fontFamily: "Jost, sans-serif" }}
             >
               {TIER_LABELS[pkg.tier]}
             </span>
             <h3
               className="mt-1"
-              style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.2rem', fontWeight: 400, color: '#1a1a1a' }}
+              style={{
+                fontFamily: "Cormorant Garamond, serif",
+                fontSize: "1.2rem",
+                fontWeight: 400,
+                color: "#1a1a1a",
+              }}
             >
               {pkg.title}
             </h3>
-            <p className="text-[11px] text-[#8a8a7a] mt-0.5" style={{ fontFamily: 'Jost, sans-serif' }}>
-              <Users size={10} className="inline mr-1" />{pkg.subtitle}
+            <p
+              className="text-[11px] text-[#8a8a7a] mt-0.5"
+              style={{ fontFamily: "Jost, sans-serif" }}
+            >
+              <Users size={10} className="inline mr-1" />
+              {pkg.subtitle}
             </p>
           </div>
         </div>
@@ -125,16 +206,32 @@ function PackageCard({ pkg, onBook }: { pkg: RatePackage; onBook: (pkg: RatePack
             onClick={() => setOpen(!open)}
             className="w-8 h-8 rounded-full border border-[#ede8df] flex items-center justify-center hover:border-[#c9a96e] transition-colors"
           >
-            {open ? <ChevronUp size={14} color="#8a8a7a" /> : <ChevronDown size={14} color="#8a8a7a" />}
+            {open ? (
+              <ChevronUp size={14} color="#8a8a7a" />
+            ) : (
+              <ChevronDown size={14} color="#8a8a7a" />
+            )}
           </button>
         </div>
       </div>
 
       {/* Starting from */}
       <div className="flex flex-wrap items-center gap-2 px-4 pb-4 sm:px-6">
-        <span className="text-[10px] text-[#8a8a7a] uppercase tracking-wider" style={{ fontFamily: 'Jost, sans-serif' }}>Starting from</span>
-        <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.3rem', color: '#c9a96e', fontWeight: 500 }}>
-          {formatPHP(Math.min(...pkg.rates.map(r => r.weekday)))}
+        <span
+          className="text-[10px] text-[#8a8a7a] uppercase tracking-wider"
+          style={{ fontFamily: "Jost, sans-serif" }}
+        >
+          Starting from
+        </span>
+        <span
+          style={{
+            fontFamily: "Cormorant Garamond, serif",
+            fontSize: "1.3rem",
+            color: "#c9a96e",
+            fontWeight: 500,
+          }}
+        >
+          {formatPHP(Math.min(...pkg.rates.map((r) => r.weekday)))}
         </span>
       </div>
 
@@ -143,7 +240,7 @@ function PackageCard({ pkg, onBook }: { pkg: RatePackage; onBook: (pkg: RatePack
         {open && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
+            animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3 }}
             className="overflow-hidden border-t border-[#ede8df]"
@@ -152,9 +249,17 @@ function PackageCard({ pkg, onBook }: { pkg: RatePackage; onBook: (pkg: RatePack
               <RateTable pkg={pkg} />
               {pkg.notes.length > 0 && (
                 <ul className="mt-3 flex flex-col gap-1">
-                  {pkg.notes.map(note => (
-                    <li key={note} className="flex items-start gap-2 text-[11px] text-[#8a8a7a]" style={{ fontFamily: 'Jost, sans-serif' }}>
-                      <Info size={10} className="mt-0.5 shrink-0" color="#c9a96e" />
+                  {pkg.notes.map((note) => (
+                    <li
+                      key={note}
+                      className="flex items-start gap-2 text-[11px] text-[#8a8a7a]"
+                      style={{ fontFamily: "Jost, sans-serif" }}
+                    >
+                      <Info
+                        size={10}
+                        className="mt-0.5 shrink-0"
+                        color="#c9a96e"
+                      />
                       {note}
                     </li>
                   ))}
@@ -162,7 +267,10 @@ function PackageCard({ pkg, onBook }: { pkg: RatePackage; onBook: (pkg: RatePack
               )}
             </div>
             <div className="px-4 pb-4 sm:hidden">
-              <button onClick={() => onBook(pkg)} className="btn-gold w-full justify-center">
+              <button
+                onClick={() => onBook(pkg)}
+                className="btn-gold w-full justify-center"
+              >
                 Reserve This Package
               </button>
             </div>
@@ -170,98 +278,189 @@ function PackageCard({ pkg, onBook }: { pkg: RatePackage; onBook: (pkg: RatePack
         )}
       </AnimatePresence>
     </div>
-  )
+  );
 }
 
 export default function PropertyPage() {
-  const { slug } = useParams<{ slug: string }>()
-  const [activeImage, setActiveImage] = useState(0)
-  const [galleryModalOpen, setGalleryModalOpen] = useState(false)
-  const [modalImageIndex, setModalImageIndex] = useState(0)
-  const [bookingPkg, setBookingPkg] = useState<RatePackage | null>(null)
-  const [selectedQuickPkgTier, setSelectedQuickPkgTier] = useState<string | null>(null)
-  const [rulesOpen, setRulesOpen] = useState(false)
+  const { slug } = useParams<{ slug: string }>();
+  const [activeImage, setActiveImage] = useState(0);
+  const [galleryModalOpen, setGalleryModalOpen] = useState(false);
+  const [modalImageIndex, setModalImageIndex] = useState(0);
+  const [bookingPkg, setBookingPkg] = useState<RatePackage | null>(null);
+  const [selectedQuickPkgTier, setSelectedQuickPkgTier] = useState<
+    string | null
+  >(null);
+  const [rulesOpen, setRulesOpen] = useState(false);
 
-  const property = slug ? PROPERTIES[slug] : null
+  const property = slug ? PROPERTIES[slug] : null;
 
-  useEffect(() => { window.scrollTo(0, 0) }, [slug])
   useEffect(() => {
-    if (!property) return
-    setSelectedQuickPkgTier(property.packages[0]?.tier ?? null)
-  }, [property])
+    window.scrollTo(0, 0);
+  }, [slug]);
+  useEffect(() => {
+    if (!property) return;
+    setSelectedQuickPkgTier(property.packages[0]?.tier ?? null);
+  }, [property]);
 
   if (!property) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#f8f4ee]">
-        <p style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.5rem' }}>Property not found</p>
-        <Link to="/" className="btn-gold">Back to Home</Link>
+        <p
+          style={{
+            fontFamily: "Cormorant Garamond, serif",
+            fontSize: "1.5rem",
+          }}
+        >
+          Property not found
+        </p>
+        <Link to="/" className="btn-gold">
+          Back to Home
+        </Link>
       </div>
-    )
+    );
   }
 
-  const allLocal    = [property.coverImage, ...property.galleryImages]
-  const allFallback = [COVER_FALLBACKS[slug!] ?? FALLBACK.poolHouseCover, ...(GALLERY_FALLBACKS[slug!] ?? FALLBACK.poolHouseGallery)]
-  const galleryPreview = property.galleryImages.slice(0, 5)
-  const remainingGalleryCount = property.galleryImages.length - galleryPreview.length
-  const selectedQuickPkg = property.packages.find(pkg => pkg.tier === selectedQuickPkgTier) ?? property.packages[0]
+  const allLocal = [property.coverImage, ...property.galleryImages];
+  const allFallback = [
+    COVER_FALLBACKS[slug!] ?? FALLBACK.poolHouseCover,
+    ...(GALLERY_FALLBACKS[slug!] ?? FALLBACK.poolHouseGallery),
+  ];
+  const galleryPreview = property.galleryImages.slice(0, 5);
+  const remainingGalleryCount =
+    property.galleryImages.length - galleryPreview.length;
+  const selectedQuickPkg =
+    property.packages.find((pkg) => pkg.tier === selectedQuickPkgTier) ??
+    property.packages[0];
 
   const selectGalleryImage = (imageIndex: number) => {
-    setModalImageIndex(imageIndex)
-    setActiveImage(imageIndex + 1)
-  }
+    setModalImageIndex(imageIndex);
+    setActiveImage(imageIndex + 1);
+  };
 
   const openGalleryModal = (imageIndex = 0) => {
-    selectGalleryImage(imageIndex)
-    setGalleryModalOpen(true)
-  }
+    selectGalleryImage(imageIndex);
+    setGalleryModalOpen(true);
+  };
 
   useEffect(() => {
-    if (!galleryModalOpen || property.galleryImages.length <= 1) return
+    if (!galleryModalOpen) return;
 
-    const interval = window.setInterval(() => {
-      setModalImageIndex((current) => {
-        const next = (current + 1) % property.galleryImages.length
-        setActiveImage(next + 1)
-        return next
-      })
-    }, 3000)
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
 
-    return () => window.clearInterval(interval)
-  }, [galleryModalOpen, property.galleryImages.length])
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setGalleryModalOpen(false);
+      }
+
+      if (property.galleryImages.length <= 1) return;
+
+      if (event.key === "ArrowLeft") {
+        setModalImageIndex((current) => {
+          const next =
+            (current - 1 + property.galleryImages.length) %
+            property.galleryImages.length;
+          setActiveImage(next + 1);
+          return next;
+        });
+      }
+
+      if (event.key === "ArrowRight") {
+        setModalImageIndex((current) => {
+          const next = (current + 1) % property.galleryImages.length;
+          setActiveImage(next + 1);
+          return next;
+        });
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [galleryModalOpen, property.galleryImages.length]);
+
+  const showPreviousGalleryImage = () => {
+    if (property.galleryImages.length <= 1) return;
+
+    setModalImageIndex((current) => {
+      const next =
+        (current - 1 + property.galleryImages.length) %
+        property.galleryImages.length;
+      setActiveImage(next + 1);
+      return next;
+    });
+  };
+
+  const showNextGalleryImage = () => {
+    if (property.galleryImages.length <= 1) return;
+
+    setModalImageIndex((current) => {
+      const next = (current + 1) % property.galleryImages.length;
+      setActiveImage(next + 1);
+      return next;
+    });
+  };
 
   return (
     <div className="min-h-screen bg-[#f8f4ee]">
-
       {/* ── Sticky top nav ───────────────────────────── */}
-      <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-sm border-b border-[#ede8df]">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-3 px-4 sm:px-5 lg:px-12">
-          <Link to="/" className="flex items-center gap-2 text-[#8a8a7a] hover:text-[#1a1a1a] transition-colors text-xs tracking-wider uppercase"
-            style={{ fontFamily: 'Jost, sans-serif' }}>
+      <div className="sticky top-0 z-40 border-b border-[#ede8df] bg-white/90 backdrop-blur-sm">
+        <div className="mx-auto flex min-h-14 max-w-7xl items-center justify-between gap-2 px-3 py-2 sm:h-14 sm:gap-3 sm:px-5 lg:px-12">
+          <Link
+            to="/"
+            className="flex shrink-0 items-center gap-1.5 text-[10px] tracking-wider uppercase text-[#8a8a7a] transition-colors hover:text-[#1a1a1a] sm:gap-2 sm:text-xs"
+            style={{ fontFamily: "Jost, sans-serif" }}
+          >
             <ArrowLeft size={14} /> Back
           </Link>
-          <span className="truncate text-center" style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.1rem', color: '#1a1a1a' }}>
+          <span
+            className="min-w-0 truncate text-center px-2"
+            style={{
+              fontFamily: "Cormorant Garamond, serif",
+              fontSize: "clamp(0.98rem, 2vw, 1.1rem)",
+              color: "#1a1a1a",
+            }}
+          >
             {property.name}
           </span>
-          <button onClick={() => setBookingPkg(property.packages[0])} className="btn-gold shrink-0 text-xs py-2 px-3 sm:px-4">
-            Book Now
+          <button
+            onClick={() => setBookingPkg(property.packages[0])}
+            className="btn-gold shrink-0 px-3 py-2 text-[10px] sm:px-4 sm:text-xs"
+          >
+            <span className="hidden sm:inline">Book Now</span>
+            <span className="sm:hidden">Book</span>
           </button>
         </div>
       </div>
 
       {/* ── Hero gallery ─────────────────────────────── */}
-      <div className="relative h-[52vh] overflow-hidden sm:h-[55vh] lg:h-[68vh]">
+      <div className="relative h-[54svh] min-h-[420px] overflow-hidden sm:h-[55vh] lg:h-[68vh]">
         <ImgWithFallback
           local={allLocal[activeImage]}
           fallback={allFallback[activeImage] ?? allFallback[0]}
           alt={property.name}
           className="w-full h-full object-cover transition-opacity duration-500"
         />
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.45) 100%)' }} />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.45) 100%)",
+          }}
+        />
 
         {/* Tag badge */}
         <div className="absolute left-4 top-4 sm:left-5 sm:top-5">
-          <span className="border border-white/30 px-2.5 py-1 text-[9px] uppercase tracking-[0.18em] text-white/90 backdrop-blur-sm sm:px-3 sm:text-[10px]"
-            style={{ background: 'rgba(0,0,0,0.25)', fontFamily: 'Jost, sans-serif' }}>
+          <span
+            className="border border-white/30 px-2.5 py-1 text-[9px] uppercase tracking-[0.18em] text-white/90 backdrop-blur-sm sm:px-3 sm:text-[10px]"
+            style={{
+              background: "rgba(0,0,0,0.25)",
+              fontFamily: "Jost, sans-serif",
+            }}
+          >
             {property.tagline}
           </span>
         </div>
@@ -269,15 +468,17 @@ export default function PropertyPage() {
         <div className="absolute inset-x-0 bottom-0">
           <div className="mx-auto max-w-7xl px-4 pb-5 sm:px-5 lg:px-12 lg:pb-8">
             {allLocal.length > 1 && (
-              <div className="mb-5 flex gap-2 overflow-x-auto pb-1">
+              <div className="mb-4 flex gap-2 overflow-x-auto pb-1 sm:mb-5">
                 {allLocal.map((localSrc, i) => (
                   <button
                     key={i}
                     onClick={() => setActiveImage(i)}
-                    className={`relative h-12 w-16 shrink-0 overflow-hidden rounded-lg border-2 transition-all duration-300
-                      ${i === activeImage
-                        ? 'border-[#c9a96e] shadow-[0_0_0_1px_rgba(201,169,110,0.45)]'
-                        : 'border-white/35 hover:border-white/80'}`}
+                    className={`relative h-11 w-14 shrink-0 overflow-hidden rounded-lg border-2 transition-all duration-300 sm:h-12 sm:w-16
+                      ${
+                        i === activeImage
+                          ? "border-[#c9a96e] shadow-[0_0_0_1px_rgba(201,169,110,0.45)]"
+                          : "border-white/35 hover:border-white/80"
+                      }`}
                   >
                     <ImgWithFallback
                       local={localSrc}
@@ -287,7 +488,7 @@ export default function PropertyPage() {
                     />
                     <div
                       className={`absolute inset-0 transition-colors ${
-                        i === activeImage ? 'bg-transparent' : 'bg-black/20'
+                        i === activeImage ? "bg-transparent" : "bg-black/20"
                       }`}
                     />
                   </button>
@@ -297,13 +498,33 @@ export default function PropertyPage() {
 
             {/* Hero title overlay */}
             <div>
-              <h1 className="text-white" style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2rem,5vw,3.2rem)', fontWeight: 300, lineHeight: 1.1 }}>
+              <h1
+                className="text-white"
+                style={{
+                  fontFamily: "Cormorant Garamond, serif",
+                  fontSize: "clamp(2rem,5vw,3.2rem)",
+                  fontWeight: 300,
+                  lineHeight: 1.1,
+                }}
+              >
                 {property.name}
               </h1>
-              <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-white/60" style={{ fontFamily: 'Jost, sans-serif' }}>
-                <span className="flex items-center gap-1.5"><Users size={12} />Up to {property.maxGuests} guests</span>
-                <span className="flex items-center gap-1.5"><Car size={12} />Max {property.maxCars} cars</span>
-                <span className="flex items-center gap-1.5"><MapPin size={12} />{property.location}</span>
+              <div
+                className="mt-2 flex flex-col items-start gap-2 text-xs text-white/60 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4"
+                style={{ fontFamily: "Jost, sans-serif" }}
+              >
+                <span className="flex items-center gap-1.5">
+                  <Users size={12} />
+                  Up to {property.maxGuests} guests
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Car size={12} />
+                  Max {property.maxCars} cars
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <MapPin size={12} />
+                  {property.location}
+                </span>
               </div>
             </div>
           </div>
@@ -311,16 +532,30 @@ export default function PropertyPage() {
       </div>
 
       {/* ── Body ─────────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-5 lg:px-12 py-14">
-        <motion.div className="grid grid-cols-1 gap-8 lg:grid-cols-3 lg:gap-10" variants={containerVariant} initial="hidden" animate="visible">
-
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-5 sm:py-12 lg:px-12 lg:py-14">
+        <motion.div
+          className="grid grid-cols-1 gap-8 lg:grid-cols-3 lg:gap-10"
+          variants={containerVariant}
+          initial="hidden"
+          animate="visible"
+        >
           {/* LEFT: main content */}
-          <motion.div className="lg:col-span-2 flex flex-col gap-12" variants={fadeUpVariant} custom={0}>
-
+          <motion.div
+            className="lg:col-span-2 flex flex-col gap-12"
+            variants={fadeUpVariant}
+            custom={0}
+          >
             {/* Description */}
             <div>
               <p className="section-label mb-3">About</p>
-              <p className="text-[#4a4a4a] text-sm leading-relaxed" style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300, lineHeight: 1.9 }}>
+              <p
+                className="text-[#4a4a4a] text-sm leading-relaxed"
+                style={{
+                  fontFamily: "Jost, sans-serif",
+                  fontWeight: 300,
+                  lineHeight: 1.9,
+                }}
+              >
                 {property.description}
               </p>
             </div>
@@ -328,14 +563,31 @@ export default function PropertyPage() {
             {/* Location */}
             <div>
               <p className="section-label mb-2">Our Location</p>
-              <h2 className="mb-2" style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(1.5rem,3vw,2rem)', fontWeight: 400, color: '#1a1a1a' }}>
-                Find <span style={{ color: '#c9a96e', fontStyle: 'italic' }}>{property.name}</span>
+              <h2
+                className="mb-2"
+                style={{
+                  fontFamily: "Cormorant Garamond, serif",
+                  fontSize: "clamp(1.5rem,3vw,2rem)",
+                  fontWeight: 400,
+                  color: "#1a1a1a",
+                }}
+              >
+                Find{" "}
+                <span style={{ color: "#c9a96e", fontStyle: "italic" }}>
+                  {property.name}
+                </span>
               </h2>
-              <p className="mb-5 flex items-start gap-2 text-sm leading-relaxed text-[#4a4a4a]" style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}>
+              <p
+                className="mb-5 flex items-start gap-2 text-sm leading-relaxed text-[#4a4a4a]"
+                style={{ fontFamily: "Jost, sans-serif", fontWeight: 300 }}
+              >
                 <MapPin size={15} color="#c9a96e" className="mt-1 shrink-0" />
                 <span>{property.location}</span>
               </p>
-              <p className="mb-6 max-w-2xl text-sm leading-relaxed text-[#8a8a7a]" style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}>
+              <p
+                className="mb-6 max-w-2xl text-sm leading-relaxed text-[#8a8a7a]"
+                style={{ fontFamily: "Jost, sans-serif", fontWeight: 300 }}
+              >
                 {property.locationDescription}
               </p>
 
@@ -355,25 +607,39 @@ export default function PropertyPage() {
             <div>
               <p className="section-label mb-4">Amenities & Features</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {property.amenities.map(group => {
-                  const Icon = AMENITY_ICONS[group.group] ?? Wifi
+                {property.amenities.map((group) => {
+                  const Icon = AMENITY_ICONS[group.group] ?? Wifi;
                   return (
-                    <div key={group.group} className="bg-white rounded-xl border border-[#ede8df] p-4">
+                    <div
+                      key={group.group}
+                      className="bg-white rounded-xl border border-[#ede8df] p-4"
+                    >
                       <div className="flex items-center gap-2 mb-3">
                         <Icon size={14} color="#c9a96e" strokeWidth={1.5} />
-                        <p className="text-xs font-medium text-[#1a1a1a] tracking-wide"
-                          style={{ fontFamily: 'Jost, sans-serif' }}>{group.group}</p>
+                        <p
+                          className="text-xs font-medium text-[#1a1a1a] tracking-wide"
+                          style={{ fontFamily: "Jost, sans-serif" }}
+                        >
+                          {group.group}
+                        </p>
                       </div>
                       <ul className="flex flex-col gap-1">
-                        {group.items.map(item => (
-                          <li key={item} className="text-[11px] text-[#8a8a7a] flex items-start gap-1.5" style={{ fontFamily: 'Jost, sans-serif' }}>
-                            <span className="mt-1 w-1 h-1 rounded-full shrink-0" style={{ background: '#c9a96e' }} />
+                        {group.items.map((item) => (
+                          <li
+                            key={item}
+                            className="text-[11px] text-[#8a8a7a] flex items-start gap-1.5"
+                            style={{ fontFamily: "Jost, sans-serif" }}
+                          >
+                            <span
+                              className="mt-1 w-1 h-1 rounded-full shrink-0"
+                              style={{ background: "#c9a96e" }}
+                            />
                             {item}
                           </li>
                         ))}
                       </ul>
                     </div>
-                  )
+                  );
                 })}
               </div>
             </div>
@@ -381,15 +647,34 @@ export default function PropertyPage() {
             {/* Rate packages */}
             <div>
               <p className="section-label mb-2">Rates & Packages</p>
-              <h2 className="mb-2" style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(1.5rem,3vw,2rem)', fontWeight: 400, color: '#1a1a1a' }}>
-                Choose Your <span style={{ color: '#c9a96e', fontStyle: 'italic' }}>Package</span>
+              <h2
+                className="mb-2"
+                style={{
+                  fontFamily: "Cormorant Garamond, serif",
+                  fontSize: "clamp(1.5rem,3vw,2rem)",
+                  fontWeight: 400,
+                  color: "#1a1a1a",
+                }}
+              >
+                Choose Your{" "}
+                <span style={{ color: "#c9a96e", fontStyle: "italic" }}>
+                  Package
+                </span>
               </h2>
-              <p className="text-xs text-[#8a8a7a] mb-6" style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}>
-                Weekday: Sun–Thu Night &nbsp;·&nbsp; Weekend: Thu–Sun Night &nbsp;·&nbsp; Auto weekend rate Dec 1–Jan 2
+              <p
+                className="text-xs text-[#8a8a7a] mb-6"
+                style={{ fontFamily: "Jost, sans-serif", fontWeight: 300 }}
+              >
+                Weekday: Sun–Thu Night &nbsp;·&nbsp; Weekend: Thu–Sun Night
+                &nbsp;·&nbsp; Auto weekend rate Dec 1–Jan 2
               </p>
               <div className="flex flex-col gap-4">
-                {property.packages.map(pkg => (
-                  <PackageCard key={pkg.tier} pkg={pkg} onBook={setBookingPkg} />
+                {property.packages.map((pkg) => (
+                  <PackageCard
+                    key={pkg.tier}
+                    pkg={pkg}
+                    onBook={setBookingPkg}
+                  />
                 ))}
               </div>
             </div>
@@ -402,17 +687,27 @@ export default function PropertyPage() {
               >
                 <div className="flex items-center gap-3">
                   <ShieldCheck size={16} color="#c9a96e" strokeWidth={1.5} />
-                  <span className="text-white text-sm font-medium" style={{ fontFamily: 'Jost, sans-serif', letterSpacing: '0.05em' }}>
+                  <span
+                    className="text-white text-sm font-medium"
+                    style={{
+                      fontFamily: "Jost, sans-serif",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
                     House Rules & Policies
                   </span>
                 </div>
-                {rulesOpen ? <ChevronUp size={16} color="#8a8a7a" /> : <ChevronDown size={16} color="#8a8a7a" />}
+                {rulesOpen ? (
+                  <ChevronUp size={16} color="#8a8a7a" />
+                ) : (
+                  <ChevronDown size={16} color="#8a8a7a" />
+                )}
               </button>
               <AnimatePresence>
                 {rulesOpen && (
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
+                    animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.3 }}
                     className="overflow-hidden bg-[#242424] rounded-b-xl"
@@ -421,8 +716,17 @@ export default function PropertyPage() {
                       <ul className="flex flex-col gap-3">
                         {property.houseRules.map((rule, i) => (
                           <li key={i} className="flex items-start gap-3">
-                            <span className="mt-1 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#c9a96e' }} />
-                            <span className="text-white/65 text-xs leading-relaxed" style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}>
+                            <span
+                              className="mt-1 w-1.5 h-1.5 rounded-full shrink-0"
+                              style={{ background: "#c9a96e" }}
+                            />
+                            <span
+                              className="text-white/65 text-xs leading-relaxed"
+                              style={{
+                                fontFamily: "Jost, sans-serif",
+                                fontWeight: 300,
+                              }}
+                            >
                               {rule}
                             </span>
                           </li>
@@ -431,8 +735,17 @@ export default function PropertyPage() {
                       <div className="mt-5 pt-4 border-t border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {property.policies.map((policy, i) => (
                           <div key={i} className="flex items-start gap-2">
-                            <Info size={11} color="#c9a96e" className="mt-0.5 shrink-0" />
-                            <span className="text-[#c9a96e] text-[11px]" style={{ fontFamily: 'Jost, sans-serif' }}>{policy}</span>
+                            <Info
+                              size={11}
+                              color="#c9a96e"
+                              className="mt-0.5 shrink-0"
+                            />
+                            <span
+                              className="text-[#c9a96e] text-[11px]"
+                              style={{ fontFamily: "Jost, sans-serif" }}
+                            >
+                              {policy}
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -450,7 +763,7 @@ export default function PropertyPage() {
                   <button
                     onClick={() => openGalleryModal(0)}
                     className="text-[11px] uppercase tracking-[0.18em] text-[#8a8a7a] transition-colors hover:text-[#1a1a1a]"
-                    style={{ fontFamily: 'Jost, sans-serif' }}
+                    style={{ fontFamily: "Jost, sans-serif" }}
                   >
                     View More
                   </button>
@@ -460,14 +773,18 @@ export default function PropertyPage() {
                     <button
                       key={i}
                       onClick={() => {
-                        selectGalleryImage(i)
-                        openGalleryModal(i)
+                        selectGalleryImage(i);
+                        openGalleryModal(i);
                       }}
                       className="overflow-hidden rounded-lg aspect-[4/3] group border border-[#d9d0c2] bg-white shadow-[0_0_0_1px_rgba(237,232,223,0.65)]"
                     >
                       <ImgWithFallback
                         local={localSrc}
-                        fallback={(GALLERY_FALLBACKS[slug!] ?? FALLBACK.poolHouseGallery)[i] ?? FALLBACK.poolHouseGallery[0]}
+                        fallback={
+                          (GALLERY_FALLBACKS[slug!] ??
+                            FALLBACK.poolHouseGallery)[i] ??
+                          FALLBACK.poolHouseGallery[0]
+                        }
                         alt={`${property.name} ${i + 1}`}
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                       />
@@ -480,20 +797,28 @@ export default function PropertyPage() {
                     >
                       <ImgWithFallback
                         local={property.galleryImages[galleryPreview.length]}
-                        fallback={(GALLERY_FALLBACKS[slug!] ?? FALLBACK.poolHouseGallery)[galleryPreview.length] ?? FALLBACK.poolHouseGallery[0]}
+                        fallback={
+                          (GALLERY_FALLBACKS[slug!] ??
+                            FALLBACK.poolHouseGallery)[galleryPreview.length] ??
+                          FALLBACK.poolHouseGallery[0]
+                        }
                         alt={`${property.name} more photos`}
                         className="w-full h-full object-cover opacity-45"
                       />
                       <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/45 px-4 text-center">
                         <span
                           className="text-white"
-                          style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.8rem', fontWeight: 500 }}
+                          style={{
+                            fontFamily: "Cormorant Garamond, serif",
+                            fontSize: "1.8rem",
+                            fontWeight: 500,
+                          }}
                         >
                           +{remainingGalleryCount}
                         </span>
                         <span
                           className="mt-1 text-[10px] uppercase tracking-[0.24em] text-white/75"
-                          style={{ fontFamily: 'Jost, sans-serif' }}
+                          style={{ fontFamily: "Jost, sans-serif" }}
                         >
                           View More
                         </span>
@@ -511,13 +836,13 @@ export default function PropertyPage() {
               <div className="px-6 py-5 border-b border-[#ede8df]">
                 <p className="section-label mb-2">Quick Rates</p>
                 <div className="flex flex-col gap-3">
-                  {property.packages.map(pkg => (
+                  {property.packages.map((pkg) => (
                     <label
                       key={pkg.tier}
                       className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-3 transition-colors ${
                         selectedQuickPkg?.tier === pkg.tier
-                          ? 'border-[#c9a96e] bg-[#fbf8f3]'
-                          : 'border-transparent hover:border-[#ede8df]'
+                          ? "border-[#c9a96e] bg-[#fbf8f3]"
+                          : "border-transparent hover:border-[#ede8df]"
                       }`}
                     >
                       <input
@@ -530,14 +855,38 @@ export default function PropertyPage() {
                       />
                       <div className="flex flex-1 items-center justify-between gap-3">
                         <div>
-                          <p className="text-xs font-medium text-[#1a1a1a]" style={{ fontFamily: 'Jost, sans-serif' }}>{pkg.title}</p>
-                          <p className="text-[10px] text-[#8a8a7a]" style={{ fontFamily: 'Jost, sans-serif' }}>Up to {pkg.maxPax} pax</p>
+                          <p
+                            className="text-xs font-medium text-[#1a1a1a]"
+                            style={{ fontFamily: "Jost, sans-serif" }}
+                          >
+                            {pkg.title}
+                          </p>
+                          <p
+                            className="text-[10px] text-[#8a8a7a]"
+                            style={{ fontFamily: "Jost, sans-serif" }}
+                          >
+                            Up to {pkg.maxPax} pax
+                          </p>
                         </div>
                         <div className="text-right">
-                          <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1rem', fontWeight: 500, color: '#c9a96e' }}>
-                            {formatPHP(Math.min(...pkg.rates.map(r => r.weekday)))}
+                          <span
+                            style={{
+                              fontFamily: "Cormorant Garamond, serif",
+                              fontSize: "1rem",
+                              fontWeight: 500,
+                              color: "#c9a96e",
+                            }}
+                          >
+                            {formatPHP(
+                              Math.min(...pkg.rates.map((r) => r.weekday)),
+                            )}
                           </span>
-                          <p className="text-[9px] text-[#8a8a7a]" style={{ fontFamily: 'Jost, sans-serif' }}>starting from</p>
+                          <p
+                            className="text-[9px] text-[#8a8a7a]"
+                            style={{ fontFamily: "Jost, sans-serif" }}
+                          >
+                            starting from
+                          </p>
                         </div>
                       </div>
                     </label>
@@ -545,17 +894,38 @@ export default function PropertyPage() {
                 </div>
               </div>
               <div className="p-5 flex flex-col gap-3">
-                <button onClick={() => setBookingPkg(selectedQuickPkg)} className="btn-gold w-full justify-center">
-                  Reserve {selectedQuickPkg?.title ?? 'Now'}
+                <button
+                  onClick={() => setBookingPkg(selectedQuickPkg)}
+                  className="btn-gold w-full justify-center"
+                >
+                  Reserve {selectedQuickPkg?.title ?? "Now"}
                 </button>
                 <div className="flex flex-col gap-2">
                   <div className="flex items-start gap-2">
-                    <Info size={11} color="#c9a96e" className="mt-0.5 shrink-0" />
-                    <p className="text-[10px] text-[#8a8a7a]" style={{ fontFamily: 'Jost, sans-serif' }}>50% down payment required to confirm booking</p>
+                    <Info
+                      size={11}
+                      color="#c9a96e"
+                      className="mt-0.5 shrink-0"
+                    />
+                    <p
+                      className="text-[10px] text-[#8a8a7a]"
+                      style={{ fontFamily: "Jost, sans-serif" }}
+                    >
+                      50% down payment required to confirm booking
+                    </p>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Info size={11} color="#c9a96e" className="mt-0.5 shrink-0" />
-                    <p className="text-[10px] text-[#8a8a7a]" style={{ fontFamily: 'Jost, sans-serif' }}>Down payment is non-refundable</p>
+                    <Info
+                      size={11}
+                      color="#c9a96e"
+                      className="mt-0.5 shrink-0"
+                    />
+                    <p
+                      className="text-[10px] text-[#8a8a7a]"
+                      style={{ fontFamily: "Jost, sans-serif" }}
+                    >
+                      Down payment is non-refundable
+                    </p>
                   </div>
                 </div>
               </div>
@@ -581,29 +951,34 @@ export default function PropertyPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm"
+            transition={galleryModalBackdropTransition}
+            className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md"
             onClick={() => setGalleryModalOpen(false)}
           >
-            <div className="flex min-h-screen items-center justify-center p-4 sm:p-6">
+            <div className="flex min-h-screen items-end justify-center p-0 sm:items-center sm:p-6">
               <motion.div
                 initial={{ opacity: 0, y: 20, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 20, scale: 0.98 }}
-                transition={{ duration: 0.25 }}
-                className="w-full max-w-6xl overflow-hidden rounded-[28px] bg-[#111111] shadow-2xl"
+                transition={galleryModalPanelTransition}
+                className="flex max-h-[100svh] w-full max-w-6xl flex-col overflow-hidden rounded-t-[28px] border border-white/10 bg-[#111111] shadow-[0_25px_80px_rgba(0,0,0,0.45)] sm:max-h-[calc(100svh-3rem)] sm:rounded-[28px]"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center justify-between border-b border-white/10 px-5 py-4 sm:px-6">
                   <div>
                     <p
                       className="text-[10px] uppercase tracking-[0.24em] text-[#c9a96e]"
-                      style={{ fontFamily: 'Jost, sans-serif' }}
+                      style={{ fontFamily: "Jost, sans-serif" }}
                     >
                       {property.name}
                     </p>
                     <p
                       className="mt-1 text-white"
-                      style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.5rem', fontWeight: 400 }}
+                      style={{
+                        fontFamily: "Cormorant Garamond, serif",
+                        fontSize: "1.5rem",
+                        fontWeight: 400,
+                      }}
                     >
                       Photo Gallery
                     </p>
@@ -617,46 +992,100 @@ export default function PropertyPage() {
                   </button>
                 </div>
 
-                <div className="grid gap-4 p-4 sm:p-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(260px,0.8fr)]">
-                  <div className="overflow-hidden rounded-[24px] border border-white/10 bg-black shadow-[0_0_0_1px_rgba(255,255,255,0.06)]">
-                    <ImgWithFallback
-                      local={property.galleryImages[modalImageIndex]}
-                      fallback={(GALLERY_FALLBACKS[slug!] ?? FALLBACK.poolHouseGallery)[modalImageIndex] ?? FALLBACK.poolHouseGallery[0]}
-                      alt={`${property.name} ${modalImageIndex + 1}`}
-                      className="h-[52vh] w-full object-cover sm:h-[60vh]"
-                    />
+                <div className="grid flex-1 gap-4 overflow-y-auto p-3 sm:p-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(260px,0.8fr)]">
+                  <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-black shadow-[0_0_0_1px_rgba(255,255,255,0.06)]">
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={`${property.slug}-${modalImageIndex}`}
+                        initial={{ opacity: 0.2, scale: 1.02 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0.2, scale: 0.985 }}
+                        transition={{ duration: 0.28 }}
+                      >
+                        <ImgWithFallback
+                          local={property.galleryImages[modalImageIndex]}
+                          fallback={
+                            (GALLERY_FALLBACKS[slug!] ??
+                              FALLBACK.poolHouseGallery)[modalImageIndex] ??
+                            FALLBACK.poolHouseGallery[0]
+                          }
+                          alt={`${property.name} ${modalImageIndex + 1}`}
+                          className="h-[38vh] w-full object-cover sm:h-[52vh] lg:h-[60vh]"
+                        />
+                      </motion.div>
+                    </AnimatePresence>
+
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent px-5 py-5 sm:px-6">
+                      <div className="flex items-end justify-between gap-4">
+                        <div>
+                          <p
+                            className="text-[10px] uppercase tracking-[0.24em] text-white/55"
+                            style={{ fontFamily: "Jost, sans-serif" }}
+                          >
+                            Image {modalImageIndex + 1} of{" "}
+                            {property.galleryImages.length}
+                          </p>
+                          <p
+                            className="mt-2 text-white"
+                            style={{
+                              fontFamily: "Cormorant Garamond, serif",
+                              fontSize: "1.55rem",
+                              fontWeight: 400,
+                            }}
+                          >
+                            {property.name}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {property.galleryImages.length > 1 && (
+                      <>
+                        <button
+                          onClick={showPreviousGalleryImage}
+                          className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/35 text-white backdrop-blur-sm transition-all duration-300 hover:border-white/35 hover:bg-black/55 sm:left-4 sm:h-11 sm:w-11"
+                          aria-label="Previous image"
+                        >
+                          <ChevronLeft size={18} />
+                        </button>
+                        <button
+                          onClick={showNextGalleryImage}
+                          className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/35 text-white backdrop-blur-sm transition-all duration-300 hover:border-white/35 hover:bg-black/55 sm:right-4 sm:h-11 sm:w-11"
+                          aria-label="Next image"
+                        >
+                          <ChevronRight size={18} />
+                        </button>
+                      </>
+                    )}
                   </div>
 
                   <div className="flex flex-col">
-                    <div className="mb-3 flex items-center justify-between">
-                      <p
-                        className="text-[10px] uppercase tracking-[0.2em] text-white/45"
-                        style={{ fontFamily: 'Jost, sans-serif' }}
-                      >
-                        {modalImageIndex + 1} / {property.galleryImages.length}
-                      </p>
-                    </div>
-
-                    <div className="grid max-h-[60vh] grid-cols-2 gap-2 overflow-y-auto pr-1">
+                    <div className="grid grid-cols-3 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 sm:max-h-[52vh]">
                       {property.galleryImages.map((localSrc, i) => (
                         <button
                           key={i}
                           onClick={() => {
-                            selectGalleryImage(i)
+                            selectGalleryImage(i);
                           }}
-                          className={`relative overflow-hidden rounded-xl aspect-[4/3] border transition-all ${
+                          className={`group relative overflow-hidden rounded-xl aspect-[4/3] border transition-all duration-300 ${
                             i === modalImageIndex
-                              ? 'border-[#c9a96e] shadow-[0_0_0_1px_rgba(201,169,110,0.4)]'
-                              : 'border-white/10 hover:border-white/30'
+                              ? "border-[#c9a96e] shadow-[0_0_0_1px_rgba(201,169,110,0.4)]"
+                              : "border-white/10 hover:border-white/30"
                           }`}
                         >
                           <ImgWithFallback
                             local={localSrc}
-                            fallback={(GALLERY_FALLBACKS[slug!] ?? FALLBACK.poolHouseGallery)[i] ?? FALLBACK.poolHouseGallery[0]}
+                            fallback={
+                              (GALLERY_FALLBACKS[slug!] ??
+                                FALLBACK.poolHouseGallery)[i] ??
+                              FALLBACK.poolHouseGallery[0]
+                            }
                             alt={`${property.name} thumbnail ${i + 1}`}
-                            className="h-full w-full object-cover"
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                           />
-                          <div className={`absolute inset-0 transition-colors ${i === modalImageIndex ? 'bg-transparent' : 'bg-black/15'}`} />
+                          <div
+                            className={`absolute inset-0 transition-colors ${i === modalImageIndex ? "bg-transparent" : "bg-black/15"}`}
+                          />
                         </button>
                       ))}
                     </div>
@@ -668,5 +1097,5 @@ export default function PropertyPage() {
         )}
       </AnimatePresence>
     </div>
-  )
+  );
 }

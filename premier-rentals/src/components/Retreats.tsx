@@ -121,12 +121,6 @@ export default function Retreats() {
                   >
                     {data.name}
                   </h3>
-                  <p
-                    className="mb-3 line-clamp-3 text-[11px] text-white/60 sm:line-clamp-2 sm:text-xs"
-                    style={{ fontFamily: "Jost, sans-serif", fontWeight: 300 }}
-                  >
-                    {data.description}
-                  </p>
 
                   {/* Capacity row */}
                   <div

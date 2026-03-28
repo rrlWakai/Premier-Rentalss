@@ -125,3 +125,41 @@ export function getRateForSelection(args: {
   if (!rate) return null;
   return { property, pkg, rate };
 }
+
+function toUtcDate(date: string) {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+}
+
+export function isWeekend(date: string) {
+  const parsed = toUtcDate(date);
+  const dayOfWeek = parsed.getUTCDay();
+
+  return dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0;
+}
+
+export function getBookingAmounts(args: {
+  propertyId: string;
+  rateTier: string;
+  rateLabel: string;
+  reservationDate: string;
+}) {
+  const selection = getRateForSelection({
+    propertyId: args.propertyId,
+    rateTier: args.rateTier,
+    rateLabel: args.rateLabel,
+  });
+
+  if (!selection) return null;
+
+  const totalAmount = isWeekend(args.reservationDate)
+    ? selection.rate.weekend
+    : selection.rate.weekday;
+  const downpaymentAmount = totalAmount * 0.5;
+
+  return {
+    ...selection,
+    totalAmount,
+    downpaymentAmount,
+  };
+}

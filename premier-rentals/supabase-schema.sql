@@ -1,6 +1,11 @@
 -- ================================================================
 -- Premier Rentals — Supabase Schema v5 (PayMongo + Slot Booking)
 -- ================================================================
+-- NOTE:
+-- This file is a legacy bootstrap reference only.
+-- For real deployments, apply the SQL files in /migrations in order.
+-- The migrations are the source of truth for RLS, RPCs, webhook idempotency,
+-- checkout locking, and rate limiting.
 
 create extension if not exists "pgcrypto";
 
