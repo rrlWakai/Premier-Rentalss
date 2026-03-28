@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import {
-  Bath,
+  Fan,
   Sofa,
   Wifi,
   UtensilsCrossed,
@@ -15,7 +15,7 @@ const amenityGroups = [
   {
     title: 'Comfort',
     items: [
-      { icon: Bath, label: 'Air-conditioned Rooms' },
+      { icon: Fan, label: 'Air-conditioned Rooms' },
       { icon: Sofa, label: 'Spacious Living Area' },
     ],
   },

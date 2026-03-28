@@ -19,18 +19,22 @@ function GalleryTile({
   onOpen,
   className,
   style,
+  actionLabel = "View",
+  featured = false,
 }: {
   image: (typeof images)[number];
   index: number;
   onOpen: (index: number) => void;
   className?: string;
   style?: React.CSSProperties;
+  actionLabel?: string;
+  featured?: boolean;
 }) {
   return (
     <motion.button
       type="button"
       onClick={() => onOpen(index)}
-      className={`group relative overflow-hidden ${className ?? ""}`}
+      className={`group relative block w-full overflow-hidden ${className ?? ""}`}
       style={style}
       variants={scaleVariant}
       custom={index}
@@ -44,19 +48,39 @@ function GalleryTile({
         alt={image.alt}
         className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
       />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent opacity-80 transition-opacity duration-300 group-hover:opacity-100" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between px-4 py-3">
-        <span
-          className="text-left text-[10px] uppercase tracking-[0.22em] text-white/75"
-          style={{ fontFamily: "Jost, sans-serif" }}
-        >
-          Premier Rentals
-        </span>
+      <div
+        className={`pointer-events-none absolute inset-0 transition-opacity duration-300 group-hover:opacity-100 ${
+          featured
+            ? "bg-gradient-to-t from-black/80 via-black/25 to-black/5 opacity-100"
+            : "bg-gradient-to-t from-black/55 via-black/12 to-transparent opacity-85"
+        }`}
+      />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between px-5 py-4 sm:px-6 sm:py-5">
+        <div className="max-w-[70%] text-left">
+          <span
+            className="block text-[10px] uppercase tracking-[0.22em] text-white/70"
+            style={{ fontFamily: "Jost, sans-serif" }}
+          >
+            Premier Rentals
+          </span>
+          {featured ? (
+            <span
+              className="mt-1 block text-[0.95rem] text-white"
+              style={{
+                fontFamily: "Cormorant Garamond, serif",
+                fontWeight: 500,
+                lineHeight: 1.1,
+              }}
+            >
+              View More
+            </span>
+          ) : null}
+        </div>
         <span
           className="rounded-full border border-white/20 bg-black/25 px-2.5 py-1 text-[9px] uppercase tracking-[0.22em] text-white/90 backdrop-blur-sm"
           style={{ fontFamily: "Jost, sans-serif" }}
         >
-          View
+          {actionLabel}
         </span>
       </div>
     </motion.button>
@@ -105,16 +129,16 @@ export default function Gallery() {
   }, [modalOpen]);
 
   return (
-    <section id="gallery" className="bg-[#f8f4ee] py-16 sm:py-20 lg:py-24">
+    <section id="gallery" className="bg-[#f8f4ee] py-18 sm:py-22 lg:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-12">
         <motion.div
-          className="mb-10 flex flex-col gap-5 sm:mb-12 sm:flex-row sm:items-end sm:justify-between"
+          className="mb-9 max-w-3xl sm:mb-10 lg:mb-12"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <div>
+          <div className="space-y-4 sm:space-y-5">
             <p className="section-label mb-3">Visual Journey</p>
             <h2
               style={{
@@ -130,23 +154,21 @@ export default function Gallery() {
                 Premier
               </span>
             </h2>
+            <p
+              className="max-w-2xl text-sm leading-relaxed text-[#6f6b63] sm:text-[15px]"
+              style={{ fontFamily: "Jost, sans-serif", fontWeight: 300 }}
+            >
+              A closer look at the details, textures, and spaces that shape each
+              private city stay.
+            </p>
           </div>
-
-          <button
-            type="button"
-            onClick={() => openModal(0)}
-            className="inline-flex w-full items-center justify-center rounded-full border border-[#d8c8af] bg-white px-5 py-2.5 text-[10px] uppercase tracking-[0.24em] text-[#1a1a1a] transition-all duration-300 hover:border-[#c9a96e] hover:text-[#c9a96e] sm:w-auto"
-            style={{ fontFamily: "Jost, sans-serif" }}
-          >
-            Open Gallery
-          </button>
         </motion.div>
 
         <motion.div
-          className="hidden gap-2 md:grid"
+          className="hidden gap-3 md:grid lg:gap-4"
           style={{
-            gridTemplateColumns: "1fr 1fr 1fr",
-            gridTemplateRows: "auto auto",
+            gridTemplateColumns: "minmax(0,1.3fr) repeat(2,minmax(0,1fr))",
+            gridTemplateRows: "repeat(2, minmax(0, 250px))",
           }}
           variants={containerVariant}
           initial="hidden"
@@ -157,39 +179,56 @@ export default function Gallery() {
             image={images[0]}
             index={0}
             onOpen={openModal}
-            className="cursor-pointer"
-            style={{ gridRow: "span 2", minHeight: "400px" }}
+            className="h-full cursor-pointer"
+            style={{ gridRow: "span 2" }}
           />
 
-          {images.slice(1).map((image, index) => (
+          {images.slice(1).map((image, index) => {
+            const isLastImage = index === images.slice(1).length - 1;
+
+            return (
             <GalleryTile
               key={image.src}
               image={image}
               index={index + 1}
               onOpen={openModal}
-              className="aspect-[4/3] cursor-pointer"
+              className="h-full min-h-[250px] cursor-pointer"
+              actionLabel={isLastImage ? "Open" : "View"}
+              featured={isLastImage}
             />
-          ))}
+            );
+          })}
         </motion.div>
 
-        <div className="grid grid-cols-2 gap-2 md:hidden">
-          {images.map((image, index) => (
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:hidden">
+          {images.map((image, index) => {
+            const isHeroTile = index === 0;
+            const isLastImage = index === images.length - 1;
+
+            return (
             <motion.div
               key={image.src}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.08, duration: 0.5 }}
-              className={index === 0 ? "col-span-2" : ""}
+              className={isHeroTile ? "col-span-2" : ""}
             >
               <GalleryTile
                 image={image}
                 index={index}
                 onOpen={openModal}
-                className={`rounded ${index === 0 ? "h-48 sm:h-52" : "h-32 sm:h-36"}`}
+                className={`${
+                  isHeroTile
+                    ? "h-[240px] sm:h-[280px]"
+                    : "h-[160px] sm:h-[185px]"
+                }`}
+                actionLabel={isLastImage ? "Open" : "View"}
+                featured={isLastImage}
               />
             </motion.div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
