@@ -452,27 +452,26 @@ grant execute on function public.create_locked_booking(
 -- Called by Edge Functions to enforce per-IP / per-booking rate limits.
 -- Returns: allowed (bool), retry_after_seconds (int), current_count (int)
 -- ================================================================
-
 create or replace function public.consume_rate_limit(
-  p_scope          text,
-  p_subject        text,
-  p_max_requests   integer,
+  p_scope text,
+  p_subject text,
+  p_max_requests integer,
   p_window_seconds integer
 )
 returns table (
-  allowed             boolean,
+  allowed boolean,
   retry_after_seconds integer,
-  current_count       integer
+  current_count integer
 )
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
-  v_now             timestamptz := now();
-  v_window_start    timestamptz;
-  v_subject_hash    text;
-  v_count           integer;
+  v_now timestamptz := now();
+  v_window_start timestamptz;
+  v_subject_hash text;
+  v_count integer;
   v_elapsed_seconds integer;
 begin
   if p_scope is null or p_scope = '' then
@@ -490,9 +489,10 @@ begin
   v_window_start := to_timestamp(
     floor(extract(epoch from v_now) / p_window_seconds) * p_window_seconds
   );
-  v_subject_hash := encode(digest(p_subject, 'sha256'), 'hex');
 
-  -- Advisory lock prevents race conditions between concurrent requests
+  -- ✅ FIX HERE
+  v_subject_hash := encode(extensions.digest(p_subject, 'sha256'), 'hex');
+
   perform pg_advisory_xact_lock(
     hashtextextended(
       p_scope || ':' || v_subject_hash || ':' || v_window_start::text,
@@ -508,11 +508,10 @@ begin
   )
   on conflict (scope, subject_hash, window_start)
   do update
-    set count      = public.api_rate_limits.count + 1,
+    set count = public.api_rate_limits.count + 1,
         updated_at = v_now
   returning count into v_count;
 
-  -- Clean up entries older than 1 day
   delete from public.api_rate_limits
   where updated_at < v_now - interval '1 day';
 
