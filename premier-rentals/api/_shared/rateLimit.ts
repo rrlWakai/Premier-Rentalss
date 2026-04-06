@@ -12,7 +12,7 @@ function getClientIp(request: Request) {
     request.headers.get("cf-connecting-ip") ||
     request.headers.get("x-real-ip") ||
     "unknown"
-  );
+  );  
 }
 
 export function getRateLimitSubject(request: Request, suffix?: string) {
@@ -37,11 +37,12 @@ export async function enforceRateLimit(args: {
     p_window_seconds: windowSeconds,
   });
 
-  if (error) {
-    console.error("rate limit check failed", error);
-    throw new Error("RATE_LIMIT_CHECK_FAILED");
-  }
+if (error) {
+  console.error("🔥 RATE LIMIT ERROR FULL:", JSON.stringify(error, null, 2));
+  throw new Error("RATE_LIMIT_CHECK_FAILED");
+}
 
+console.log("✅ RATE LIMIT DATA:", JSON.stringify(data, null, 2));
   const row = Array.isArray(data) ? data[0] : data;
   if (!row) {
     throw new Error("RATE_LIMIT_CHECK_FAILED");
