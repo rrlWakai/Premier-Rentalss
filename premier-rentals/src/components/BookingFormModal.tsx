@@ -68,10 +68,11 @@ const stepMotionProps = {
 };
 
 // Map rate label → PreferredTime
+// IMPORTANT: check "overnight"/"platinum" BEFORE "night" — "overnight" contains "night" as a substring
 function labelToTime(label: string): PreferredTime {
   const l = label.toLowerCase();
-  if (l.includes("night") || l.includes("night")) return "Night";
   if (l.includes("overnight") || l.includes("platinum")) return "Overnight";
+  if (l.includes("night")) return "Night";
   return "Day";
 }
 

@@ -158,29 +158,31 @@ export default async function handler(request: Request) {
       const { data: booking } = await supabaseAdmin
         .from("bookings")
         .select(
-          `id, full_name, email, guests, total_amount, downpayment_amount, 
-           remaining_balance, booking_type, checkin, special_requests, 
-           retreat_id, retreats(name)`
+          `id, full_name, email, num_guests, total_amount, downpayment_amount,
+           remaining_balance, booking_type, booking_date, special_requests,
+           retreats(name)`
         )
         .eq("id", bookingId)
         .single();
 
-      if (booking && booking.retreats && Array.isArray(booking.retreats) && booking.retreats.length > 0) {
+      if (booking) {
+        // Supabase .single() with a join returns retreats as a plain object, not an array
+        const retreatRow = booking.retreats as { name?: string } | null;
         const receiptData: BookingReceiptData = {
           bookingId: booking.id,
           customerName: booking.full_name,
           customerEmail: booking.email,
-          propertyName: booking.retreats[0].name || "Premier Rentals",
-          checkInDate: booking.checkin,
+          propertyName: retreatRow?.name ?? "Premier Rentals",
+          checkInDate: booking.booking_date,
           bookingType: booking.booking_type,
-          guests: booking.guests || 1,
+          guests: booking.num_guests || 1,
           totalAmount: parseFloat(booking.total_amount) || 0,
           downpaymentAmount: parseFloat(booking.downpayment_amount) || 0,
           remainingBalance: parseFloat(booking.remaining_balance) || 0,
           specialRequests: booking.special_requests,
         };
 
-        // Send receipt email (fire and forget, don't block webhook response)
+        // Fire and forget — do not block the webhook response
         sendBookingReceipt(receiptData).catch((err) => {
           console.error("Failed to send receipt email:", err);
         });

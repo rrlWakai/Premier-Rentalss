@@ -95,19 +95,37 @@ export default async function handler(request: Request) {
         return errorResponse("Booking not found", 404);
       }
 
-      // If paid_amount provided, calculate remaining_balance server-side
+      // Allowlist: only these fields may be changed by an admin
+      const ALLOWED_FIELDS = new Set([
+        "status",
+        "payment_status",
+        "special_requests",
+        "approved_at",
+        "mode_of_payment",
+      ]);
+
+      const sanitized: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(updates)) {
+        if (ALLOWED_FIELDS.has(key)) sanitized[key] = value;
+      }
+
+      // paid_amount is a virtual helper field — use it to derive payment_status only
       if (updates.paid_amount !== undefined) {
         const paidAmount = Number(updates.paid_amount);
         if (Number.isFinite(paidAmount) && paidAmount >= 0) {
-          updates.remaining_balance = existingBooking.total_amount - paidAmount;
+          sanitized.payment_status =
+            paidAmount >= existingBooking.total_amount ? "paid" : "partial";
         }
-        delete updates.paid_amount; // Remove from updates - was just for calculation
+      }
+
+      if (Object.keys(sanitized).length === 0) {
+        return errorResponse("No valid update fields provided", 400);
       }
 
       // Update booking
       const { error: updateError } = await supabaseAdmin
         .from("bookings")
-        .update(updates)
+        .update(sanitized)
         .eq("id", bookingId);
 
       if (updateError) {

@@ -109,7 +109,20 @@ export default async function handler(request: Request) {
       }
 
       if (existingPayment?.checkout_session_id && existingPayment.status === "pending") {
+        // Active pending session — block duplicate checkout
         return json({ error: "Checkout already initialized" }, { status: 409 });
+      }
+
+      // Session is terminal (expired/failed/cancelled) or missing from payments table.
+      // Clear the stale session ID so the initialization lock below can proceed.
+      const { error: clearError } = await supabaseAdmin
+        .from("bookings")
+        .update({ checkout_session_id: null })
+        .eq("id", booking.id)
+        .eq("checkout_session_id", booking.checkout_session_id);
+
+      if (clearError) {
+        return json({ error: "Failed to reset checkout session" }, { status: 500 });
       }
     }
 

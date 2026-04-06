@@ -1,5 +1,5 @@
 
-import{
+import {
   BOOKING_CATALOG,
   getBookingAmounts,
   labelToTimeSlot,
@@ -7,6 +7,13 @@ import{
 } from "../_shared/catalog";
 import { enforceRateLimit } from "../_shared/rateLimit";
 import { supabaseAdmin } from "../_shared/supabaseAdmin";
+
+function rateLabelToPlan(label: string): string {
+  const l = label.toLowerCase();
+  if (l.includes("platinum") || l.includes("overnight")) return "Platinum";
+  if (l.includes("premium")) return "Premium";
+  return "Basic";
+}
 
 export const config = {
   runtime: "edge",
@@ -184,7 +191,7 @@ export default async function handler(request: Request) {
         p_preferred_dates: reservationDate,
         p_preferred_time:
           timeSlot === "daytime" ? "Day" : timeSlot === "nighttime" ? "Night" : "Overnight",
-        p_preferred_plan: "Basic",
+        p_preferred_plan: rateLabelToPlan(trimmedRateLabel),
         p_rate_tier: trimmedRateTier,
         p_mode_of_payment: trimmedModeOfPayment,
         p_num_guests: guestCount,
