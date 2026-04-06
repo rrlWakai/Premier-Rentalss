@@ -5,7 +5,8 @@ import ProtectedRoute from './components/ProtectedRoute'
 import AdminLogin from './components/AdminLogin'
 import AdminDashboard from './components/AdminDashboard'
 import PropertyPage from './components/PropertyPage'
-import { BookingSuccess, BookingFailed } from './components/BookingPages'
+import BookingSuccess from './components/BookingSuccess'
+import BookingFailed from './components/BookingFailed'
 import HomePage from './components/HomePage'
 import ErrorBoundary from './components/ErrorBoundary'
 
@@ -38,6 +39,7 @@ export default function App() {
           <Route path="/property/:slug" element={<PropertyPage />} />
           <Route path="/booking/success" element={<BookingSuccess />} />
           <Route path="/booking/failed" element={<BookingFailed />} />
+
           {/* Admin */}
           <Route path="/admin" element={<AdminLogin />} />
           <Route
