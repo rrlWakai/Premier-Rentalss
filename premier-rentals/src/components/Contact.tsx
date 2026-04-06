@@ -25,8 +25,16 @@ const CONTACTS: ContactCard[] = [
     locationNote:
       "A private and accessible space ideal for quick getaways and intimate gatherings.",
     socials: [
-      { label: "Instagram", href: "#", icon: Instagram },
-      { label: "Facebook", href: "#", icon: Facebook },
+      {
+        label: "Instagram",
+        href: "https://www.instagram.com/premierpoolhouse/",
+        icon: Instagram,
+      },
+      {
+        label: "Facebook",
+        href: "https://www.facebook.com/premierpoolhouse",
+        icon: Facebook,
+      },
     ],
   },
   {
@@ -37,8 +45,16 @@ const CONTACTS: ContactCard[] = [
     locationNote:
       "Conveniently located with easy access to major roads, dining spots, and city essentials.",
     socials: [
-      { label: "Instagram", href: "#", icon: Instagram },
-      { label: "Facebook", href: "#", icon: Facebook },
+      {
+        label: "Instagram",
+        href: "https://www.instagram.com/premierpatiobypph/",
+        icon: Instagram,
+      },
+      {
+        label: "Facebook",
+        href: "https://www.facebook.com/profile.php?id=61555665219280",
+        icon: Facebook,
+      },
     ],
   },
 ];
@@ -129,6 +145,8 @@ function ContactInfoCard({ card }: { card: ContactCard }) {
             <a
               key={label}
               href={href}
+              target="_blank"
+              rel="noreferrer"
               aria-label={`${card.name} ${label}`}
               className="flex h-11 w-11 items-center justify-center rounded-full border border-white/12 bg-white/[0.03] transition-all duration-300 hover:border-[#c9a96e] hover:bg-[#c9a96e]/10"
             >

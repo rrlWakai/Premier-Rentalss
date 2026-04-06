@@ -1,5 +1,6 @@
 import { verifyPayMongoWebhookSignature } from "../_shared/paymongo";
 import { supabaseAdmin } from "../_shared/supabaseAdmin";
+import { sendBookingReceipt, type BookingReceiptData } from "../_shared/email";
 
 export const config = {
   runtime: "edge",
@@ -152,6 +153,38 @@ export default async function handler(request: Request) {
         bookingStatus: "confirmed",
         checkoutSessionId,
       });
+
+      // Fetch booking details to send receipt email
+      const { data: booking } = await supabaseAdmin
+        .from("bookings")
+        .select(
+          `id, full_name, email, guests, total_amount, downpayment_amount, 
+           remaining_balance, booking_type, checkin, special_requests, 
+           retreat_id, retreats(name)`
+        )
+        .eq("id", bookingId)
+        .single();
+
+      if (booking && booking.retreats && Array.isArray(booking.retreats) && booking.retreats.length > 0) {
+        const receiptData: BookingReceiptData = {
+          bookingId: booking.id,
+          customerName: booking.full_name,
+          customerEmail: booking.email,
+          propertyName: booking.retreats[0].name || "Premier Rentals",
+          checkInDate: booking.checkin,
+          bookingType: booking.booking_type,
+          guests: booking.guests || 1,
+          totalAmount: parseFloat(booking.total_amount) || 0,
+          downpaymentAmount: parseFloat(booking.downpayment_amount) || 0,
+          remainingBalance: parseFloat(booking.remaining_balance) || 0,
+          specialRequests: booking.special_requests,
+        };
+
+        // Send receipt email (fire and forget, don't block webhook response)
+        sendBookingReceipt(receiptData).catch((err) => {
+          console.error("Failed to send receipt email:", err);
+        });
+      }
     }
 
     if (eventType === "payment.failed" || eventType === "checkout_session.payment.failed") {

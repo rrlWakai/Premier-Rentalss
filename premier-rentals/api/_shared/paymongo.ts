@@ -2,7 +2,20 @@ const PAYMONGO_SECRET_KEY = process.env.PAYMONGO_SECRET_KEY || "";
 const PAYMONGO_WEBHOOK_SECRET = process.env.PAYMONGO_WEBHOOK_SECRET || "";
 const PAYMONGO_BASE_URL = "https://api.paymongo.com/v1";
 
+/**
+ * Check if PayMongo is properly configured
+ * Returns false if required keys are missing
+ */
+export function isPayMongoConfigured(): boolean {
+  return !!(PAYMONGO_SECRET_KEY && PAYMONGO_WEBHOOK_SECRET);
+}
+
 function getPayMongoAuthHeader() {
+  if (!PAYMONGO_SECRET_KEY) {
+    throw new Error(
+      "PayMongo integration not configured. Set PAYMONGO_SECRET_KEY in Edge Function secrets."
+    );
+  }
   return `Basic ${btoa(`${PAYMONGO_SECRET_KEY}:`)}`;
 }
 
@@ -17,6 +30,13 @@ export async function createCheckoutSession(payload: {
   successUrl: string;
   cancelUrl: string;
 }) {
+  // Ensure PayMongo is configured before attempting to create session
+  if (!isPayMongoConfigured()) {
+    throw new Error(
+      "PayMongo integration not configured. Contact support or configure PAYMONGO_SECRET_KEY."
+    );
+  }
+
   const response = await fetch(`${PAYMONGO_BASE_URL}/checkout_sessions`, {
     method: "POST",
     headers: {
@@ -90,7 +110,10 @@ async function hmacSha256Hex(secret: string, value: string) {
 }
 
 export async function verifyPayMongoWebhookSignature(rawBody: string, header: string | null) {
-  if (!PAYMONGO_WEBHOOK_SECRET || !header) return false;
+  if (!PAYMONGO_WEBHOOK_SECRET || !header) {
+    console.warn("PayMongo webhook verification skipped: missing secret key");
+    return false;
+  }
 
   const entries = header.split(",").reduce<Record<string, string>>((acc, part) => {
     const [key, value] = part.split("=");

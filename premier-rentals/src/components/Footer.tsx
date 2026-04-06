@@ -12,8 +12,26 @@ const locations = [
 ]
 
 const connectLinks = [
-  { label: 'Facebook', href: '#', icon: Facebook },
-  { label: 'Instagram', href: '#', icon: Instagram },
+  {
+    label: 'Pool House Facebook',
+    href: 'https://www.facebook.com/premierpoolhouse',
+    icon: Facebook,
+  },
+  {
+    label: 'Pool House Instagram',
+    href: 'https://www.instagram.com/premierpoolhouse/',
+    icon: Instagram,
+  },
+  {
+    label: 'Patio Facebook',
+    href: 'https://www.facebook.com/profile.php?id=61555665219280',
+    icon: Facebook,
+  },
+  {
+    label: 'Patio Instagram',
+    href: 'https://www.instagram.com/premierpatiobypph/',
+    icon: Instagram,
+  },
   { label: 'Email', href: 'mailto:hello@premierrentals.com', icon: Mail },
 ]
 
@@ -87,6 +105,8 @@ export default function Footer() {
                 <a
                   key={label}
                   href={href}
+                  target={href.startsWith('http') ? '_blank' : undefined}
+                  rel={href.startsWith('http') ? 'noreferrer' : undefined}
                   className="flex items-center gap-3 text-xs text-white/45 transition-colors hover:text-white/75"
                   style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}
                 >

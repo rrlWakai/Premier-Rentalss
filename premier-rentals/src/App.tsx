@@ -7,11 +7,13 @@ import AdminDashboard from './components/AdminDashboard'
 import PropertyPage from './components/PropertyPage'
 import { BookingSuccess, BookingFailed } from './components/BookingPages'
 import HomePage from './components/HomePage'
+import ErrorBoundary from './components/ErrorBoundary'
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AuthProvider>
         <Toaster
           position="top-right"
           toastOptions={{
@@ -50,5 +52,6 @@ export default function App() {
         </Routes>
       </AuthProvider>
     </BrowserRouter>
+    </ErrorBoundary>
   )
 }

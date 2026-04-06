@@ -81,13 +81,17 @@ create policy "Public insert bookings"
 on public.bookings for insert
 with check (true);
 
-create policy "Admin read bookings"
-on public.bookings for select
-using (auth.role() = 'authenticated');
+create policy "Service role unrestricted"
+on public.bookings for all
+using (auth.role() = 'service_role');
 
-create policy "Admin update bookings"
+create policy "Block user select"
+on public.bookings for select
+using (false);  -- Frontend must use Edge Functions, not direct DB access
+
+create policy "Block user update"
 on public.bookings for update
-using (auth.role() = 'authenticated');
+using (false);  -- Frontend must use Edge Functions, not direct DB access
 
 -- ── blocked_dates (MANUAL FULL-DATE BLOCKS) ──────────────────────
 create table if not exists public.blocked_dates (
@@ -103,11 +107,11 @@ alter table public.blocked_dates enable row level security;
 
 create policy "Public read blocked_dates"
 on public.blocked_dates for select
-using (true);
+using (true);  -- Public can read blocked dates for availability
 
-create policy "Admin write blocked_dates"
+create policy "Service role unrestricted"
 on public.blocked_dates for all
-using (auth.role() = 'authenticated');
+using (auth.role() = 'service_role');  -- Admin operations via Edge Functions only
 
 -- NOTE:
 -- blocked_dates is reserved for manual whole-date closures such as maintenance,

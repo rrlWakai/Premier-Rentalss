@@ -15,6 +15,18 @@ function json(data: unknown, init?: ResponseInit) {
 }
 
 export default async function handler(request: Request) {
+  // Handle CORS preflight
+  if (request.method === "OPTIONS") {
+    return json(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      },
+    });
+  }
+
   if (request.method !== "GET") {
     return json({ error: "Method not allowed" }, { status: 405 });
   }

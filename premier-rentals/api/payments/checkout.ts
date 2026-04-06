@@ -30,6 +30,18 @@ async function clearCheckoutInitializationLock(bookingId: string, initialization
 }
 
 export default async function handler(request: Request) {
+  // Handle CORS preflight
+  if (request.method === "OPTIONS") {
+    return json(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      },
+    });
+  }
+
   if (request.method !== "POST") {
     return json({ error: "Method not allowed" }, { status: 405 });
   }
@@ -184,8 +196,20 @@ export default async function handler(request: Request) {
       }
 
       return json({ checkout_url: checkoutUrl }, { status: 200 });
-    } catch (error) {
+    } catch (error: any) {
       await clearCheckoutInitializationLock(booking.id, initializationToken);
+      
+      // Check if it's a PayMongo configuration error
+      const errorMsg = error?.message || "";
+      if (errorMsg.includes("not configured") || errorMsg.includes("PayMongo")) {
+        console.warn("PayMongo configuration missing:", errorMsg);
+        return json(
+          { error: "Payment system not available. Please contact support." },
+          { status: 503 }
+        );
+      }
+      
+      // Re-throw unexpected errors
       throw error;
     }
   } catch (error) {

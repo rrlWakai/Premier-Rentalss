@@ -126,130 +126,241 @@ export async function createBooking(
   throw new Error("Direct client-side booking creation is disabled. Use /api/bookings/create.");
 }
 
-// ✅ FETCH BOOKINGS
+// ✅ FETCH BOOKINGS (via Edge Functions with admin auth)
 export async function fetchBookings(): Promise<Booking[]> {
-  const { data, error } = await supabase
-    .from("bookings")
-    .select("*, retreat:retreats(*)")
-    .order("created_at", { ascending: false });
+  try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session?.access_token) {
+      console.error("fetchBookings: No authenticated session");
+      return [];
+    }
 
-  if (error) console.error("fetchBookings:", error);
-  return data ?? [];
+    const response = await fetch('/api/admin/bookings', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error(`fetchBookings error (${response.status}):`, errorData);
+      return [];
+    }
+
+    const data = await response.json();
+    const bookings = data.bookings || [];
+
+    // Fetch retreats separately and attach to bookings
+    const retreats = await fetchRetreats();
+    const retreatMap = new Map(retreats.map((r) => [r.id, r]));
+
+    return bookings.map((b: Booking) => ({
+      ...b,
+      retreat: retreatMap.get(b.retreat_id),
+    }));
+  } catch (error) {
+    console.error("fetchBookings error:", error);
+    return [];
+  }
 }
 
-// ✅ ADMIN APPROVAL
+// ✅ UPDATE BOOKING STATUS (via Edge Function with admin auth)
 export async function updateBookingStatus(
   id: string,
   status: BookingStatus
 ): Promise<boolean> {
-  const { error } = await supabase
-    .from("bookings")
-    .update({
-      status,
-      approved_at: status === "approved" ? new Date().toISOString() : null,
-    })
-    .eq("id", id);
+  try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session?.access_token) {
+      console.error("updateBookingStatus: No authenticated session");
+      return false;
+    }
 
-  if (error) {
-    console.error("updateBookingStatus:", error);
+    const response = await fetch('/api/admin/bookings', {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        bookingId: id,
+        updates: {
+          status,
+          approved_at: status === "approved" ? new Date().toISOString() : null,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error(`updateBookingStatus error (${response.status}):`, errorData);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("updateBookingStatus error:", error);
     return false;
   }
-
-  return true;
 }
 
-// ✅ PAYMENT UPDATE (supports partial)
+// ✅ UPDATE BOOKING PAYMENT (via Edge Function with admin auth)
 export async function updateBookingPayment(
   id: string,
   payment_status: PaymentStatus,
   payment_reference?: string,
   paidAmount?: number
 ): Promise<boolean> {
-  const updates: any = {
-    payment_status,
-    payment_reference,
-  };
-
-  // 🔥 Handle partial payments
-  if (paidAmount !== undefined) {
-    const { data: booking } = await supabase
-      .from("bookings")
-      .select("total_amount, downpayment_amount")
-      .eq("id", id)
-      .single();
-
-    if (booking) {
-      updates.remaining_balance =
-        booking.total_amount - paidAmount;
+  try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session?.access_token) {
+      console.error("updateBookingPayment: No authenticated session");
+      return false;
     }
-  }
 
-  const { error } = await supabase
-    .from("bookings")
-    .update(updates)
-    .eq("id", id);
+    const updates: any = {
+      payment_status,
+      payment_reference,
+    };
 
-  if (error) {
-    console.error("updateBookingPayment:", error);
+    // ✅ Send paid_amount to API for server-side calculation
+    if (paidAmount !== undefined) {
+      updates.paid_amount = paidAmount;
+    }
+
+    const response = await fetch('/api/admin/bookings', {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        bookingId: id,
+        updates,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error(`updateBookingPayment error (${response.status}):`, errorData);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("updateBookingPayment error:", error);
     return false;
   }
-
-  return true;
 }
 
 // ── BLOCKED DATES (ANTI DOUBLE BOOKING) ───────────────────────────────
 
-// ✅ FETCH BLOCKED DATES
+// ✅ FETCH BLOCKED DATES (via Edge Function with admin auth)
 export async function fetchBlockedDates(
   retreatId?: string
 ): Promise<BlockedDate[]> {
-  let query = supabase.from("blocked_dates").select("*");
+  try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session?.access_token) {
+      console.error("fetchBlockedDates: No authenticated session");
+      return [];
+    }
 
-  if (retreatId) {
-    query = query.eq("retreat_id", retreatId);
+    const url = retreatId
+      ? `/api/admin/blocked-dates?retreat_id=${retreatId}`
+      : '/api/admin/blocked-dates';
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error(`fetchBlockedDates error (${response.status}):`, errorData);
+      return [];
+    }
+
+    const data = await response.json();
+    return data.blockedDates || [];
+  } catch (error) {
+    console.error("fetchBlockedDates error:", error);
+    return [];
   }
-
-  const { data, error } = await query;
-
-  if (error) console.error("fetchBlockedDates:", error);
-  return data ?? [];
 }
 
-// ✅ ADD BLOCKED DATE (AUTO AFTER BOOKING)
+// ✅ ADD BLOCKED DATE (via Edge Function with admin auth)
 export async function addBlockedDate(
   retreatId: string,
   date: string,
   reason?: string
 ): Promise<boolean> {
-  const { error } = await supabase.from("blocked_dates").insert([
-    {
-      retreat_id: retreatId,
-      date,
-      reason: reason ?? "Booked",
-    },
-  ]);
+  try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session?.access_token) {
+      console.error("addBlockedDate: No authenticated session");
+      return false;
+    }
 
-  if (error) {
-    console.error("addBlockedDate:", error);
+    const response = await fetch('/api/admin/blocked-dates', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        retreatId,
+        date,
+        reason,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error(`addBlockedDate error (${response.status}):`, errorData);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("addBlockedDate error:", error);
     return false;
   }
-
-  return true;
 }
 
-// ✅ REMOVE BLOCKED DATE
+// ✅ REMOVE BLOCKED DATE (via Edge Function with admin auth)
 export async function removeBlockedDate(id: string): Promise<boolean> {
-  const { error } = await supabase
-    .from("blocked_dates")
-    .delete()
-    .eq("id", id);
+  try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session?.access_token) {
+      console.error("removeBlockedDate: No authenticated session");
+      return false;
+    }
 
-  if (error) {
-    console.error("removeBlockedDate:", error);
+    const response = await fetch(`/api/admin/blocked-dates?id=${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error(`removeBlockedDate error (${response.status}):`, errorData);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("removeBlockedDate error:", error);
     return false;
   }
-
-  return true;
 }
 export interface Testimonial {
   id: string
@@ -275,6 +386,8 @@ export async function fetchTestimonials(): Promise<Testimonial[]> {
 
   return data as Testimonial[]
 }
+
+
 // ── ADMIN AUTH ───────────────────────────────────────────────────────
 
 export async function adminSignIn(email: string, password: string) {
@@ -287,41 +400,4 @@ export async function adminSignOut() {
 
 export async function getAdminSession() {
   return supabase.auth.getSession();
-}
-
-
-export interface Inquiry {
-  id: string
-  full_name: string
-  email: string
-  phone?: string
-  message?: string
-  check_in?: string
-  check_out?: string
-  guests?: number
-  created_at: string
-}
-
-// Submit a new inquiry
-export async function submitInquiry(data: {
-  full_name: string
-  email: string
-  phone?: string
-  message?: string
-  check_in?: string
-  check_out?: string
-  guests?: number
-}): Promise<Inquiry | null> {
-  const { data: result, error } = await supabase
-    .from('inquiries')
-    .insert([data])
-    .select()
-    .single()
-
-  if (error) {
-    console.error(error)
-    return null
-  }
-
-  return result as Inquiry
 }
