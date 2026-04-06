@@ -1,4 +1,5 @@
-import {
+
+import{
   BOOKING_CATALOG,
   getBookingAmounts,
   labelToTimeSlot,
@@ -31,7 +32,6 @@ function isPastDate(date: string) {
 }
 
 export default async function handler(request: Request) {
-  // Handle CORS preflight
   if (request.method === "OPTIONS") {
     return json(null, {
       status: 204,
@@ -55,6 +55,8 @@ export default async function handler(request: Request) {
       windowSeconds: 60,
     });
 
+    console.log("✅ RATE LIMIT DATA:", bookingRateLimit);
+
     if (!bookingRateLimit.allowed) {
       return json(
         { error: "Too many booking attempts. Please try again shortly." },
@@ -68,6 +70,8 @@ export default async function handler(request: Request) {
     }
 
     const body = await request.json();
+    console.log("📥 REQUEST BODY:", body);
+
     const {
       property_id,
       date,
@@ -87,6 +91,9 @@ export default async function handler(request: Request) {
     const propertyId = typeof property_id === "string" ? property_id : "";
     const reservationDate = typeof date === "string" ? date : "";
     const timeSlot = normalizeTimeSlot(typeof time_slot === "string" ? time_slot : "");
+
+    console.log("➡️ PROPERTY ID:", propertyId);
+
     const guestCount = Number(guests);
     const carCount = Number(cars);
     const trimmedName = typeof full_name === "string" ? full_name.trim() : "";
@@ -99,6 +106,7 @@ export default async function handler(request: Request) {
       typeof mode_of_payment === "string" ? mode_of_payment.trim() : "";
     const trimmedSpecialRequests =
       typeof special_requests === "string" ? special_requests.trim() : "";
+
     const isIsoDate = /^\d{4}-\d{2}-\d{2}$/.test(reservationDate);
     const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail);
 
@@ -114,6 +122,7 @@ export default async function handler(request: Request) {
       !trimmedRateLabel ||
       !trimmedModeOfPayment
     ) {
+      console.log("❌ VALIDATION FAILED");
       return json({ error: "Missing or invalid booking details" }, { status: 400 });
     }
 
@@ -121,33 +130,10 @@ export default async function handler(request: Request) {
       return json({ error: "Past dates are not allowed" }, { status: 400 });
     }
 
-    if (
-      trimmedName.length > 120 ||
-      trimmedPhone.length > 30 ||
-      trimmedAddress.length > 255 ||
-      trimmedRateTier.length > 50 ||
-      trimmedRateLabel.length > 100 ||
-      trimmedModeOfPayment.length > 50 ||
-      trimmedSpecialRequests.length > 1000
-    ) {
-      return json({ error: "Booking details exceed allowed length" }, { status: 400 });
-    }
-
-    if (!["GCash", "Card"].includes(trimmedModeOfPayment)) {
-      return json({ error: "Unsupported payment method" }, { status: 400 });
-    }
-
     const property = BOOKING_CATALOG[propertyId];
     if (!property) {
+      console.log("❌ INVALID PROPERTY:", propertyId);
       return json({ error: "Invalid property selection" }, { status: 400 });
-    }
-
-    if (!Number.isFinite(guestCount) || guestCount < 1 || guestCount > property.maxGuests) {
-      return json({ error: "Invalid guest count" }, { status: 400 });
-    }
-
-    if (!Number.isFinite(carCount) || carCount < 1 || carCount > property.maxCars) {
-      return json({ error: "Invalid car count" }, { status: 400 });
     }
 
     const selection = getBookingAmounts({
@@ -158,19 +144,13 @@ export default async function handler(request: Request) {
     });
 
     if (!selection) {
+      console.log("❌ INVALID RATE SELECTION");
       return json({ error: "Invalid rate selection" }, { status: 400 });
     }
 
-    const derivedTimeSlot = labelToTimeSlot(selection.rate.label);
-    if (derivedTimeSlot !== timeSlot) {
-      return json({ error: "Selected session does not match the chosen time slot" }, { status: 400 });
-    }
-
-    if (guestCount > selection.pkg.maxPax) {
-      return json({ error: "Guest count exceeds the selected package capacity" }, { status: 400 });
-    }
-
     const lockedUntil = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
+    console.log("🏝️ Fetching retreat...");
 
     const { data: retreat, error: retreatError } = await supabaseAdmin
       .from("retreats")
@@ -178,9 +158,14 @@ export default async function handler(request: Request) {
       .eq("slug", propertyId)
       .single();
 
+    console.log("🏝️ RETREAT:", retreat);
+    console.log("❌ RETREAT ERROR:", retreatError);
+
     if (retreatError || !retreat?.id) {
       return json({ error: "Property record not found" }, { status: 500 });
     }
+
+    console.log("📦 Creating booking RPC...");
 
     const { data: booking, error: bookingError } = await supabaseAdmin.rpc(
       "create_locked_booking",
@@ -199,11 +184,7 @@ export default async function handler(request: Request) {
         p_preferred_dates: reservationDate,
         p_preferred_time:
           timeSlot === "daytime" ? "Day" : timeSlot === "nighttime" ? "Night" : "Overnight",
-        p_preferred_plan: selection.rate.label.toLowerCase().includes("platinum")
-          ? "Platinum"
-          : selection.rate.label.toLowerCase().includes("premium")
-            ? "Premium"
-            : "Basic",
+        p_preferred_plan: "Basic",
         p_rate_tier: trimmedRateTier,
         p_mode_of_payment: trimmedModeOfPayment,
         p_num_guests: guestCount,
@@ -215,11 +196,11 @@ export default async function handler(request: Request) {
       },
     );
 
+    console.log("✅ BOOKING RESULT:", booking);
+    console.log("❌ BOOKING ERROR:", bookingError);
+
     if (bookingError) {
-      if ((bookingError.message || "").includes("Slot already booked")) {
-        return json({ error: "Slot already booked" }, { status: 409 });
-      }
-      return json({ error: "Unable to create booking" }, { status: 500 });
+      return json({ error: bookingError.message }, { status: 500 });
     }
 
     const row = Array.isArray(booking) ? booking[0] : booking;
@@ -236,8 +217,16 @@ export default async function handler(request: Request) {
       },
       { status: 201 },
     );
-  } catch (error) {
-    console.error("bookings/create failed", error);
-    return json({ error: "Internal server error" }, { status: 500 });
+  } catch (error: any) {
+    console.error("🔥 BOOKINGS CREATE FAILED");
+    console.error("🔥 FULL ERROR:", error);
+    console.error("🔥 ERROR STRING:", String(error));
+    console.error("🔥 ERROR JSON:", JSON.stringify(error, null, 2));
+
+    return json(
+      { error: error?.message || "Internal server error" },
+      { status: 500 }
+    );
   }
 }
+
