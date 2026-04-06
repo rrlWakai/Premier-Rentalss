@@ -38,7 +38,6 @@ export default function App() {
           <Route path="/property/:slug" element={<PropertyPage />} />
           <Route path="/booking/success" element={<BookingSuccess />} />
           <Route path="/booking/failed" element={<BookingFailed />} />
-
           {/* Admin */}
           <Route path="/admin" element={<AdminLogin />} />
           <Route
