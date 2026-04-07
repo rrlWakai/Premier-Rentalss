@@ -260,6 +260,36 @@ export async function updateBookingPayment(
   }
 }
 
+// ✅ DELETE BOOKING (via Edge Function with admin auth)
+export async function deleteBooking(id: string): Promise<boolean> {
+  try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session?.access_token) {
+      console.error("deleteBooking: No authenticated session");
+      return false;
+    }
+
+    const response = await fetch(`/api/admin/bookings?id=${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error(`deleteBooking error (${response.status}):`, errorData);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("deleteBooking error:", error);
+    return false;
+  }
+}
+
 // ── BLOCKED DATES (ANTI DOUBLE BOOKING) ───────────────────────────────
 
 // ✅ FETCH BLOCKED DATES (via Edge Function with admin auth)

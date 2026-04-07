@@ -21,6 +21,7 @@ import {
   Wallet,
   AlertCircle,
   RefreshCw,
+  Trash2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
@@ -30,6 +31,7 @@ import {
   fetchAdminStats,
   updateBookingStatus,
   updateBookingPayment,
+  deleteBooking,
   addBlockedDate,
   removeBlockedDate,
   adminSignOut,
@@ -160,6 +162,24 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error("Error updating payment status:", error);
       toast.error("Failed to update payment status");
+    }
+  }
+
+  async function handleDeleteBooking(id: string) {
+    if (!window.confirm("Permanently delete this booking? This cannot be undone.")) return;
+    try {
+      const ok = await deleteBooking(id);
+      if (ok) {
+        setBookings((p) => p.filter((b) => b.id !== id));
+        setTotalBookings((p) => p - 1);
+        setSelectedBooking(null);
+        toast.success("Booking deleted");
+      } else {
+        toast.error("Failed to delete booking");
+      }
+    } catch (error) {
+      console.error("Error deleting booking:", error);
+      toast.error("Failed to delete booking");
     }
   }
 
@@ -813,6 +833,16 @@ export default function AdminDashboard() {
                                 {s}
                               </button>
                             ))}
+                          </div>
+                          <div className="mt-5 pt-4 border-t border-[#ede8df]">
+                            <button
+                              onClick={() => handleDeleteBooking(selectedBooking.id)}
+                              className="flex items-center justify-center gap-2 w-full py-2 px-3 rounded border border-red-200 text-red-500 hover:bg-red-50 hover:border-red-400 transition-all text-[10px] font-medium"
+                              style={{ fontFamily: "Jost, sans-serif" }}
+                            >
+                              <Trash2 size={12} strokeWidth={1.5} />
+                              Delete Booking
+                            </button>
                           </div>
                         </div>
                       ) : (

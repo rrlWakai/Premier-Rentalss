@@ -15,7 +15,7 @@ export default async function handler(request: Request) {
       status: 204,
       headers: {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
+        "Access-Control-Allow-Methods": "GET, PATCH, DELETE, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
       },
     });
@@ -115,6 +115,38 @@ export default async function handler(request: Request) {
     }
 
     return json({ success: true, bookingId });
+  }
+
+  // DELETE - Permanently remove a booking
+  if (request.method === "DELETE") {
+    const url = new URL(request.url);
+    const id = url.searchParams.get("id");
+
+    if (!id) {
+      return json({ error: "Missing required field: id" }, { status: 400 });
+    }
+
+    const { data: existing, error: fetchError } = await supabaseAdmin
+      .from("bookings")
+      .select("id")
+      .eq("id", id)
+      .single();
+
+    if (fetchError || !existing) {
+      return json({ error: "Booking not found" }, { status: 404 });
+    }
+
+    const { error: deleteError } = await supabaseAdmin
+      .from("bookings")
+      .delete()
+      .eq("id", id);
+
+    if (deleteError) {
+      console.error("Delete booking error:", deleteError);
+      return json({ error: "Internal server error" }, { status: 500 });
+    }
+
+    return json({ success: true });
   }
 
   return json({ error: "Method not allowed" }, { status: 405 });
