@@ -37,8 +37,6 @@ export interface Retreat {
 
 export type BookingStatus =
   | "pending"
-  | "approved"
-  | "rejected"
   | "confirmed"
   | "cancelled"
   | "completed";
@@ -127,42 +125,49 @@ export async function createBooking(
 }
 
 // ✅ FETCH BOOKINGS (via Edge Functions with admin auth)
-export async function fetchBookings(): Promise<Booking[]> {
+export async function fetchBookings(
+  page = 1,
+  limit = 50,
+): Promise<{ bookings: Booking[]; total: number }> {
   try {
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !session?.access_token) {
       console.error("fetchBookings: No authenticated session");
-      return [];
+      return { bookings: [], total: 0 };
     }
 
-    const response = await fetch('/api/admin/bookings', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json',
+    const response = await fetch(
+      `/api/admin/bookings?page=${page}&limit=${limit}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
       },
-    });
+    );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error(`fetchBookings error (${response.status}):`, errorData);
-      return [];
+      return { bookings: [], total: 0 };
     }
 
     const data = await response.json();
-    const bookings = data.bookings || [];
+    const raw: Booking[] = data.bookings ?? [];
+    const total: number = data.total ?? raw.length;
 
-    // Fetch retreats separately and attach to bookings
+    // Attach retreat records
     const retreats = await fetchRetreats();
     const retreatMap = new Map(retreats.map((r) => [r.id, r]));
 
-    return bookings.map((b: Booking) => ({
-      ...b,
-      retreat: retreatMap.get(b.retreat_id),
-    }));
+    return {
+      bookings: raw.map((b) => ({ ...b, retreat: retreatMap.get(b.retreat_id) })),
+      total,
+    };
   } catch (error) {
     console.error("fetchBookings error:", error);
-    return [];
+    return { bookings: [], total: 0 };
   }
 }
 
@@ -188,7 +193,7 @@ export async function updateBookingStatus(
         bookingId: id,
         updates: {
           status,
-          approved_at: status === "approved" ? new Date().toISOString() : null,
+          approved_at: status === "confirmed" ? new Date().toISOString() : null,
         },
       }),
     });
@@ -220,7 +225,7 @@ export async function updateBookingPayment(
       return false;
     }
 
-    const updates: any = {
+    const updates: Record<string, unknown> = {
       payment_status,
       payment_reference,
     };
@@ -362,6 +367,46 @@ export async function removeBlockedDate(id: string): Promise<boolean> {
     return false;
   }
 }
+// ── ADMIN STATS ───────────────────────────────────────────────────────
+
+export interface AdminStats {
+  totalRevenue: number;
+  confirmed: number;
+  pending: number;
+  totalGuests: number;
+  totalInquiries: number;
+}
+
+export async function fetchAdminStats(): Promise<AdminStats | null> {
+  try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session?.access_token) {
+      console.error("fetchAdminStats: No authenticated session");
+      return null;
+    }
+
+    const response = await fetch("/api/admin/stats", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error(`fetchAdminStats error (${response.status}):`, errorData);
+      return null;
+    }
+
+    const data = await response.json();
+    return (data.stats as AdminStats) ?? null;
+  } catch (error) {
+    console.error("fetchAdminStats error:", error);
+    return null;
+  }
+}
+
 export interface Testimonial {
   id: string
   name: string

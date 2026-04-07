@@ -9,10 +9,10 @@ import {
   addMonths,
   subMonths,
   isToday,
-  parse,
 } from "date-fns";
 import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import type { Booking, BlockedDate } from "../lib/supabase";
+import { STATUS_HEX } from "../lib/constants";
 
 interface Props {
   retreats: { id: string; name: string }[];
@@ -20,16 +20,9 @@ interface Props {
   onSelectRetreat: (retreatId: string) => void;
   bookings: Booking[];
   blockedDates: BlockedDate[];
-  onAddBlock: (date: string, retreatId: string) => void;
+  onAddBlock: (date: string, retreatId: string, reason?: string) => void;
   onRemoveBlock: (id: string) => void;
 }
-
-const STATUS_COLORS: Record<string, string> = {
-  confirmed: "#22c55e",
-  pending: "#f59e0b",
-  cancelled: "#ef4444",
-  completed: "#8b5cf6",
-};
 
 export default function AdminCalendarView({
   retreats,
@@ -50,49 +43,11 @@ export default function AdminCalendarView({
   const startPad = getDay(startOfMonth(currentMonth));
   const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-  // Match booking to date using preferred_dates (text field)
-  // Parse various date formats and compare with the target date
   function getDayBookings(date: Date) {
     const targetDate = format(date, "yyyy-MM-dd");
-    const targetReadable = format(date, "MMMM d");
-    const targetShort = format(date, "MMM d");
-
     return bookings.filter((b) => {
       if (selectedRetreatId && b.retreat_id !== selectedRetreatId) return false;
-
-      const dates = b.preferred_dates ?? "";
-      if (!dates) return false;
-
-      // Check for exact date match
-      if (dates === targetDate) return true;
-
-      // Check for readable format match (e.g., "June 14")
-      if (dates.includes(targetReadable)) return true;
-
-      // Check for short format match (e.g., "Jun 14")
-      if (dates.includes(targetShort)) return true;
-
-      // Check for multiple dates (e.g., "June 14 - June 16")
-      const dateRangeMatch = dates.match(/(\w+ \d+) - (\w+ \d+)/);
-      if (dateRangeMatch) {
-        const [, startDate, endDate] = dateRangeMatch;
-        try {
-          const start = parse(startDate, "MMMM d", new Date());
-          const end = parse(endDate, "MMMM d", new Date());
-          const checkDate = parse(targetReadable, "MMMM d", new Date());
-
-          // Set the year to match the current calendar year for comparison
-          start.setFullYear(date.getFullYear());
-          end.setFullYear(date.getFullYear());
-          checkDate.setFullYear(date.getFullYear());
-
-          return checkDate >= start && checkDate <= end;
-        } catch {
-          // If parsing fails, continue with other checks
-        }
-      }
-
-      return false;
+      return b.booking_date === targetDate;
     });
   }
 
@@ -201,7 +156,7 @@ export default function AdminCalendarView({
                         key={b.id}
                         className="text-[8px] text-white px-1 py-0.5 rounded truncate leading-tight"
                         style={{
-                          background: STATUS_COLORS[b.status] ?? "#8b5cf6",
+                          background: STATUS_HEX[b.status] ?? "#8b5cf6",
                           fontFamily: "Jost, sans-serif",
                         }}
                       >
@@ -232,7 +187,7 @@ export default function AdminCalendarView({
 
           {/* Legend */}
           <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t border-[#ede8df]">
-            {Object.entries(STATUS_COLORS).map(([status, color]) => (
+            {Object.entries(STATUS_HEX).map(([status, color]) => (
               <div key={status} className="flex items-center gap-1.5">
                 <div
                   className="w-3 h-3 rounded-sm"
@@ -277,12 +232,10 @@ export default function AdminCalendarView({
                 </div>
                 {!selectedBlocked ? (
                   <button
-                    onClick={() =>
-                      onAddBlock(
-                        format(selectedDay, "yyyy-MM-dd"),
-                        selectedRetreatId,
-                      )
-                    }
+                    onClick={() => {
+                      const reason = window.prompt("Reason for blocking this date (optional):") ?? undefined;
+                      onAddBlock(format(selectedDay, "yyyy-MM-dd"), selectedRetreatId, reason);
+                    }}
                     className="flex items-center gap-1.5 text-[10px] text-red-400 hover:text-red-600 border border-red-200 hover:border-red-400 px-2 py-1.5 rounded transition-colors"
                     style={{ fontFamily: "Jost, sans-serif" }}
                   >
@@ -338,7 +291,7 @@ export default function AdminCalendarView({
                       <span
                         className="text-[9px] px-2 py-0.5 rounded-full text-white capitalize"
                         style={{
-                          background: STATUS_COLORS[booking.status],
+                          background: STATUS_HEX[booking.status],
                           fontFamily: "Jost, sans-serif",
                         }}
                       >

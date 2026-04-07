@@ -27,6 +27,7 @@ import {
   fetchBookings,
   fetchBlockedDates,
   fetchRetreats,
+  fetchAdminStats,
   updateBookingStatus,
   updateBookingPayment,
   addBlockedDate,
@@ -37,48 +38,22 @@ import {
   type Retreat,
   type BookingStatus,
   type PaymentStatus,
+  type AdminStats,
 } from "../lib/supabase";
+import { STATUS_TAILWIND, PAYMENT_ACTIVE_CLS, PAYMENT_TEXT_CLS } from "../lib/constants";
 import { formatPHP } from "../lib/propertyData";
 import AdminCalendarView from "./AdminCalendarView";
 import toast from "react-hot-toast";
 
 type Tab = "overview" | "bookings" | "calendar";
 
-const STATUS_COLORS: Record<string, string> = {
-  confirmed: "text-green-600 bg-green-50 border-green-200",
-  pending: "text-amber-600 bg-amber-50 border-amber-200",
-  cancelled: "text-red-500 bg-red-50 border-red-200",
-  completed: "text-purple-600 bg-purple-50 border-purple-200",
-};
-const PAYMENT_COLORS: Record<string, string> = {
-  paid: "text-green-600",
-  unpaid: "text-amber-500",
-  refunded: "text-blue-500",
-  failed: "text-red-500",
-};
 const TIER_LABELS: Record<string, string> = {
   staycation: "Staycation",
   family: "Family",
   big_group: "Big Group",
 };
 
-function ClockSm() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="#c9a96e"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="12" r="10" />
-      <polyline points="12 6 12 12 16 14" />
-    </svg>
-  );
-}
+const PAGE_SIZE = 50;
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -91,21 +66,31 @@ export default function AdminDashboard() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalBookings, setTotalBookings] = useState(0);
 
   useEffect(() => {
-    Promise.all([fetchBookings(), fetchBlockedDates(), fetchRetreats()])
-      .then(([b, bd, r]) => {
+    Promise.all([
+      fetchBookings(page, PAGE_SIZE),
+      fetchBlockedDates(),
+      fetchRetreats(),
+      fetchAdminStats(),
+    ])
+      .then(([{ bookings: b, total }, bd, r, stats]) => {
         setBookings(b);
+        setTotalBookings(total);
         setBlockedDates(bd);
         setRetreats(r);
         setSelectedRetreatId(r[0]?.id ?? "");
+        setAdminStats(stats);
         setLoading(false);
       })
       .catch((error) => {
         console.error("Failed to load admin data:", error);
         setLoading(false);
       });
-  }, []);
+  }, [page]);
 
   async function handleSignOut() {
     await adminSignOut();
@@ -116,14 +101,17 @@ export default function AdminDashboard() {
   async function refreshData() {
     setLoading(true);
     try {
-      const [b, bd, r] = await Promise.all([
-        fetchBookings(),
+      const [{ bookings: b, total }, bd, r, stats] = await Promise.all([
+        fetchBookings(page, PAGE_SIZE),
         fetchBlockedDates(),
         fetchRetreats(),
+        fetchAdminStats(),
       ]);
       setBookings(b);
+      setTotalBookings(total);
       setBlockedDates(bd);
       setRetreats(r);
+      setAdminStats(stats);
       toast.success("Data refreshed");
     } catch (error) {
       console.error("Failed to refresh data:", error);
@@ -134,6 +122,9 @@ export default function AdminDashboard() {
   }
 
   async function handleStatusUpdate(id: string, status: BookingStatus) {
+    if (status === "cancelled") {
+      if (!window.confirm("Are you sure you want to cancel this booking? This cannot be undone.")) return;
+    }
     try {
       const ok = await updateBookingStatus(id, status);
       if (ok) {
@@ -172,13 +163,13 @@ export default function AdminDashboard() {
     }
   }
 
-  async function handleAddBlock(date: string, retreatId: string) {
+  async function handleAddBlock(date: string, retreatId: string, reason?: string) {
     if (!retreatId) {
       toast.error("Select a property first");
       return;
     }
     try {
-      const ok = await addBlockedDate(retreatId, date);
+      const ok = await addBlockedDate(retreatId, date, reason);
       if (ok) {
         const bd = await fetchBlockedDates();
         setBlockedDates(bd);
@@ -207,13 +198,6 @@ export default function AdminDashboard() {
     }
   }
 
-  const totalRevenue = bookings
-    .filter((b) => b.payment_status === "paid")
-    .reduce((s, b) => s + b.total_amount, 0);
-  const confirmed = bookings.filter((b) => b.status === "confirmed").length;
-  const pending = bookings.filter((b) => b.status === "pending").length;
-  const totalGuests = bookings.reduce((s, b) => s + (b.num_guests ?? 0), 0);
-
   const filteredBookings = bookings.filter((b) => {
     const q = search.toLowerCase();
     const matchSearch =
@@ -226,20 +210,20 @@ export default function AdminDashboard() {
   const STATS = [
     {
       label: "Total Revenue",
-      value: formatPHP(totalRevenue),
+      value: formatPHP(adminStats?.totalRevenue ?? 0),
       icon: TrendingUp,
       color: "#c9a96e",
     },
     {
       label: "Confirmed",
-      value: confirmed,
+      value: adminStats?.confirmed ?? 0,
       icon: CheckCircle,
       color: "#22c55e",
     },
-    { label: "Pending", value: pending, icon: Clock, color: "#f59e0b" },
+    { label: "Pending", value: adminStats?.pending ?? 0, icon: Clock, color: "#f59e0b" },
     {
       label: "Total Guests",
-      value: totalGuests,
+      value: adminStats?.totalGuests ?? 0,
       icon: Users,
       color: "#8b5cf6",
     },
@@ -473,7 +457,7 @@ export default function AdminDashboard() {
                               </td>
                               <td className="px-4 py-3">
                                 <span
-                                  className={`px-2 py-0.5 rounded-full text-[10px] border capitalize font-medium ${STATUS_COLORS[b.status]}`}
+                                  className={`px-2 py-0.5 rounded-full text-[10px] border capitalize font-medium ${STATUS_TAILWIND[b.status]}`}
                                 >
                                   {b.status}
                                 </span>
@@ -604,14 +588,14 @@ export default function AdminDashboard() {
                                 </td>
                                 <td className="px-4 py-3">
                                   <span
-                                    className={`capitalize text-[10px] font-medium ${PAYMENT_COLORS[b.payment_status]}`}
+                                    className={`capitalize text-[10px] font-medium ${PAYMENT_TEXT_CLS[b.payment_status]}`}
                                   >
                                     {b.payment_status}
                                   </span>
                                 </td>
                                 <td className="px-4 py-3">
                                   <span
-                                    className={`px-2 py-0.5 rounded-full text-[10px] border capitalize font-medium ${STATUS_COLORS[b.status]}`}
+                                    className={`px-2 py-0.5 rounded-full text-[10px] border capitalize font-medium ${STATUS_TAILWIND[b.status]}`}
                                   >
                                     {b.status}
                                   </span>
@@ -634,6 +618,32 @@ export default function AdminDashboard() {
                           </tbody>
                         </table>
                       </div>
+                      {totalBookings > PAGE_SIZE && (
+                        <div
+                          className="flex items-center justify-between border-t border-[#ede8df] px-4 py-3"
+                          style={{ fontFamily: "Jost, sans-serif" }}
+                        >
+                          <span className="text-[11px] text-[#8a8a7a]">
+                            {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, totalBookings)} of {totalBookings}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setPage((p) => Math.max(1, p - 1))}
+                              disabled={page === 1}
+                              className="px-3 py-1 text-[11px] border border-[#ede8df] rounded hover:border-[#c9a96e] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                            >
+                              Prev
+                            </button>
+                            <button
+                              onClick={() => setPage((p) => p + 1)}
+                              disabled={page * PAGE_SIZE >= totalBookings}
+                              className="px-3 py-1 text-[11px] border border-[#ede8df] rounded hover:border-[#c9a96e] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                            >
+                              Next
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Detail panel */}
@@ -723,7 +733,7 @@ export default function AdminDashboard() {
                                     className="shrink-0"
                                   />
                                 ) : (
-                                  <ClockSm />
+                                  <Clock size={12} color="#c9a96e" strokeWidth={1.5} className="shrink-0" />
                                 )}
                                 <span className="w-16 shrink-0 text-[10px] text-[#8a8a7a]">
                                   {label}
@@ -766,7 +776,7 @@ export default function AdminDashboard() {
                                   handleStatusUpdate(selectedBooking.id, s)
                                 }
                                 className={`text-[10px] py-2 px-3 rounded border capitalize transition-all font-medium
-                                  ${selectedBooking.status === s ? STATUS_COLORS[s] : "border-[#ede8df] text-[#8a8a7a] hover:border-[#c9a96e] hover:text-[#c9a96e]"}`}
+                                  ${selectedBooking.status === s ? STATUS_TAILWIND[s] : "border-[#ede8df] text-[#8a8a7a] hover:border-[#c9a96e] hover:text-[#c9a96e]"}`}
                                 style={{ fontFamily: "Jost, sans-serif" }}
                               >
                                 {s}
@@ -794,16 +804,9 @@ export default function AdminDashboard() {
                                   handlePaymentUpdate(selectedBooking.id, s)
                                 }
                                 className={`text-[10px] py-2 px-3 rounded border capitalize transition-all font-medium
-                                  ${
-                                    selectedBooking.payment_status === s
-                                      ? s === "paid"
-                                        ? "bg-green-50 text-green-600 border-green-200"
-                                        : s === "unpaid"
-                                          ? "bg-amber-50 text-amber-600 border-amber-200"
-                                          : s === "refunded"
-                                            ? "bg-blue-50 text-blue-600 border-blue-200"
-                                            : "bg-red-50 text-red-500 border-red-200"
-                                      : "border-[#ede8df] text-[#8a8a7a] hover:border-[#c9a96e] hover:text-[#c9a96e]"
+                                  ${selectedBooking.payment_status === s
+                                    ? (PAYMENT_ACTIVE_CLS[s] ?? "border-[#ede8df] text-[#8a8a7a]")
+                                    : "border-[#ede8df] text-[#8a8a7a] hover:border-[#c9a96e] hover:text-[#c9a96e]"
                                   }`}
                                 style={{ fontFamily: "Jost, sans-serif" }}
                               >

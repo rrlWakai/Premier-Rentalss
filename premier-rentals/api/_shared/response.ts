@@ -8,8 +8,8 @@ export interface ApiResponse<T = any> {
   error?: string;
 }
 
-export function json<T>(
-  data: ApiResponse<T> | { error: string },
+export function json(
+  data: unknown,
   init?: ResponseInit
 ): Response {
   return new Response(JSON.stringify(data), {
