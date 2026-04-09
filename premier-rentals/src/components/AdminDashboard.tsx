@@ -88,30 +88,20 @@ export default function AdminDashboard() {
   const [totalBookings, setTotalBookings] = useState(0);
 
   useEffect(() => {
-    const fetchPromises = [
+    const basePromise = Promise.all([
       fetchBookings(page, PAGE_SIZE),
       fetchBlockedDates(),
       fetchRetreats(),
       fetchAdminStats(),
       fetchInquiries(),
-    ];
+    ]);
 
-    if (isOwner) {
-      fetchPromises.push(fetchStaff());
-    }
+    const staffPromise = isOwner
+      ? fetchStaff()
+      : Promise.resolve([] as StaffUser[]);
 
-    Promise.all(fetchPromises)
-      .then((results) => {
-        const [{ bookings: b, total }, bd, r, stats, inq] = results as [
-          { bookings: Booking[]; total: number },
-          BlockedDate[],
-          Retreat[],
-          AdminStats | null,
-          Inquiry[],
-          StaffUser[] | undefined
-        ];
-        const staffList = (isOwner ? results[5] : []) as StaffUser[];
-
+    Promise.all([basePromise, staffPromise])
+      .then(([[{ bookings: b, total }, bd, r, stats, inq], staffList]) => {
         setBookings(b);
         setTotalBookings(total);
         setBlockedDates(bd);
@@ -126,7 +116,7 @@ export default function AdminDashboard() {
         console.error("Failed to load admin data:", error);
         setLoading(false);
       });
-  }, [page]);
+  }, [page, isOwner]);
 
   async function handleSignOut() {
     await adminSignOut();
@@ -137,28 +127,20 @@ export default function AdminDashboard() {
   async function refreshData() {
     setLoading(true);
     try {
-      const fetchPromises = [
+      const basePromise = Promise.all([
         fetchBookings(page, PAGE_SIZE),
         fetchBlockedDates(),
         fetchRetreats(),
         fetchAdminStats(),
         fetchInquiries(),
-      ];
+      ]);
 
-      if (isOwner) {
-        fetchPromises.push(fetchStaff());
-      }
+      const staffPromise = isOwner
+        ? fetchStaff()
+        : Promise.resolve([] as StaffUser[]);
 
-      const results = await Promise.all(fetchPromises);
-      const [{ bookings: b, total }, bd, r, stats, inq] = results as [
-        { bookings: Booking[]; total: number },
-        BlockedDate[],
-        Retreat[],
-        AdminStats | null,
-        Inquiry[],
-        StaffUser[] | undefined
-      ];
-      const staffList = (isOwner ? results[5] : []) as StaffUser[];
+      const [[{ bookings: b, total }, bd, r, stats, inq], staffList] =
+        await Promise.all([basePromise, staffPromise]);
 
       setBookings(b);
       setTotalBookings(total);
