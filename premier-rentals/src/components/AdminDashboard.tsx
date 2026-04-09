@@ -22,7 +22,6 @@ import {
   AlertCircle,
   RefreshCw,
   Trash2,
-  MessageSquare,
   UserCog,
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -37,8 +36,6 @@ import {
   addBlockedDate,
   removeBlockedDate,
   adminSignOut,
-  fetchInquiries,
-  deleteInquiry,
   fetchStaff,
   inviteStaff,
   removeStaff,
@@ -48,7 +45,6 @@ import {
   type BookingStatus,
   type PaymentStatus,
   type AdminStats,
-  type Inquiry,
   type StaffUser,
 } from "../lib/supabase";
 import { STATUS_TAILWIND, PAYMENT_ACTIVE_CLS, PAYMENT_TEXT_CLS } from "../lib/constants";
@@ -57,7 +53,7 @@ import AdminCalendarView from "./AdminCalendarView";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 
-type Tab = "overview" | "bookings" | "calendar" | "inquiries" | "staff";
+type Tab = "overview" | "bookings" | "calendar" | "staff";
 
 const TIER_LABELS: Record<string, string> = {
   staycation: "Staycation",
@@ -75,7 +71,6 @@ export default function AdminDashboard() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
   const [retreats, setRetreats] = useState<Retreat[]>([]);
-  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
   
   const [selectedRetreatId, setSelectedRetreatId] = useState("");
@@ -93,7 +88,6 @@ export default function AdminDashboard() {
       fetchBlockedDates(),
       fetchRetreats(),
       fetchAdminStats(),
-      fetchInquiries(),
     ]);
 
     const staffPromise = isOwner
@@ -101,12 +95,11 @@ export default function AdminDashboard() {
       : Promise.resolve([] as StaffUser[]);
 
     Promise.all([basePromise, staffPromise])
-      .then(([[{ bookings: b, total }, bd, r, stats, inq], staffList]) => {
+      .then(([[{ bookings: b, total }, bd, r, stats], staffList]) => {
         setBookings(b);
         setTotalBookings(total);
         setBlockedDates(bd);
         setRetreats(r);
-        setInquiries(inq);
         if (isOwner) setStaffUsers(staffList);
         setSelectedRetreatId(r[0]?.id ?? "");
         setAdminStats(stats);
@@ -132,21 +125,19 @@ export default function AdminDashboard() {
         fetchBlockedDates(),
         fetchRetreats(),
         fetchAdminStats(),
-        fetchInquiries(),
       ]);
 
       const staffPromise = isOwner
         ? fetchStaff()
         : Promise.resolve([] as StaffUser[]);
 
-      const [[{ bookings: b, total }, bd, r, stats, inq], staffList] =
+      const [[{ bookings: b, total }, bd, r, stats], staffList] =
         await Promise.all([basePromise, staffPromise]);
 
       setBookings(b);
       setTotalBookings(total);
       setBlockedDates(bd);
       setRetreats(r);
-      setInquiries(inq);
       if (isOwner) setStaffUsers(staffList);
       setAdminStats(stats);
       toast.success("Data refreshed");
@@ -292,7 +283,6 @@ export default function AdminDashboard() {
     { id: "overview", label: "Overview", icon: LayoutDashboard },
     { id: "bookings", label: "Bookings", icon: BookOpen },
     { id: "calendar", label: "Calendar", icon: CalendarDays },
-    { id: "inquiries", label: "Inquiries", icon: MessageSquare },
     ...(isOwner ? [{ id: "staff" as Tab, label: "Staff", icon: UserCog }] : []),
   ];
 
@@ -935,57 +925,6 @@ export default function AdminDashboard() {
                     onAddBlock={handleAddBlock}
                     onRemoveBlock={handleRemoveBlock}
                   />
-                </motion.div>
-              )}
-
-              {/* INQUIRIES */}
-              {tab === "inquiries" && (
-                <motion.div
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-white rounded-xl border border-[#ede8df] overflow-hidden"
-                >
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs" style={{ fontFamily: "Jost, sans-serif" }}>
-                      <thead>
-                        <tr className="bg-[#faf8f5] border-b border-[#ede8df]">
-                          <th className="px-4 py-3 text-left text-[10px] tracking-widest uppercase text-[#8a8a7a] font-medium">Name</th>
-                          <th className="px-4 py-3 text-left text-[10px] tracking-widest uppercase text-[#8a8a7a] font-medium">Contact</th>
-                          <th className="px-4 py-3 text-left text-[10px] tracking-widest uppercase text-[#8a8a7a] font-medium">Details</th>
-                          <th className="px-4 py-3 text-left text-[10px] tracking-widest uppercase text-[#8a8a7a] font-medium">Message</th>
-                          <th className="px-4 py-3 text-right"></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {inquiries.map((inq) => (
-                          <tr key={inq.id} className="border-b border-[#ede8df] hover:bg-[#faf8f5]">
-                            <td className="px-4 py-3 font-medium text-[#1a1a1a]">{inq.full_name}</td>
-                            <td className="px-4 py-3 text-[#4a4a4a]">{inq.email}<br/><span className="text-[10px]">{inq.phone}</span></td>
-                            <td className="px-4 py-3 text-[#4a4a4a]">{inq.check_in ? `Date: ${inq.check_in}` : ''} {inq.guests ? `(${inq.guests} pax)` : ''}</td>
-                            <td className="px-4 py-3 text-[#8a8a7a] max-w-[200px] truncate">{inq.message}</td>
-                            <td className="px-4 py-3 text-right">
-                              {isOwner && (
-                                <button
-                                  onClick={async () => {
-                                    if(window.confirm('Delete inquiry?')) {
-                                      const ok = await deleteInquiry(inq.id);
-                                      if(ok) setInquiries(p => p.filter(i => i.id !== inq.id));
-                                    }
-                                  }}
-                                  className="text-red-400 hover:text-red-500 transition-colors"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                        {inquiries.length === 0 && (
-                          <tr><td colSpan={5} className="text-center py-12 text-[#8a8a7a]">No inquiries found</td></tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
                 </motion.div>
               )}
 
