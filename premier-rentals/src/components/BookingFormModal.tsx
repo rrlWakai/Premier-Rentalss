@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   X,
   User,
@@ -352,6 +352,7 @@ export default function BookingFormModal({
   const [step, setStep] = useState<Step>("details");
   const [submitting, setSubmitting] = useState(false);
   const [selectedPkg, setSelectedPkg] = useState<RatePackage>(initialPackage);
+  const scrollableRef = useRef<HTMLDivElement>(null);
 
   const [form, setForm] = useState<FormState>(() =>
     createInitialFormState(initialPackage),
@@ -369,6 +370,26 @@ export default function BookingFormModal({
     setSelectedPkg(initialPackage);
     setForm(createInitialFormState(initialPackage));
   }, [open, initialPackage, property.slug]);
+
+  // Scroll focused field into view after keyboard opens (~300 ms delay)
+  useEffect(() => {
+    const el = scrollableRef.current;
+    if (!el) return;
+    const onFocusIn = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT"
+      ) {
+        setTimeout(() => {
+          target.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 320);
+      }
+    };
+    el.addEventListener("focusin", onFocusIn);
+    return () => el.removeEventListener("focusin", onFocusIn);
+  }, []);
 
   // When rate changes, auto-set preferred_time and preferred_plan
   function handleRateChange(label: string) {
@@ -528,7 +549,7 @@ export default function BookingFormModal({
           />
 
           <motion.div
-            className="booking-modal-content relative flex max-h-[95vh] w-full max-w-[42rem] flex-col overflow-hidden rounded-t-[1.75rem] bg-[#fcfaf7] shadow-[0_32px_90px_rgba(20,18,14,0.24)] sm:rounded-[1.75rem]"
+            className="booking-modal-content relative flex max-h-[95dvh] w-full max-w-[42rem] flex-col overflow-hidden rounded-t-[1.75rem] bg-[#fcfaf7] shadow-[0_32px_90px_rgba(20,18,14,0.24)] sm:rounded-[1.75rem]"
             initial={{ y: 42, opacity: 0, scale: 0.985 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 28, opacity: 0, scale: 0.99 }}
@@ -608,7 +629,7 @@ export default function BookingFormModal({
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto">
+            <div ref={scrollableRef} className="flex-1 overflow-y-auto">
               <AnimatePresence mode="wait">
                 {/* STEP 1 — Your Details */}
                 {step === "details" && (
@@ -648,6 +669,7 @@ export default function BookingFormModal({
                         value={form.full_name}
                         onChange={(e) => set("full_name", e.target.value)}
                         placeholder="Juan Dela Cruz"
+                        autoComplete="name"
                         className={INPUT_CLS}
                         style={{ fontFamily: "Jost, sans-serif" }}
                       />
@@ -656,9 +678,11 @@ export default function BookingFormModal({
                     <FieldRow icon={Mail} label="Email Address *">
                       <input
                         type="email"
+                        inputMode="email"
                         value={form.email}
                         onChange={(e) => set("email", e.target.value)}
                         placeholder="name@example.com"
+                        autoComplete="email"
                         className={INPUT_CLS}
                         style={{ fontFamily: "Jost, sans-serif" }}
                       />
@@ -670,6 +694,7 @@ export default function BookingFormModal({
                         value={form.address}
                         onChange={(e) => set("address", e.target.value)}
                         placeholder="Street, City, Province"
+                        autoComplete="street-address"
                         className={INPUT_CLS}
                         style={{ fontFamily: "Jost, sans-serif" }}
                       />
@@ -678,9 +703,11 @@ export default function BookingFormModal({
                     <FieldRow icon={Phone} label="Contact Number *">
                       <input
                         type="tel"
+                        inputMode="tel"
                         value={form.contact_number}
                         onChange={(e) => set("contact_number", e.target.value)}
                         placeholder="+63 9XX XXX XXXX"
+                        autoComplete="tel"
                         className={INPUT_CLS}
                         style={{ fontFamily: "Jost, sans-serif" }}
                       />
@@ -775,6 +802,7 @@ export default function BookingFormModal({
                       >
                         <input
                           type="number"
+                          inputMode="numeric"
                           min={1}
                           max={selectedPkg.maxPax}
                           value={form.num_guests}
@@ -790,6 +818,7 @@ export default function BookingFormModal({
                       >
                         <input
                           type="number"
+                          inputMode="numeric"
                           min={1}
                           max={property.maxCars}
                           value={form.num_cars}
@@ -1058,7 +1087,7 @@ export default function BookingFormModal({
               </AnimatePresence>
             </div>
 
-            <div className="flex items-center justify-between gap-3 border-t border-[#ede8df] bg-[linear-gradient(180deg,#fcfaf7_0%,#f6f1e9_100%)] px-5 py-5 shrink-0 sm:px-7">
+            <div className="flex items-center justify-between gap-3 border-t border-[#ede8df] bg-[linear-gradient(180deg,#fcfaf7_0%,#f6f1e9_100%)] px-5 py-5 shrink-0 sm:px-7" style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}>
               <button
                 onClick={() => {
                   if (submitting) return;

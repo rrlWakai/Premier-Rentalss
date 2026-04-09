@@ -13,6 +13,7 @@ import {
 import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import type { Booking, BlockedDate } from "../lib/supabase";
 import { STATUS_HEX } from "../lib/constants";
+import { useAuth } from "../context/AuthContext";
 
 interface Props {
   retreats: { id: string; name: string }[];
@@ -35,6 +36,7 @@ export default function AdminCalendarView({
 }: Props) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const { isOwner } = useAuth();
 
   const days = eachDayOfInterval({
     start: startOfMonth(currentMonth),
@@ -230,25 +232,27 @@ export default function AdminCalendarView({
                     {format(selectedDay, "EEEE, MMM d")}
                   </p>
                 </div>
-                {!selectedBlocked ? (
-                  <button
-                    onClick={() => {
-                      const reason = window.prompt("Reason for blocking this date (optional):") ?? undefined;
-                      onAddBlock(format(selectedDay, "yyyy-MM-dd"), selectedRetreatId, reason);
-                    }}
-                    className="flex items-center gap-1.5 text-[10px] text-red-400 hover:text-red-600 border border-red-200 hover:border-red-400 px-2 py-1.5 rounded transition-colors"
-                    style={{ fontFamily: "Jost, sans-serif" }}
-                  >
-                    <Plus size={11} /> Block
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => onRemoveBlock(selectedBlocked.id)}
-                    className="flex items-center gap-1.5 text-[10px] text-green-500 hover:text-green-700 border border-green-200 hover:border-green-400 px-2 py-1.5 rounded transition-colors"
-                    style={{ fontFamily: "Jost, sans-serif" }}
-                  >
-                    <X size={11} /> Unblock
-                  </button>
+                {isOwner && (
+                  !selectedBlocked ? (
+                    <button
+                      onClick={() => {
+                        const reason = window.prompt("Reason for blocking this date (optional):") ?? undefined;
+                        onAddBlock(format(selectedDay, "yyyy-MM-dd"), selectedRetreatId, reason);
+                      }}
+                      className="flex items-center gap-1.5 text-[10px] text-red-400 hover:text-red-600 border border-red-200 hover:border-red-400 px-2 py-1.5 rounded transition-colors"
+                      style={{ fontFamily: "Jost, sans-serif" }}
+                    >
+                      <Plus size={11} /> Block
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => onRemoveBlock(selectedBlocked.id)}
+                      className="flex items-center gap-1.5 text-[10px] text-green-500 hover:text-green-700 border border-green-200 hover:border-green-400 px-2 py-1.5 rounded transition-colors"
+                      style={{ fontFamily: "Jost, sans-serif" }}
+                    >
+                      <X size={11} /> Unblock
+                    </button>
+                  )
                 )}
               </div>
 

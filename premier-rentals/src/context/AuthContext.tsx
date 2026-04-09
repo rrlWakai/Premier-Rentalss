@@ -5,13 +5,19 @@ import type { Session } from '@supabase/supabase-js'
 interface AuthContextType {
   session: Session | null
   loading: boolean
-  isAdmin: boolean
+  isAdmin: boolean // true for both owner and staff
+  role: 'admin' | 'staff' | null
+  isOwner: boolean
+  isStaff: boolean
 }
 
 const AuthContext = createContext<AuthContextType>({
   session: null,
   loading: true,
   isAdmin: false,
+  role: null,
+  isOwner: false,
+  isStaff: false,
 })
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -31,10 +37,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const isAdmin = session?.user?.app_metadata?.role === 'admin'
+  const role = session?.user?.app_metadata?.role as 'admin' | 'staff' | null
+  const isOwner = role === 'admin'
+  const isStaff = role === 'staff'
+  const isAdmin = isOwner || isStaff // Anyone with an admin or staff role is allowed in the portal
 
   return (
-    <AuthContext.Provider value={{ session, loading, isAdmin }}>
+    <AuthContext.Provider value={{ session, loading, isAdmin, role, isOwner, isStaff }}>
       {children}
     </AuthContext.Provider>
   )

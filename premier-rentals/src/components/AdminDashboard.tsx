@@ -22,6 +22,8 @@ import {
   AlertCircle,
   RefreshCw,
   Trash2,
+  MessageSquare,
+  UserCog,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
@@ -35,19 +37,27 @@ import {
   addBlockedDate,
   removeBlockedDate,
   adminSignOut,
+  fetchInquiries,
+  deleteInquiry,
+  fetchStaff,
+  inviteStaff,
+  removeStaff,
   type Booking,
   type BlockedDate,
   type Retreat,
   type BookingStatus,
   type PaymentStatus,
   type AdminStats,
+  type Inquiry,
+  type StaffUser,
 } from "../lib/supabase";
 import { STATUS_TAILWIND, PAYMENT_ACTIVE_CLS, PAYMENT_TEXT_CLS } from "../lib/constants";
 import { formatPHP } from "../lib/propertyData";
 import AdminCalendarView from "./AdminCalendarView";
 import toast from "react-hot-toast";
+import { useAuth } from "../context/AuthContext";
 
-type Tab = "overview" | "bookings" | "calendar";
+type Tab = "overview" | "bookings" | "calendar" | "inquiries" | "staff";
 
 const TIER_LABELS: Record<string, string> = {
   staycation: "Staycation",
@@ -59,10 +69,15 @@ const PAGE_SIZE = 50;
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const { session, role, isOwner, isStaff } = useAuth();
+  
   const [tab, setTab] = useState<Tab>("overview");
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
   const [retreats, setRetreats] = useState<Retreat[]>([]);
+  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
+  
   const [selectedRetreatId, setSelectedRetreatId] = useState("");
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -73,17 +88,36 @@ export default function AdminDashboard() {
   const [totalBookings, setTotalBookings] = useState(0);
 
   useEffect(() => {
-    Promise.all([
+    const fetchPromises = [
       fetchBookings(page, PAGE_SIZE),
       fetchBlockedDates(),
       fetchRetreats(),
       fetchAdminStats(),
-    ])
-      .then(([{ bookings: b, total }, bd, r, stats]) => {
+      fetchInquiries(),
+    ];
+
+    if (isOwner) {
+      fetchPromises.push(fetchStaff());
+    }
+
+    Promise.all(fetchPromises)
+      .then((results) => {
+        const [{ bookings: b, total }, bd, r, stats, inq] = results as [
+          { bookings: Booking[]; total: number },
+          BlockedDate[],
+          Retreat[],
+          AdminStats | null,
+          Inquiry[],
+          StaffUser[] | undefined
+        ];
+        const staffList = (isOwner ? results[5] : []) as StaffUser[];
+
         setBookings(b);
         setTotalBookings(total);
         setBlockedDates(bd);
         setRetreats(r);
+        setInquiries(inq);
+        if (isOwner) setStaffUsers(staffList);
         setSelectedRetreatId(r[0]?.id ?? "");
         setAdminStats(stats);
         setLoading(false);
@@ -103,16 +137,35 @@ export default function AdminDashboard() {
   async function refreshData() {
     setLoading(true);
     try {
-      const [{ bookings: b, total }, bd, r, stats] = await Promise.all([
+      const fetchPromises = [
         fetchBookings(page, PAGE_SIZE),
         fetchBlockedDates(),
         fetchRetreats(),
         fetchAdminStats(),
-      ]);
+        fetchInquiries(),
+      ];
+
+      if (isOwner) {
+        fetchPromises.push(fetchStaff());
+      }
+
+      const results = await Promise.all(fetchPromises);
+      const [{ bookings: b, total }, bd, r, stats, inq] = results as [
+        { bookings: Booking[]; total: number },
+        BlockedDate[],
+        Retreat[],
+        AdminStats | null,
+        Inquiry[],
+        StaffUser[] | undefined
+      ];
+      const staffList = (isOwner ? results[5] : []) as StaffUser[];
+
       setBookings(b);
       setTotalBookings(total);
       setBlockedDates(bd);
       setRetreats(r);
+      setInquiries(inq);
+      if (isOwner) setStaffUsers(staffList);
       setAdminStats(stats);
       toast.success("Data refreshed");
     } catch (error) {
@@ -228,12 +281,16 @@ export default function AdminDashboard() {
   });
 
   const STATS = [
-    {
-      label: "Total Revenue",
-      value: formatPHP(adminStats?.totalRevenue ?? 0),
-      icon: TrendingUp,
-      color: "#c9a96e",
-    },
+    ...(isOwner
+      ? [
+          {
+            label: "Total Revenue",
+            value: formatPHP(adminStats?.totalRevenue ?? 0),
+            icon: TrendingUp,
+            color: "#c9a96e",
+          },
+        ]
+      : []),
     {
       label: "Confirmed",
       value: adminStats?.confirmed ?? 0,
@@ -253,6 +310,8 @@ export default function AdminDashboard() {
     { id: "overview", label: "Overview", icon: LayoutDashboard },
     { id: "bookings", label: "Bookings", icon: BookOpen },
     { id: "calendar", label: "Calendar", icon: CalendarDays },
+    { id: "inquiries", label: "Inquiries", icon: MessageSquare },
+    ...(isOwner ? [{ id: "staff" as Tab, label: "Staff", icon: UserCog }] : []),
   ];
 
   return (
@@ -271,12 +330,14 @@ export default function AdminDashboard() {
               Premier
             </p>
           </Link>
-          <p
-            className="section-label text-[9px] mt-1"
-            style={{ color: "#c9a96e" }}
-          >
-            Admin Dashboard
-          </p>
+          <div className="flex items-center gap-2 mt-1">
+            <span
+              className="px-2 py-0.5 rounded text-[9px] uppercase tracking-wider font-medium text-[#1a1a1a]"
+              style={{ background: "#c9a96e" }}
+            >
+              {isOwner ? "Owner" : "Staff"}
+            </span>
+          </div>
         </div>
         <nav className="flex-1 px-4 py-6 flex flex-col gap-1">
           {NAV.map(({ id, label, icon: Icon }) => (
@@ -292,10 +353,13 @@ export default function AdminDashboard() {
             </button>
           ))}
         </nav>
-        <div className="px-4 py-5 border-t border-white/10">
+        <div className="px-4 py-5 border-t border-white/10 flex flex-col gap-3">
+          <div className="px-3 text-[10px] text-white/40 truncate">
+            {session?.user?.email}
+          </div>
           <button
             onClick={handleSignOut}
-            className="flex items-center gap-3 px-3 py-2.5 text-white/40 hover:text-white transition-colors w-full text-sm"
+            className="flex items-center gap-3 px-3 py-2 text-white/40 hover:text-white transition-colors w-full text-sm"
             style={{ fontFamily: "Jost, sans-serif" }}
           >
             <LogOut size={15} strokeWidth={1.5} />
@@ -803,47 +867,51 @@ export default function AdminDashboard() {
                               </button>
                             ))}
                           </div>
-                          <p
-                            className="text-[10px] text-[#8a8a7a] mb-2 tracking-wider uppercase"
-                            style={{ fontFamily: "Jost, sans-serif" }}
-                          >
-                            Payment Status
-                          </p>
-                          <div className="grid grid-cols-2 gap-2">
-                            {(
-                              [
-                                "unpaid",
-                                "paid",
-                                "refunded",
-                                "failed",
-                              ] as PaymentStatus[]
-                            ).map((s) => (
-                              <button
-                                key={s}
-                                onClick={() =>
-                                  handlePaymentUpdate(selectedBooking.id, s)
-                                }
-                                className={`text-[10px] py-2 px-3 rounded border capitalize transition-all font-medium
-                                  ${selectedBooking.payment_status === s
-                                    ? (PAYMENT_ACTIVE_CLS[s] ?? "border-[#ede8df] text-[#8a8a7a]")
-                                    : "border-[#ede8df] text-[#8a8a7a] hover:border-[#c9a96e] hover:text-[#c9a96e]"
-                                  }`}
+                          {isOwner && (
+                            <>
+                              <p
+                                className="text-[10px] text-[#8a8a7a] mb-2 tracking-wider uppercase"
                                 style={{ fontFamily: "Jost, sans-serif" }}
                               >
-                                {s}
-                              </button>
-                            ))}
-                          </div>
-                          <div className="mt-5 pt-4 border-t border-[#ede8df]">
-                            <button
-                              onClick={() => handleDeleteBooking(selectedBooking.id)}
-                              className="flex items-center justify-center gap-2 w-full py-2 px-3 rounded border border-red-200 text-red-500 hover:bg-red-50 hover:border-red-400 transition-all text-[10px] font-medium"
-                              style={{ fontFamily: "Jost, sans-serif" }}
-                            >
-                              <Trash2 size={12} strokeWidth={1.5} />
-                              Delete Booking
-                            </button>
-                          </div>
+                                Payment Status
+                              </p>
+                              <div className="grid grid-cols-2 gap-2">
+                                {(
+                                  [
+                                    "unpaid",
+                                    "paid",
+                                    "refunded",
+                                    "failed",
+                                  ] as PaymentStatus[]
+                                ).map((s) => (
+                                  <button
+                                    key={s}
+                                    onClick={() =>
+                                      handlePaymentUpdate(selectedBooking.id, s)
+                                    }
+                                    className={`text-[10px] py-2 px-3 rounded border capitalize transition-all font-medium
+                                      ${selectedBooking.payment_status === s
+                                        ? (PAYMENT_ACTIVE_CLS[s] ?? "border-[#ede8df] text-[#8a8a7a]")
+                                        : "border-[#ede8df] text-[#8a8a7a] hover:border-[#c9a96e] hover:text-[#c9a96e]"
+                                      }`}
+                                    style={{ fontFamily: "Jost, sans-serif" }}
+                                  >
+                                    {s}
+                                  </button>
+                                ))}
+                              </div>
+                              <div className="mt-5 pt-4 border-t border-[#ede8df]">
+                                <button
+                                  onClick={() => handleDeleteBooking(selectedBooking.id)}
+                                  className="flex items-center justify-center gap-2 w-full py-2 px-3 rounded border border-red-200 text-red-500 hover:bg-red-50 hover:border-red-400 transition-all text-[10px] font-medium"
+                                  style={{ fontFamily: "Jost, sans-serif" }}
+                                >
+                                  <Trash2 size={12} strokeWidth={1.5} />
+                                  Delete Booking
+                                </button>
+                              </div>
+                            </>
+                          )}
                         </div>
                       ) : (
                         <div className="flex flex-col items-center justify-center h-full py-16 gap-3 text-center">
@@ -885,6 +953,128 @@ export default function AdminDashboard() {
                     onAddBlock={handleAddBlock}
                     onRemoveBlock={handleRemoveBlock}
                   />
+                </motion.div>
+              )}
+
+              {/* INQUIRIES */}
+              {tab === "inquiries" && (
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white rounded-xl border border-[#ede8df] overflow-hidden"
+                >
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs" style={{ fontFamily: "Jost, sans-serif" }}>
+                      <thead>
+                        <tr className="bg-[#faf8f5] border-b border-[#ede8df]">
+                          <th className="px-4 py-3 text-left text-[10px] tracking-widest uppercase text-[#8a8a7a] font-medium">Name</th>
+                          <th className="px-4 py-3 text-left text-[10px] tracking-widest uppercase text-[#8a8a7a] font-medium">Contact</th>
+                          <th className="px-4 py-3 text-left text-[10px] tracking-widest uppercase text-[#8a8a7a] font-medium">Details</th>
+                          <th className="px-4 py-3 text-left text-[10px] tracking-widest uppercase text-[#8a8a7a] font-medium">Message</th>
+                          <th className="px-4 py-3 text-right"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {inquiries.map((inq) => (
+                          <tr key={inq.id} className="border-b border-[#ede8df] hover:bg-[#faf8f5]">
+                            <td className="px-4 py-3 font-medium text-[#1a1a1a]">{inq.full_name}</td>
+                            <td className="px-4 py-3 text-[#4a4a4a]">{inq.email}<br/><span className="text-[10px]">{inq.phone}</span></td>
+                            <td className="px-4 py-3 text-[#4a4a4a]">{inq.check_in ? `Date: ${inq.check_in}` : ''} {inq.guests ? `(${inq.guests} pax)` : ''}</td>
+                            <td className="px-4 py-3 text-[#8a8a7a] max-w-[200px] truncate">{inq.message}</td>
+                            <td className="px-4 py-3 text-right">
+                              {isOwner && (
+                                <button
+                                  onClick={async () => {
+                                    if(window.confirm('Delete inquiry?')) {
+                                      const ok = await deleteInquiry(inq.id);
+                                      if(ok) setInquiries(p => p.filter(i => i.id !== inq.id));
+                                    }
+                                  }}
+                                  className="text-red-400 hover:text-red-500 transition-colors"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                        {inquiries.length === 0 && (
+                          <tr><td colSpan={5} className="text-center py-12 text-[#8a8a7a]">No inquiries found</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* STAFF MANAGEMENT */}
+              {tab === "staff" && isOwner && (
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex flex-col gap-5"
+                >
+                  <div className="bg-white rounded-xl border border-[#ede8df] overflow-hidden p-5">
+                    <h3 className="font-medium text-[#1a1a1a] mb-4" style={{ fontFamily: "Jost, sans-serif" }}>Invite New Staff</h3>
+                    <form onSubmit={async (e) => {
+                      e.preventDefault();
+                      const form = e.target as HTMLFormElement;
+                      const emailInput = form.elements.namedItem('email') as HTMLInputElement;
+                      const passInput = form.elements.namedItem('password') as HTMLInputElement;
+                      const email = emailInput.value;
+                      const password = passInput.value;
+                      
+                      const t = toast.loading('Inviting staff...');
+                      const { user, error } = await inviteStaff(email, password);
+                      if(error) {
+                        toast.error(error, { id: t });
+                      } else if(user) {
+                        toast.success('Staff invited!', { id: t });
+                        setStaffUsers(prev => [...prev, user]);
+                        form.reset();
+                      }
+                    }} className="flex flex-col sm:flex-row gap-3">
+                      <input type="email" name="email" required placeholder="staff@example.com" className="flex-1 px-3 py-2 text-sm border border-[#ede8df] rounded outline-none focus:border-[#c9a96e]" />
+                      <input type="password" name="password" required placeholder="Password (min 8 char)" minLength={8} className="flex-1 px-3 py-2 text-sm border border-[#ede8df] rounded outline-none focus:border-[#c9a96e]" />
+                      <button type="submit" className="px-4 py-2 bg-[#c9a96e] text-white rounded text-sm hover:bg-[#b09460] transition-colors">Invite Staff</button>
+                    </form>
+                  </div>
+
+                  <div className="bg-white rounded-xl border border-[#ede8df] overflow-hidden">
+                    <table className="w-full text-xs" style={{ fontFamily: "Jost, sans-serif" }}>
+                      <thead>
+                        <tr className="bg-[#faf8f5] border-b border-[#ede8df]">
+                          <th className="px-4 py-3 text-left text-[10px] tracking-widest uppercase text-[#8a8a7a]">Email</th>
+                          <th className="px-4 py-3 text-left text-[10px] tracking-widest uppercase text-[#8a8a7a]">Created At</th>
+                          <th className="px-4 py-3 text-right"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {staffUsers.map((su) => (
+                          <tr key={su.id} className="border-b border-[#ede8df] hover:bg-[#faf8f5]">
+                            <td className="px-4 py-3 font-medium text-[#1a1a1a]">{su.email}</td>
+                            <td className="px-4 py-3 text-[#4a4a4a]">{new Date(su.created_at).toLocaleDateString()}</td>
+                            <td className="px-4 py-3 text-right">
+                              <button
+                                onClick={async () => {
+                                  if(window.confirm(`Revoke access for ${su.email}?`)) {
+                                    const ok = await removeStaff(su.id);
+                                    if(ok) setStaffUsers(p => p.filter(u => u.id !== su.id));
+                                  }
+                                }}
+                                className="text-red-400 hover:text-red-500 transition-colors px-2 py-1 border border-red-200 rounded text-[10px]"
+                              >
+                                Revoke Access
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                        {staffUsers.length === 0 && (
+                          <tr><td colSpan={3} className="text-center py-12 text-[#8a8a7a]">No staff members found</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </motion.div>
               )}
             </>

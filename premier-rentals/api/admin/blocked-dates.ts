@@ -1,4 +1,4 @@
-import { requireAdmin } from "../_shared/adminAuth";
+import { requireAdmin, requireStaff } from "../_shared/adminAuth";
 import { json } from "../_shared/response";
 import { supabaseAdmin } from "../_shared/supabaseAdmin";
 
@@ -19,8 +19,9 @@ export default async function handler(request: Request) {
     });
   }
 
-  const auth = await requireAdmin(request);
+  const auth = await requireStaff(request);
   if (auth instanceof Response) return auth;
+  const role = auth.role;
 
   // GET - Fetch blocked dates (filtered by retreat_id if provided)
   if (request.method === "GET") {
@@ -44,6 +45,13 @@ export default async function handler(request: Request) {
 
   // POST - Add new blocked date
   if (request.method === "POST") {
+    if (role !== "admin") {
+      return json(
+        { error: "Forbidden: Only owners can block dates" },
+        { status: 403 }
+      );
+    }
+
     let body: { retreatId?: unknown; date?: unknown; reason?: unknown };
     try {
       body = await request.json();
@@ -97,6 +105,13 @@ export default async function handler(request: Request) {
 
   // DELETE - Remove blocked date
   if (request.method === "DELETE") {
+    if (role !== "admin") {
+      return json(
+        { error: "Forbidden: Only owners can unblock dates" },
+        { status: 403 }
+      );
+    }
+
     const url = new URL(request.url);
     const id = url.searchParams.get("id");
 

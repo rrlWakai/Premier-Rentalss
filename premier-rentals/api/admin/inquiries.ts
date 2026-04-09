@@ -1,4 +1,4 @@
-import { requireAdmin } from "../_shared/adminAuth";
+import { requireAdmin, requireStaff } from "../_shared/adminAuth";
 import { json } from "../_shared/response";
 import { supabaseAdmin } from "../_shared/supabaseAdmin";
 
@@ -19,8 +19,9 @@ export default async function handler(request: Request) {
     });
   }
 
-  const auth = await requireAdmin(request);
+  const auth = await requireStaff(request);
   if (auth instanceof Response) return auth;
+  const role = auth.role;
 
   if (request.method === "GET") {
     const { data: inquiries, error } = await supabaseAdmin
@@ -37,6 +38,13 @@ export default async function handler(request: Request) {
   }
 
   if (request.method === "DELETE") {
+    if (role !== "admin") {
+      return json(
+        { error: "Forbidden: Only owners can delete inquiries" },
+        { status: 403 }
+      );
+    }
+
     const url = new URL(request.url);
     const id = url.searchParams.get("id");
 

@@ -1,4 +1,4 @@
-import { requireAdmin } from "../_shared/adminAuth";
+import { requireAdmin, requireStaff } from "../_shared/adminAuth";
 import { json } from "../_shared/response";
 import { supabaseAdmin } from "../_shared/supabaseAdmin";
 
@@ -21,8 +21,11 @@ export default async function handler(request: Request) {
     });
   }
 
-  const auth = await requireAdmin(request);
+  // Both owner and staff can read and (partially) update bookings.
+  // DELETE is strictly owner-only and re-checks permissions inline below.
+  const auth = await requireStaff(request);
   if (auth instanceof Response) return auth;
+  const role = auth.role;
 
   // GET - Fetch bookings with pagination
   if (request.method === "GET") {
@@ -76,14 +79,26 @@ export default async function handler(request: Request) {
       return json({ error: "Booking not found" }, { status: 404 });
     }
 
-    // Allowlist: only these fields may be changed by an admin
-    const ALLOWED_FIELDS = new Set([
-      "status",
-      "payment_status",
-      "special_requests",
-      "approved_at",
-      "mode_of_payment",
-    ]);
+    // Allowlist: limit fields to avoid sneaky updates
+    let ALLOWED_FIELDS: Set<string>;
+
+    if (role === "admin") {
+      // Owners can update everything
+      ALLOWED_FIELDS = new Set([
+        "status",
+        "payment_status",
+        "special_requests",
+        "approved_at",
+        "mode_of_payment",
+      ]);
+    } else {
+      // Staff can only update basic booking status and remarks
+      ALLOWED_FIELDS = new Set([
+        "status",
+        "special_requests",
+        "approved_at",
+      ]);
+    }
 
     const sanitized: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(updates as Record<string, unknown>)) {
@@ -119,6 +134,14 @@ export default async function handler(request: Request) {
 
   // DELETE - Permanently remove a booking
   if (request.method === "DELETE") {
+    // Re-verify that user is strictly 'admin' (owner), not just 'staff'
+    if (role !== "admin") {
+      return json(
+        { error: "Forbidden: Only owners can delete bookings" },
+        { status: 403 }
+      );
+    }
+
     const url = new URL(request.url);
     const id = url.searchParams.get("id");
 

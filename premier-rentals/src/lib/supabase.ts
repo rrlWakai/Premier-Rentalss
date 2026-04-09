@@ -476,3 +476,113 @@ export async function adminSignOut() {
 export async function getAdminSession() {
   return supabase.auth.getSession();
 }
+
+// ── INQUIRIES ─────────────────────────────────────────────────────────
+
+export interface Inquiry {
+  id: string;
+  full_name: string;
+  email: string;
+  phone?: string;
+  message?: string;
+  check_in?: string;
+  guests?: number;
+  created_at: string;
+}
+
+export async function fetchInquiries(): Promise<Inquiry[]> {
+  try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session?.access_token) return [];
+
+    const response = await fetch("/api/admin/inquiries", {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.inquiries || [];
+  } catch (error) {
+    console.error("fetchInquiries error:", error);
+    return [];
+  }
+}
+
+export async function deleteInquiry(id: string): Promise<boolean> {
+  try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session?.access_token) return false;
+
+    const response = await fetch(`/api/admin/inquiries?id=${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    return response.ok;
+  } catch (error) {
+    console.error("deleteInquiry error:", error);
+    return false;
+  }
+}
+
+// ── STAFF MANAGEMENT ──────────────────────────────────────────────────
+
+export interface StaffUser {
+  id: string;
+  email: string;
+  created_at: string;
+  last_sign_in_at?: string;
+}
+
+export async function fetchStaff(): Promise<StaffUser[]> {
+  try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session?.access_token) return [];
+
+    const response = await fetch("/api/admin/staff", {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.staff || [];
+  } catch (error) {
+    console.error("fetchStaff error:", error);
+    return [];
+  }
+}
+
+export async function inviteStaff(email: string, password: string): Promise<{ user?: StaffUser; error?: string }> {
+  try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session?.access_token) return { error: "Unauthorized" };
+
+    const response = await fetch("/api/admin/staff", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await response.json();
+    if (!response.ok) return { error: data.error || "Failed to invite staff" };
+    return { user: data.user };
+  } catch (error) {
+    console.error("inviteStaff error:", error);
+    return { error: "Internal server error" };
+  }
+}
+
+export async function removeStaff(id: string): Promise<boolean> {
+  try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session?.access_token) return false;
+
+    const response = await fetch(`/api/admin/staff?id=${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    return response.ok;
+  } catch (error) {
+    console.error("removeStaff error:", error);
+    return false;
+  }
+}

@@ -1,4 +1,4 @@
-import { requireAdmin } from "../_shared/adminAuth";
+import { requireAdmin, requireStaff } from "../_shared/adminAuth";
 import { json } from "../_shared/response";
 import { supabaseAdmin } from "../_shared/supabaseAdmin";
 
@@ -19,8 +19,9 @@ export default async function handler(request: Request) {
     });
   }
 
-  const auth = await requireAdmin(request);
+  const auth = await requireStaff(request);
   if (auth instanceof Response) return auth;
+  const role = auth.role;
 
   if (request.method !== "GET") {
     return json({ error: "Method not allowed" }, { status: 405 });
@@ -36,9 +37,11 @@ export default async function handler(request: Request) {
   }
 
   const totalRevenue =
-    bookings
-      ?.filter((b) => b.payment_status === "paid")
-      .reduce((sum, b) => sum + (b.total_amount || 0), 0) ?? 0;
+    role === "admin"
+      ? (bookings
+          ?.filter((b) => b.payment_status === "paid")
+          .reduce((sum, b) => sum + (b.total_amount || 0), 0) ?? 0)
+      : 0;
 
   const confirmed = bookings?.filter((b) => b.status === "confirmed").length ?? 0;
   const pending = bookings?.filter((b) => b.status === "pending").length ?? 0;

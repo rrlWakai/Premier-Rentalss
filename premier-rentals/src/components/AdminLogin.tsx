@@ -14,12 +14,14 @@ export default function AdminLogin() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    const { error } = await adminSignIn(email, password)
+    const { data, error } = await adminSignIn(email, password)
     setLoading(false)
     if (error) {
       toast.error('Invalid credentials. Please try again.')
     } else {
-      toast.success('Welcome back!')
+      const role = data.user?.app_metadata?.role as string | undefined
+      const displayRole = role === 'staff' ? 'Staff' : 'Owner'
+      toast.success(`Welcome back, ${displayRole}!`)
       navigate('/admin/dashboard')
     }
   }
@@ -35,7 +37,7 @@ export default function AdminLogin() {
           >
             Premier
           </p>
-          <p className="section-label text-[10px]" style={{ color: '#c9a96e' }}>Admin Portal</p>
+          <p className="section-label text-[10px]" style={{ color: '#c9a96e' }}>Management Portal</p>
         </div>
 
         {/* Card */}
