@@ -18,7 +18,11 @@ export default function VideoSplash({ onComplete }: VideoSplashProps) {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.8, ease: "easeInOut" }}
       // Use 100dvh for better mobile responsiveness with dynamic browser toolbars
-      className="fixed inset-0 z-[100] h-[100dvh] w-screen flex items-center justify-center bg-black overflow-hidden"
+      className="fixed inset-0 z-[100] h-[100dvh] w-screen flex items-center justify-center overflow-hidden"
+      style={{
+        backgroundColor: '#ede8df', // Premier Rentals Cream
+        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.06'/%3E%3C/svg%3E")`,
+      }}
     >
       <video
         ref={videoRef}
@@ -27,7 +31,7 @@ export default function VideoSplash({ onComplete }: VideoSplashProps) {
         muted
         playsInline
         onEnded={onComplete}
-        className="absolute inset-0 h-full w-full object-contain opacity-80 pointer-events-none"
+        className="absolute inset-0 h-full w-full object-contain pointer-events-none"
       />
 
       {/* Skip Button Container */}
@@ -37,7 +41,7 @@ export default function VideoSplash({ onComplete }: VideoSplashProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 2, duration: 0.8 }}
           onClick={onComplete}
-          className="text-white/70 hover:text-white uppercase tracking-[0.2em] text-[10px] sm:text-xs font-light transition-all px-6 py-3 sm:px-8 sm:py-3 border border-white/20 hover:border-white/50 rounded-full hover:bg-white/10 backdrop-blur-sm"
+          className="text-[#1a1a1a]/70 hover:text-[#1a1a1a] uppercase tracking-[0.2em] text-[10px] sm:text-xs font-light transition-all px-6 py-3 sm:px-8 sm:py-3 border border-[#1a1a1a]/20 hover:border-[#1a1a1a]/50 rounded-full hover:bg-[#1a1a1a]/5 backdrop-blur-sm"
           style={{ fontFamily: "Jost, sans-serif" }}
         >
           Skip Intro
