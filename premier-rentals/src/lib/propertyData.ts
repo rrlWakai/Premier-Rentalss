@@ -74,6 +74,9 @@ export const PATIO_DATA: PropertyData = {
     '/images/properties/premier-patio/gallery-7.jpg',
     '/images/properties/premier-patio/gallery-8.jpg',
     '/images/properties/premier-patio/gallery-9.jpg',
+    '/images/properties/premier-patio/gallery-10.jpg',
+    '/images/properties/premier-patio/gallery-11.jpg',
+    
   ],
   amenities: [
     {

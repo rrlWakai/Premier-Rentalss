@@ -951,147 +951,134 @@ export default function PropertyPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={galleryModalBackdropTransition}
-            className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md"
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed inset-0 z-50 bg-[#050505]"
             onClick={() => setGalleryModalOpen(false)}
           >
-            <div className="flex min-h-screen items-end justify-center p-0 sm:items-center sm:p-6">
-              <motion.div
-                initial={{ opacity: 0, y: 20, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 20, scale: 0.98 }}
-                transition={galleryModalPanelTransition}
-                className="flex max-h-[100svh] w-full max-w-6xl flex-col overflow-hidden rounded-t-[28px] border border-white/10 bg-[#111111] shadow-[0_25px_80px_rgba(0,0,0,0.45)] sm:max-h-[calc(100svh-3rem)] sm:rounded-[28px]"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex items-center justify-between border-b border-white/10 px-5 py-4 sm:px-6">
-                  <div>
-                    <p
-                      className="text-[10px] uppercase tracking-[0.24em] text-[#c9a96e]"
+            <div className="flex h-[100svh] w-full flex-col">
+              {/* Minimal Header */}
+              <div className="flex shrink-0 items-center justify-between px-5 py-4 sm:px-8 sm:py-6 lg:px-10">
+                <div className="flex items-center gap-4">
+                  <h2
+                    className="text-white"
+                    style={{
+                      fontFamily: "Cormorant Garamond, serif",
+                      fontSize: "clamp(1.4rem, 2vw, 1.8rem)",
+                      fontWeight: 300,
+                      letterSpacing: "0.02em",
+                    }}
+                  >
+                    {property.name}
+                  </h2>
+                  <div className="hidden h-4 w-[1px] bg-white/20 sm:block" />
+                  <span
+                    className="hidden text-[10px] uppercase tracking-[0.2em] text-[#8a8a7a] sm:inline"
+                    style={{ fontFamily: "Jost, sans-serif" }}
+                  >
+                    Image {modalImageIndex + 1} of {property.galleryImages.length}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setGalleryModalOpen(false)}
+                  className="group flex h-10 w-10 items-center justify-center rounded-full text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+                  aria-label="Close gallery"
+                >
+                  <X size={20} strokeWidth={1} />
+                </button>
+              </div>
+
+              {/* Minimal Content */}
+              <div className="flex min-h-0 flex-1 flex-col gap-4 p-4 pt-0 lg:flex-row lg:gap-6 lg:p-6 lg:pt-0">
+                {/* Main Image */}
+                <div className="relative flex min-h-0 flex-1 items-center justify-center rounded-sm bg-black/40">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={`${property.slug}-${modalImageIndex}`}
+                      initial={{ opacity: 0, filter: "blur(4px)" }}
+                      animate={{ opacity: 1, filter: "blur(0px)" }}
+                      exit={{ opacity: 0, filter: "blur(4px)" }}
+                      transition={{ duration: 0.4, ease: "easeInOut" }}
+                      className="h-full w-full"
+                    >
+                      <ImgWithFallback
+                        local={property.galleryImages[modalImageIndex]}
+                        fallback={
+                          (GALLERY_FALLBACKS[slug!] ?? FALLBACK.poolHouseGallery)[
+                            modalImageIndex
+                          ] ?? FALLBACK.poolHouseGallery[0]
+                        }
+                        alt={`${property.name} ${modalImageIndex + 1}`}
+                        className="h-full w-full object-contain"
+                      />
+                    </motion.div>
+                  </AnimatePresence>
+
+                  {property.galleryImages.length > 1 && (
+                    <>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          showPreviousGalleryImage();
+                        }}
+                        className="absolute left-2 flex h-12 w-12 items-center justify-center text-white/50 opacity-0 transition-all duration-300 hover:text-white focus:opacity-100 lg:group-hover:opacity-100 sm:left-4"
+                        aria-label="Previous image"
+                      >
+                        <ChevronLeft size={28} strokeWidth={1} />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          showNextGalleryImage();
+                        }}
+                        className="absolute right-2 flex h-12 w-12 items-center justify-center text-white/50 opacity-0 transition-all duration-300 hover:text-white focus:opacity-100 lg:group-hover:opacity-100 sm:right-4"
+                        aria-label="Next image"
+                      >
+                        <ChevronRight size={28} strokeWidth={1} />
+                      </button>
+                    </>
+                  )}
+                  {/* Mobile Counter */}
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 sm:hidden">
+                    <span
+                      className="rounded-full bg-black/40 px-3 py-1 text-[10px] uppercase tracking-widest text-white/70 backdrop-blur-md"
                       style={{ fontFamily: "Jost, sans-serif" }}
                     >
-                      {property.name}
-                    </p>
-                    <p
-                      className="mt-1 text-white"
-                      style={{
-                        fontFamily: "Cormorant Garamond, serif",
-                        fontSize: "1.5rem",
-                        fontWeight: 400,
-                      }}
-                    >
-                      Photo Gallery
-                    </p>
+                      {modalImageIndex + 1} / {property.galleryImages.length}
+                    </span>
                   </div>
-                  <button
-                    onClick={() => setGalleryModalOpen(false)}
-                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/70 transition-colors hover:border-white/30 hover:text-white"
-                    aria-label="Close gallery"
-                  >
-                    <X size={18} />
-                  </button>
                 </div>
 
-                <div className="grid flex-1 gap-4 overflow-y-auto p-3 sm:p-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(260px,0.8fr)]">
-                  <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-black shadow-[0_0_0_1px_rgba(255,255,255,0.06)]">
-                    <AnimatePresence mode="wait">
-                      <motion.div
-                        key={`${property.slug}-${modalImageIndex}`}
-                        initial={{ opacity: 0.2, scale: 1.02 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0.2, scale: 0.985 }}
-                        transition={{ duration: 0.28 }}
+                {/* Thumbnails */}
+                <div className="flex h-[15vh] min-h-[80px] shrink-0 flex-col overflow-hidden sm:h-[18vh] lg:h-full lg:w-[220px] xl:w-[260px]">
+                  <div className="flex h-full gap-2 overflow-x-auto overflow-y-hidden lg:flex-col lg:overflow-x-hidden lg:overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+                    {property.galleryImages.map((localSrc, i) => (
+                      <button
+                        key={i}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          selectGalleryImage(i);
+                        }}
+                        className={`relative shrink-0 aspect-[4/3] rounded-sm transition-all duration-500 w-[120px] sm:w-[160px] lg:w-full lg:h-auto ${
+                          i === modalImageIndex
+                            ? "opacity-100 ring-1 ring-white/50 ring-offset-2 ring-offset-[#050505]"
+                            : "opacity-30 hover:opacity-100"
+                        }`}
                       >
                         <ImgWithFallback
-                          local={property.galleryImages[modalImageIndex]}
+                          local={localSrc}
                           fallback={
-                            (GALLERY_FALLBACKS[slug!] ??
-                              FALLBACK.poolHouseGallery)[modalImageIndex] ??
-                            FALLBACK.poolHouseGallery[0]
+                            (GALLERY_FALLBACKS[slug!] ?? FALLBACK.poolHouseGallery)[
+                              i
+                            ] ?? FALLBACK.poolHouseGallery[0]
                           }
-                          alt={`${property.name} ${modalImageIndex + 1}`}
-                          className="h-[38vh] w-full object-cover sm:h-[52vh] lg:h-[60vh]"
+                          alt={`${property.name} thumbnail ${i + 1}`}
+                          className="h-full w-full object-cover"
                         />
-                      </motion.div>
-                    </AnimatePresence>
-
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent px-5 py-5 sm:px-6">
-                      <div className="flex items-end justify-between gap-4">
-                        <div>
-                          <p
-                            className="text-[10px] uppercase tracking-[0.24em] text-white/55"
-                            style={{ fontFamily: "Jost, sans-serif" }}
-                          >
-                            Image {modalImageIndex + 1} of{" "}
-                            {property.galleryImages.length}
-                          </p>
-                          <p
-                            className="mt-2 text-white"
-                            style={{
-                              fontFamily: "Cormorant Garamond, serif",
-                              fontSize: "1.55rem",
-                              fontWeight: 400,
-                            }}
-                          >
-                            {property.name}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {property.galleryImages.length > 1 && (
-                      <>
-                        <button
-                          onClick={showPreviousGalleryImage}
-                          className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/35 text-white backdrop-blur-sm transition-all duration-300 hover:border-white/35 hover:bg-black/55 sm:left-4 sm:h-11 sm:w-11"
-                          aria-label="Previous image"
-                        >
-                          <ChevronLeft size={18} />
-                        </button>
-                        <button
-                          onClick={showNextGalleryImage}
-                          className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/35 text-white backdrop-blur-sm transition-all duration-300 hover:border-white/35 hover:bg-black/55 sm:right-4 sm:h-11 sm:w-11"
-                          aria-label="Next image"
-                        >
-                          <ChevronRight size={18} />
-                        </button>
-                      </>
-                    )}
-                  </div>
-
-                  <div className="flex flex-col">
-                    <div className="grid grid-cols-3 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 sm:max-h-[52vh]">
-                      {property.galleryImages.map((localSrc, i) => (
-                        <button
-                          key={i}
-                          onClick={() => {
-                            selectGalleryImage(i);
-                          }}
-                          className={`group relative overflow-hidden rounded-xl aspect-[4/3] border transition-all duration-300 ${
-                            i === modalImageIndex
-                              ? "border-[#c9a96e] shadow-[0_0_0_1px_rgba(201,169,110,0.4)]"
-                              : "border-white/10 hover:border-white/30"
-                          }`}
-                        >
-                          <ImgWithFallback
-                            local={localSrc}
-                            fallback={
-                              (GALLERY_FALLBACKS[slug!] ??
-                                FALLBACK.poolHouseGallery)[i] ??
-                              FALLBACK.poolHouseGallery[0]
-                            }
-                            alt={`${property.name} thumbnail ${i + 1}`}
-                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                          />
-                          <div
-                            className={`absolute inset-0 transition-colors ${i === modalImageIndex ? "bg-transparent" : "bg-black/15"}`}
-                          />
-                        </button>
-                      ))}
-                    </div>
+                      </button>
+                    ))}
                   </div>
                 </div>
-              </motion.div>
+              </div>
             </div>
           </motion.div>
         )}
