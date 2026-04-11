@@ -27,7 +27,7 @@ export default function VideoSplash({ onComplete }: VideoSplashProps) {
         muted
         playsInline
         onEnded={onComplete}
-        className="absolute inset-0 h-full w-full object-cover opacity-70 pointer-events-none"
+        className="absolute inset-0 h-full w-full object-contain opacity-80 pointer-events-none"
       />
 
       {/* Skip Button Container */}
