@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { Facebook, Instagram, Mail, MapPin } from 'lucide-react'
 
 const locations = [
@@ -35,7 +36,10 @@ const connectLinks = [
   { label: 'Email', href: 'mailto:hello@premierrentals.com', icon: Mail },
 ]
 
-const legalLinks = ['Privacy Policy', 'Cookie Policy', 'Terms of Service']
+const legalLinks = [
+  { label: 'Terms of Service', to: '/legal/terms' },
+  { label: 'Privacy Policy', to: '/legal/privacy' },
+]
 
 export default function Footer() {
   return (
@@ -125,15 +129,15 @@ export default function Footer() {
               Legal
             </p>
             <div className="flex flex-col gap-3">
-              {legalLinks.map((item) => (
-                <a
-                  key={item}
-                  href="#"
+              {legalLinks.map(({ label, to }) => (
+                <Link
+                  key={label}
+                  to={to}
                   className="text-xs text-white/45 transition-colors hover:text-white/75"
                   style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}
                 >
-                  {item}
-                </a>
+                  {label}
+                </Link>
               ))}
             </div>
           </div>

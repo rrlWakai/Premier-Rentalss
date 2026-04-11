@@ -7,6 +7,7 @@ import AdminDashboard from './components/AdminDashboard'
 import PropertyPage from './components/PropertyPage'
 import { BookingSuccess, BookingFailed } from './components/BookingPages'
 import HomePage from './components/HomePage'
+import LegalPage from './components/LegalPage'
 import ErrorBoundary from './components/ErrorBoundary'
 
 export default function App() {
@@ -38,6 +39,7 @@ export default function App() {
           <Route path="/property/:slug" element={<PropertyPage />} />
           <Route path="/booking/success" element={<BookingSuccess />} />
           <Route path="/booking/failed" element={<BookingFailed />} />
+          <Route path="/legal/:type" element={<LegalPage />} />
 
           {/* Admin */}
           <Route path="/admin" element={<AdminLogin />} />
