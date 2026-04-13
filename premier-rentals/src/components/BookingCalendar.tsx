@@ -135,7 +135,7 @@ export default function BookingCalendar({ retreatId, checkIn, checkOut, onSelect
               onMouseLeave={() => setHoverDate(null)}
               disabled={disabled}
               className={`
-                relative h-9 w-full text-xs rounded transition-all duration-150 font-medium
+                relative h-10 w-full text-xs rounded transition-all duration-150 font-medium touch-manipulation
                 ${!sameMonth ? 'opacity-25' : ''}
                 ${disabled ? 'cursor-not-allowed opacity-30 line-through' : 'cursor-pointer hover:bg-[#f8f4ee]'}
                 ${isStart || isEnd ? '!bg-[#c9a96e] !text-white rounded' : ''}

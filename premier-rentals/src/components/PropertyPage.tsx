@@ -26,7 +26,7 @@ import {
   type RatePackage,
 } from "../lib/propertyData";
 import { ImgWithFallback } from "../lib/useImage";
-import { FALLBACK, POOL_HOUSE, PATIO } from "../lib/images";
+import { FALLBACK } from "../lib/images";
 import BookingFormModal from "./BookingFormModal";
 import { fadeUpVariant, containerVariant } from "../lib/animations";
 
@@ -70,14 +70,6 @@ function getGoogleMapsEmbedUrl(address: string) {
   return `https://maps.google.com/maps?q=${encodeURIComponent(address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
 }
 
-const galleryModalBackdropTransition = {
-  duration: 0.24,
-  ease: [0.22, 1, 0.36, 1],
-};
-const galleryModalPanelTransition = {
-  duration: 0.32,
-  ease: [0.22, 1, 0.36, 1],
-};
 
 function RateTable({ pkg }: { pkg: RatePackage }) {
   return (

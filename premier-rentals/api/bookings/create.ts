@@ -38,6 +38,14 @@ function isPastDate(date: string) {
   return candidate < today;
 }
 
+const MAX_LENGTHS: Record<string, number> = {
+  full_name: 100,
+  email: 254,
+  phone: 20,
+  address: 300,
+  special_requests: 1000,
+};
+
 export default async function handler(request: Request) {
   if (request.method === "OPTIONS") {
     return json(null, {
@@ -62,8 +70,6 @@ export default async function handler(request: Request) {
       windowSeconds: 60,
     });
 
-    console.log("✅ RATE LIMIT DATA:", bookingRateLimit);
-
     if (!bookingRateLimit.allowed) {
       return json(
         { error: "Too many booking attempts. Please try again shortly." },
@@ -77,7 +83,6 @@ export default async function handler(request: Request) {
     }
 
     const body = await request.json();
-    console.log("📥 REQUEST BODY:", body);
 
     const {
       property_id,
@@ -99,8 +104,6 @@ export default async function handler(request: Request) {
     const reservationDate = typeof date === "string" ? date : "";
     const timeSlot = normalizeTimeSlot(typeof time_slot === "string" ? time_slot : "");
 
-    console.log("➡️ PROPERTY ID:", propertyId);
-
     const guestCount = Number(guests);
     const carCount = Number(cars);
     const trimmedName = typeof full_name === "string" ? full_name.trim() : "";
@@ -114,8 +117,26 @@ export default async function handler(request: Request) {
     const trimmedSpecialRequests =
       typeof special_requests === "string" ? special_requests.trim() : "";
 
+    // Length validation
+    const fieldLengths: Record<string, string> = {
+      full_name: trimmedName,
+      email: trimmedEmail,
+      phone: trimmedPhone,
+      address: trimmedAddress,
+      special_requests: trimmedSpecialRequests,
+    };
+    for (const [field, value] of Object.entries(fieldLengths)) {
+      if (value.length > MAX_LENGTHS[field]) {
+        return json(
+          { error: `${field.replace("_", " ")} exceeds the maximum allowed length.` },
+          { status: 400 },
+        );
+      }
+    }
+
     const isIsoDate = /^\d{4}-\d{2}-\d{2}$/.test(reservationDate);
-    const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail);
+    // Require at least 2-character TLD (e.g. .ph, .com)
+    const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(trimmedEmail);
 
     if (
       !propertyId ||
@@ -129,7 +150,6 @@ export default async function handler(request: Request) {
       !trimmedRateLabel ||
       !trimmedModeOfPayment
     ) {
-      console.log("❌ VALIDATION FAILED");
       return json({ error: "Missing or invalid booking details" }, { status: 400 });
     }
 
@@ -139,7 +159,6 @@ export default async function handler(request: Request) {
 
     const property = BOOKING_CATALOG[propertyId];
     if (!property) {
-      console.log("❌ INVALID PROPERTY:", propertyId);
       return json({ error: "Invalid property selection" }, { status: 400 });
     }
 
@@ -151,13 +170,10 @@ export default async function handler(request: Request) {
     });
 
     if (!selection) {
-      console.log("❌ INVALID RATE SELECTION");
       return json({ error: "Invalid rate selection" }, { status: 400 });
     }
 
     const lockedUntil = new Date(Date.now() + 15 * 60 * 1000).toISOString();
-
-    console.log("🏝️ Fetching retreat...");
 
     const { data: retreat, error: retreatError } = await supabaseAdmin
       .from("retreats")
@@ -165,14 +181,10 @@ export default async function handler(request: Request) {
       .eq("slug", propertyId)
       .single();
 
-    console.log("🏝️ RETREAT:", retreat);
-    console.log("❌ RETREAT ERROR:", retreatError);
-
     if (retreatError || !retreat?.id) {
+      console.error("[bookings/create] retreat lookup failed:", retreatError?.message);
       return json({ error: "Property record not found" }, { status: 500 });
     }
-
-    console.log("📦 Creating booking RPC...");
 
     const { data: booking, error: bookingError } = await supabaseAdmin.rpc(
       "create_locked_booking",
@@ -203,11 +215,9 @@ export default async function handler(request: Request) {
       },
     );
 
-    console.log("✅ BOOKING RESULT:", booking);
-    console.log("❌ BOOKING ERROR:", bookingError);
-
     if (bookingError) {
-      return json({ error: bookingError.message }, { status: 500 });
+      console.error("[bookings/create] RPC error:", bookingError.message);
+      return json({ error: "Unable to create booking. Please try again." }, { status: 500 });
     }
 
     const row = Array.isArray(booking) ? booking[0] : booking;
@@ -224,16 +234,9 @@ export default async function handler(request: Request) {
       },
       { status: 201 },
     );
-  } catch (error: any) {
-    console.error("🔥 BOOKINGS CREATE FAILED");
-    console.error("🔥 FULL ERROR:", error);
-    console.error("🔥 ERROR STRING:", String(error));
-    console.error("🔥 ERROR JSON:", JSON.stringify(error, null, 2));
-
-    return json(
-      { error: error?.message || "Internal server error" },
-      { status: 500 }
-    );
+  } catch (error) {
+    console.error("[bookings/create] unhandled error:", error instanceof Error ? error.message : String(error));
+    return json({ error: "Something went wrong. Please try again." }, { status: 500 });
   }
 }
 

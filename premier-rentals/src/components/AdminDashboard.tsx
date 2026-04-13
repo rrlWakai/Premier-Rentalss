@@ -65,7 +65,7 @@ const PAGE_SIZE = 50;
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const { session, role, isOwner, isStaff } = useAuth();
+  const { session, isOwner } = useAuth();
   
   const [tab, setTab] = useState<Tab>("overview");
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -287,7 +287,7 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#f8f4ee] lg:flex">
+    <div className="min-h-screen bg-[#f8f4ee] lg:flex overflow-x-hidden">
       {/* Sidebar */}
       <aside className="w-64 bg-[#1a1a1a] flex-col shrink-0 hidden lg:flex">
         <div className="px-6 py-6 border-b border-white/10">

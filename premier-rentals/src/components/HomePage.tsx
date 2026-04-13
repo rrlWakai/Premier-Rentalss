@@ -9,7 +9,6 @@ import MoreThanStay from "./MoreThanStay";
 import Amenities from "./Amenities";
 import TestimonialBanner from "./TestimonialBanner";
 import Gallery from "./Gallery";
-import Testimonials from "./Testimonials";
 import Contact from "./Contact";
 import Footer from "./Footer";
 import VideoSplash from "./VideoSplash";

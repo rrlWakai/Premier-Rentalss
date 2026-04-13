@@ -136,6 +136,32 @@ export default async function handler(request: Request) {
       return json({ error: "Invalid booking payment amount" }, { status: 500 });
     }
 
+    // Re-derive expected amounts from the catalog to prevent tampered DB records
+    // from charging the wrong amount.
+    const { getBookingAmounts } = await import("../_shared/catalog");
+    const expectedAmounts = getBookingAmounts({
+      propertyId: booking.property_id,
+      rateTier: booking.rate_tier ?? "",
+      rateLabel: booking.rate_label ?? "",
+      reservationDate: booking.booking_date,
+    });
+
+    if (expectedAmounts) {
+      const expectedDownpayment = expectedAmounts.downpaymentAmount;
+      const tolerance = 1; // 1 PHP tolerance for floating-point rounding
+      if (Math.abs(expectedDownpayment - downpaymentAmount) > tolerance) {
+        console.error("[payments/checkout] amount mismatch", {
+          bookingId: booking.id,
+          stored: downpaymentAmount,
+          expected: expectedDownpayment,
+        });
+        return json(
+          { error: "Booking pricing inconsistency detected. Please contact support." },
+          { status: 409 },
+        );
+      }
+    }
+
     const initializationToken = `initializing:${crypto.randomUUID()}`;
     const nowIso = new Date().toISOString();
 

@@ -252,51 +252,6 @@ const PAYMENT_DETAILS: Record<SupportedPaymentMode, string> = {
   Card: "Use your debit or credit card securely on PayMongo's encrypted checkout page.",
 };
 
-const staggerContainer = {
-  initial: {},
-  animate: {
-    transition: {
-      staggerChildren: 0.045,
-      delayChildren: 0.04,
-    },
-  },
-};
-
-const fieldItem = {
-  initial: { opacity: 0, y: 10 },
-  animate: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] as const },
-  },
-};
-
-const STEP_HEADING_CONTENT: Record<
-  Step,
-  {
-    eyebrow: string;
-    title: string;
-    description: string;
-  }
-> = {
-  details: {
-    eyebrow: "Step One",
-    title: "Guest Details",
-    description:
-      "Share your details to prepare your reservation and secure checkout.",
-  },
-  booking: {
-    eyebrow: "Step Two",
-    title: "Booking Preferences",
-    description: "",
-  },
-  review: {
-    eyebrow: "Step Three",
-    title: "Confirm And Pay",
-    description:
-      "Review your booking details before continuing to secure payment.",
-  },
-};
 
 function createInitialFormState(initialPackage: RatePackage): FormState {
   return {
@@ -1096,7 +1051,7 @@ export default function BookingFormModal({
                   else if (step === "review") setStep("booking");
                 }}
                 disabled={submitting}
-                className="text-xs tracking-wider uppercase text-[#8a8a7a] hover:text-[#1a1a1a] transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                className="min-h-[44px] px-3 text-xs tracking-wider uppercase text-[#8a8a7a] hover:text-[#1a1a1a] transition-colors disabled:cursor-not-allowed disabled:opacity-40"
                 style={{ fontFamily: "Jost, sans-serif" }}
               >
                 {step === "details" ? "Cancel" : "← Back"}
@@ -1106,16 +1061,18 @@ export default function BookingFormModal({
                 <button
                   onClick={handleSubmit}
                   disabled={submitting}
-                  className="btn-gold min-w-[16rem] justify-center disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="btn-gold min-h-[44px] flex-1 max-w-[20rem] justify-center disabled:opacity-60 disabled:cursor-not-allowed text-[11px] sm:text-xs"
                 >
                   {submitting ? (
                     <>
                       <Lock size={14} />
-                      Redirecting to secure checkout...
+                      <span className="hidden sm:inline">Redirecting to secure checkout...</span>
+                      <span className="sm:hidden">Redirecting...</span>
                     </>
                   ) : (
                     <>
-                      Proceed to Secure Payment ({formatPHP(downpaymentAmount)})
+                      <span className="hidden sm:inline">Proceed to Secure Payment ({formatPHP(downpaymentAmount)})</span>
+                      <span className="sm:hidden">Pay {formatPHP(downpaymentAmount)}</span>
                       <ChevronRight size={14} />
                     </>
                   )}
@@ -1129,7 +1086,7 @@ export default function BookingFormModal({
                       setStep("review");
                     else toast.error("Please fill in all required fields.");
                   }}
-                  className="btn-gold min-w-[10rem] justify-center"
+                  className="btn-gold min-h-[44px] min-w-[8rem] justify-center"
                 >
                   Continue <ChevronRight size={14} />
                 </button>

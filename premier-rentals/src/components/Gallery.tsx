@@ -10,8 +10,6 @@ const images = GALLERY_IMAGES.map((img, i) => ({
   fallback: FALLBACK.gallery[i] ?? FALLBACK.gallery[0],
 }));
 
-const modalBackdropTransition = { duration: 0.24, ease: [0.22, 1, 0.36, 1] };
-const modalPanelTransition = { duration: 0.32, ease: [0.22, 1, 0.36, 1] };
 
 function GalleryTile({
   image,

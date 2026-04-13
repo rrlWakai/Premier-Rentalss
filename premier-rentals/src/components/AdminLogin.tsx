@@ -1,8 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Lock } from 'lucide-react'
 import { adminSignIn } from '../lib/supabase'
 import toast from 'react-hot-toast'
+
+const MAX_ATTEMPTS = 5
+const LOCKOUT_DURATION_MS = 60 * 1000 // 60 seconds
 
 export default function AdminLogin() {
   const navigate = useNavigate()
@@ -10,15 +13,53 @@ export default function AdminLogin() {
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [failedAttempts, setFailedAttempts] = useState(0)
+  const [lockedUntil, setLockedUntil] = useState<number | null>(null)
+  const [lockCountdown, setLockCountdown] = useState(0)
+
+  // Countdown ticker while locked
+  useEffect(() => {
+    if (!lockedUntil) return
+    const tick = setInterval(() => {
+      const remaining = Math.ceil((lockedUntil - Date.now()) / 1000)
+      if (remaining <= 0) {
+        setLockedUntil(null)
+        setFailedAttempts(0)
+        setLockCountdown(0)
+        clearInterval(tick)
+      } else {
+        setLockCountdown(remaining)
+      }
+    }, 500)
+    return () => clearInterval(tick)
+  }, [lockedUntil])
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
+
+    if (lockedUntil && Date.now() < lockedUntil) {
+      toast.error(`Too many attempts. Try again in ${lockCountdown}s.`)
+      return
+    }
+
     setLoading(true)
     const { data, error } = await adminSignIn(email, password)
     setLoading(false)
+
     if (error) {
-      toast.error('Invalid credentials. Please try again.')
+      const next = failedAttempts + 1
+      setFailedAttempts(next)
+      if (next >= MAX_ATTEMPTS) {
+        const until = Date.now() + LOCKOUT_DURATION_MS
+        setLockedUntil(until)
+        setLockCountdown(LOCKOUT_DURATION_MS / 1000)
+        toast.error(`Too many failed attempts. Locked for ${LOCKOUT_DURATION_MS / 1000}s.`)
+      } else {
+        toast.error(`Invalid credentials. ${MAX_ATTEMPTS - next} attempt(s) remaining.`)
+      }
     } else {
+      setFailedAttempts(0)
+      setLockedUntil(null)
       const role = data.user?.app_metadata?.role as string | undefined
       const displayRole = role === 'staff' ? 'Staff' : 'Owner'
       toast.success(`Welcome back, ${displayRole}!`)
@@ -89,10 +130,14 @@ export default function AdminLogin() {
             </div>
             <button
               type="submit"
-              disabled={loading}
-              className="btn-gold w-full justify-center mt-2 disabled:opacity-60"
+              disabled={loading || !!lockedUntil}
+              className="btn-gold w-full justify-center mt-2 disabled:opacity-60 min-h-[44px]"
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading
+                ? 'Signing in...'
+                : lockedUntil
+                  ? `Locked (${lockCountdown}s)`
+                  : 'Sign In'}
             </button>
           </form>
         </div>
