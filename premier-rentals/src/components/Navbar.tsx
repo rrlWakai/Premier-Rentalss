@@ -33,17 +33,7 @@ export default function Navbar() {
   function handleNavClick(e: React.MouseEvent<HTMLAnchorElement>, href: string) {
     e.preventDefault()
     setMenuOpen(false)
-    const [path, hash] = href.split('#')
-    if (window.location.pathname !== '/' && path === '/') {
-      navigate('/')
-      setTimeout(() => {
-        const el = document.getElementById(hash)
-        el?.scrollIntoView({ behavior: 'smooth' })
-      }, 300)
-    } else if (hash) {
-      const el = document.getElementById(hash)
-      el?.scrollIntoView({ behavior: 'smooth' })
-    }
+    navigate(href)
   }
 
   return (
@@ -77,11 +67,6 @@ export default function Navbar() {
 
         {/* Right actions */}
         <div className="hidden lg:flex items-center gap-4">
-          <Link to="/admin"
-            className="text-white/40 hover:text-white/70 transition-colors text-[10px] tracking-widest uppercase"
-            style={{ fontFamily: 'Jost, sans-serif' }}>
-            Admin
-          </Link>
           <a href="/#retreats" onClick={(e) => handleNavClick(e, '/#retreats')} className="btn-gold text-xs py-2.5 px-5">
             Book Now
           </a>
@@ -125,10 +110,6 @@ export default function Navbar() {
                 <a href="/#retreats" onClick={(e) => handleNavClick(e, '/#retreats')} className="btn-gold text-xs flex-1 justify-center">
                   Book Now
                 </a>
-                <Link to="/admin" onClick={() => setMenuOpen(false)}
-                  className="btn-outline-gold text-xs px-4">
-                  Admin
-                </Link>
               </div>
             </nav>
           </motion.div>

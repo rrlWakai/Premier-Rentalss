@@ -351,21 +351,10 @@ img { max-width: 100%; }
 /* Toast override */
 .react-hot-toast { font-family: 'Jost', sans-serif !important; }
 
-/* Better touch targets on mobile — scoped to interactive controls only */
+/* Better touch targets on mobile */
 @media (max-width: 768px) {
-  /* Buttons get min-height; inline <a> links are excluded to avoid layout glitches */
-  button:not(.gallery-thumb):not(.thumbnail-btn) { min-height: 44px; }
+  button, a { min-height: 40px; }
   input, select, textarea { font-size: 16px !important; } /* Prevents iOS zoom */
-}
-
-/* Safe-area bottom padding for iPhone notch / Dynamic Island */
-.safe-area-pb {
-  padding-bottom: max(12px, env(safe-area-inset-bottom));
-}
-
-/* Mobile sticky booking bar */
-.mobile-book-bar {
-  padding-bottom: max(12px, env(safe-area-inset-bottom));
 }
 
 /* Scroll padding for fixed navbar */

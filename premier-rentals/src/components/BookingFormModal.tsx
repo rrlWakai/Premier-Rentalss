@@ -541,65 +541,46 @@ export default function BookingFormModal({
               </button>
             </div>
 
-            <div className="flex flex-col border-b border-[#ede8df] bg-[linear-gradient(180deg,#fcfaf7_0%,#f7f2ea_100%)] px-4 pt-4 pb-3 shrink-0 sm:px-7 sm:pt-4 sm:pb-4">
-              {/* Step circles row */}
-              <div className="flex items-center gap-2 overflow-x-auto">
-                {STEPS.map((s, i) => (
-                  <div key={s.id} className="flex items-center gap-2">
+            <div className="flex items-center gap-2 overflow-x-auto border-b border-[#ede8df] bg-[linear-gradient(180deg,#fcfaf7_0%,#f7f2ea_100%)] px-5 py-4 shrink-0 sm:px-7">
+              {STEPS.map((s, i) => (
+                <div key={s.id} className="flex items-center gap-2">
+                  <div
+                    className={`flex items-center gap-2 ${i <= stepIndex ? "opacity-100" : "opacity-40"}`}
+                  >
                     <div
-                      className={`flex items-center gap-2 ${i <= stepIndex ? "opacity-100" : "opacity-40"}`}
+                      className={`flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-semibold transition-all duration-300 ${
+                        i < stepIndex
+                          ? "bg-[#c9a96e] text-white shadow-[0_8px_20px_rgba(201,169,110,0.28)]"
+                          : i === stepIndex
+                            ? "bg-[#1a1a1a] text-white shadow-[0_10px_24px_rgba(26,26,26,0.18)]"
+                            : "border border-[#e8e0d4] bg-white text-[#8a8a7a]"
+                      }`}
                     >
-                      <div
-                        className={`flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-semibold transition-all duration-300 ${
-                          i < stepIndex
-                            ? "bg-[#c9a96e] text-white shadow-[0_8px_20px_rgba(201,169,110,0.28)]"
-                            : i === stepIndex
-                              ? "bg-[#1a1a1a] text-white shadow-[0_10px_24px_rgba(26,26,26,0.18)]"
-                              : "border border-[#e8e0d4] bg-white text-[#8a8a7a]"
-                        }`}
-                      >
-                        {i < stepIndex ? <Check size={10} /> : i + 1}
-                      </div>
-                      {/* Labels: full on sm+, hidden on mobile (shown separately below) */}
-                      <div className="hidden sm:flex sm:flex-col">
-                        <span
-                          className="text-[9px] uppercase tracking-[0.24em] text-[#a0988b]"
-                          style={{ fontFamily: "Jost, sans-serif" }}
-                        >
-                          Step {i + 1}
-                        </span>
-                        <span
-                          className="text-[12px] text-[#1a1a1a]"
-                          style={{
-                            fontFamily: "Jost, sans-serif",
-                            fontWeight: i === stepIndex ? 600 : 400,
-                          }}
-                        >
-                          {s.label}
-                        </span>
-                      </div>
+                      {i < stepIndex ? <Check size={10} /> : i + 1}
                     </div>
-                    {i < STEPS.length - 1 && (
-                      <div className="h-px w-6 bg-[#dfd5c8]" />
-                    )}
+                    <div className="hidden sm:flex sm:flex-col">
+                      <span
+                        className="text-[9px] uppercase tracking-[0.24em] text-[#a0988b]"
+                        style={{ fontFamily: "Jost, sans-serif" }}
+                      >
+                        Step {i + 1}
+                      </span>
+                      <span
+                        className="text-[12px] text-[#1a1a1a]"
+                        style={{
+                          fontFamily: "Jost, sans-serif",
+                          fontWeight: i === stepIndex ? 600 : 400,
+                        }}
+                      >
+                        {s.label}
+                      </span>
+                    </div>
                   </div>
-                ))}
-              </div>
-              {/* Mobile-only compact current step label */}
-              <div className="mt-2.5 sm:hidden">
-                <span
-                  className="text-[10px] uppercase tracking-[0.2em] text-[#8a8a7a]"
-                  style={{ fontFamily: "Jost, sans-serif" }}
-                >
-                  Step {stepIndex + 1} of {STEPS.length}
-                </span>
-                <span
-                  className="ml-2 text-[11px] font-semibold text-[#1a1a1a]"
-                  style={{ fontFamily: "Jost, sans-serif" }}
-                >
-                  — {STEPS[stepIndex]?.label}
-                </span>
-              </div>
+                  {i < STEPS.length - 1 && (
+                    <div className="h-px w-6 bg-[#dfd5c8]" />
+                  )}
+                </div>
+              ))}
             </div>
 
             {/* Content */}
@@ -610,7 +591,7 @@ export default function BookingFormModal({
                   <motion.div
                     key="details"
                     {...stepMotionProps}
-                    className="flex flex-col gap-6 p-4 sm:p-7"
+                    className="flex flex-col gap-6 p-5 sm:p-7"
                   >
                     <div className="space-y-2">
                       <p className="section-label text-[9px]">Step One</p>
@@ -694,7 +675,7 @@ export default function BookingFormModal({
                   <motion.div
                     key="booking"
                     {...stepMotionProps}
-                    className="flex flex-col gap-6 p-4 sm:p-7"
+                    className="flex flex-col gap-6 p-5 sm:p-7"
                   >
                     <div className="space-y-2">
                       <p className="section-label text-[9px]">Step Two</p>

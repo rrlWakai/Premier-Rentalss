@@ -98,7 +98,7 @@ export default function Retreats() {
                 custom={i}
                 className="retreat-card group cursor-pointer"
               >
-                <div className="relative aspect-[4/3] overflow-hidden">
+                <div className="relative aspect-[4/5] overflow-hidden sm:aspect-[4/3]">
                   <ImgWithFallback
                     local={local}
                     fallback={fallback}
