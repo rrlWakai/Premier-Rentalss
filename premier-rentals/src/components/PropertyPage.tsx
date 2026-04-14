@@ -397,7 +397,7 @@ export default function PropertyPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f4ee]">
+    <div className="min-h-screen bg-[#f8f4ee] pb-[80px] lg:pb-0">
       {/* ── Sticky top nav ───────────────────────────── */}
       <div className="sticky top-0 z-40 border-b border-[#ede8df] bg-white/90 backdrop-blur-sm">
         <div className="mx-auto flex min-h-14 max-w-7xl items-center justify-between gap-2 px-3 py-2 sm:h-14 sm:gap-3 sm:px-5 lg:px-12">
@@ -926,6 +926,37 @@ export default function PropertyPage() {
         </motion.div>
       </div>
 
+      {/* ── Mobile sticky booking bar (hidden on lg+) ─────────── */}
+      <div className="fixed bottom-0 inset-x-0 z-30 lg:hidden mobile-book-bar border-t border-[#ede8df] bg-white/96 backdrop-blur-md shadow-[0_-8px_32px_rgba(0,0,0,0.08)]">
+        <div className="flex items-center justify-between gap-4 px-5 py-3">
+          <div className="flex flex-col">
+            <span
+              className="text-[9px] uppercase tracking-[0.22em] text-[#8a8a7a]"
+              style={{ fontFamily: "Jost, sans-serif" }}
+            >
+              Starting from
+            </span>
+            <span
+              style={{
+                fontFamily: "Cormorant Garamond, serif",
+                fontSize: "1.3rem",
+                color: "#c9a96e",
+                fontWeight: 500,
+                lineHeight: 1.2,
+              }}
+            >
+              {formatPHP(Math.min(...property.packages.flatMap((pkg) => pkg.rates.map((r) => r.weekday))))}
+            </span>
+          </div>
+          <button
+            onClick={() => setBookingPkg(property.packages[0])}
+            className="btn-gold px-5 py-2.5 text-xs shrink-0"
+          >
+            Book Now
+          </button>
+        </div>
+      </div>
+
       {/* Booking Form Modal */}
       {bookingPkg && (
         <BookingFormModal
@@ -1007,25 +1038,28 @@ export default function PropertyPage() {
 
                   {property.galleryImages.length > 1 && (
                     <>
+                      {/* Always visible on mobile; hover-reveal on desktop */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           showPreviousGalleryImage();
                         }}
-                        className="absolute left-2 flex h-12 w-12 items-center justify-center text-white/50 opacity-0 transition-all duration-300 hover:text-white focus:opacity-100 lg:group-hover:opacity-100 sm:left-4"
+                        className="absolute left-2 sm:left-4 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-black/30 sm:bg-transparent text-white/80 sm:text-white/50 opacity-100 sm:opacity-0 sm:hover:opacity-100 sm:hover:text-white transition-all duration-300 focus:opacity-100 backdrop-blur-sm sm:backdrop-blur-none"
                         aria-label="Previous image"
                       >
-                        <ChevronLeft size={28} strokeWidth={1} />
+                        <ChevronLeft size={22} strokeWidth={1.5} className="sm:hidden" />
+                        <ChevronLeft size={28} strokeWidth={1} className="hidden sm:block" />
                       </button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           showNextGalleryImage();
                         }}
-                        className="absolute right-2 flex h-12 w-12 items-center justify-center text-white/50 opacity-0 transition-all duration-300 hover:text-white focus:opacity-100 lg:group-hover:opacity-100 sm:right-4"
+                        className="absolute right-2 sm:right-4 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-black/30 sm:bg-transparent text-white/80 sm:text-white/50 opacity-100 sm:opacity-0 sm:hover:opacity-100 sm:hover:text-white transition-all duration-300 focus:opacity-100 backdrop-blur-sm sm:backdrop-blur-none"
                         aria-label="Next image"
                       >
-                        <ChevronRight size={28} strokeWidth={1} />
+                        <ChevronRight size={22} strokeWidth={1.5} className="sm:hidden" />
+                        <ChevronRight size={28} strokeWidth={1} className="hidden sm:block" />
                       </button>
                     </>
                   )}
@@ -1050,7 +1084,7 @@ export default function PropertyPage() {
                           e.stopPropagation();
                           selectGalleryImage(i);
                         }}
-                        className={`relative shrink-0 aspect-[4/3] rounded-sm transition-all duration-500 w-[120px] sm:w-[160px] lg:w-full lg:h-auto ${
+                        className={`thumbnail-btn relative shrink-0 aspect-[4/3] rounded-sm transition-all duration-500 w-[130px] sm:w-[160px] lg:w-full lg:h-auto ${
                           i === modalImageIndex
                             ? "opacity-100 ring-1 ring-white/50 ring-offset-2 ring-offset-[#050505]"
                             : "opacity-30 hover:opacity-100"

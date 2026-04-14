@@ -297,16 +297,18 @@ export default function Gallery() {
 
                   {images.length > 1 && (
                     <>
+                      {/* Always visible on mobile; hover-reveal on desktop */}
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           showPrevious();
                         }}
-                        className="absolute left-2 flex h-12 w-12 items-center justify-center text-white/50 opacity-0 transition-all duration-300 hover:text-white focus:opacity-100 lg:group-hover:opacity-100 sm:left-4"
+                        className="absolute left-2 sm:left-4 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-black/30 sm:bg-transparent text-white/80 sm:text-white/50 opacity-100 sm:opacity-0 sm:hover:opacity-100 sm:hover:text-white transition-all duration-300 focus:opacity-100 backdrop-blur-sm sm:backdrop-blur-none"
                         aria-label="Previous image"
                       >
-                        <ChevronLeft size={28} strokeWidth={1} />
+                        <ChevronLeft size={22} strokeWidth={1.5} className="sm:hidden" />
+                        <ChevronLeft size={28} strokeWidth={1} className="hidden sm:block" />
                       </button>
                       <button
                         type="button"
@@ -314,10 +316,11 @@ export default function Gallery() {
                           e.stopPropagation();
                           showNext();
                         }}
-                        className="absolute right-2 flex h-12 w-12 items-center justify-center text-white/50 opacity-0 transition-all duration-300 hover:text-white focus:opacity-100 lg:group-hover:opacity-100 sm:right-4"
+                        className="absolute right-2 sm:right-4 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-black/30 sm:bg-transparent text-white/80 sm:text-white/50 opacity-100 sm:opacity-0 sm:hover:opacity-100 sm:hover:text-white transition-all duration-300 focus:opacity-100 backdrop-blur-sm sm:backdrop-blur-none"
                         aria-label="Next image"
                       >
-                        <ChevronRight size={28} strokeWidth={1} />
+                        <ChevronRight size={22} strokeWidth={1.5} className="sm:hidden" />
+                        <ChevronRight size={28} strokeWidth={1} className="hidden sm:block" />
                       </button>
                     </>
                   )}
@@ -343,7 +346,7 @@ export default function Gallery() {
                           e.stopPropagation();
                           setActiveIndex(i);
                         }}
-                        className={`relative shrink-0 aspect-[4/3] rounded-sm transition-all duration-500 w-[120px] sm:w-[160px] lg:w-full lg:h-auto ${
+                        className={`thumbnail-btn relative shrink-0 aspect-[4/3] rounded-sm transition-all duration-500 w-[130px] sm:w-[160px] lg:w-full lg:h-auto ${
                           i === activeIndex
                             ? "opacity-100 ring-1 ring-white/50 ring-offset-2 ring-offset-[#050505]"
                             : "opacity-30 hover:opacity-100"

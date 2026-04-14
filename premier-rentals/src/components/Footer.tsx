@@ -45,7 +45,7 @@ export default function Footer() {
   return (
     <footer style={{ background: '#111111' }}>
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-12 lg:py-20">
-        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.95fr)_minmax(0,0.8fr)_minmax(0,0.8fr)] lg:gap-12">
+        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 sm:gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.95fr)_minmax(0,0.8fr)_minmax(0,0.8fr)] lg:gap-12">
           <div>
             <p
               className="mb-4 text-white"

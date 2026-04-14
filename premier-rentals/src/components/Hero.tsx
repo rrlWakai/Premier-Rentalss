@@ -95,7 +95,7 @@ export default function Hero() {
 
       <motion.a
         href="#stats"
-        className="absolute bottom-10 left-1/2 -translate-x-1/2 text-white/30 transition-colors hover:text-white/60 sm:bottom-8"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/30 transition-colors hover:text-white/60 hidden sm:flex items-center justify-center"
         animate={{ y: [0, 6, 0] }}
         transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
       >

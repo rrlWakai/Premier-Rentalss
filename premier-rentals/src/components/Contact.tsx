@@ -168,7 +168,7 @@ export default function Contact() {
     <section id="contact" className="relative">
       <div className="grid min-h-[700px] grid-cols-1 lg:grid-cols-2">
         <motion.div
-          className="relative flex min-h-[400px] flex-col justify-end p-5 sm:p-8 lg:min-h-0 lg:p-16"
+          className="relative flex min-h-[500px] flex-col justify-end p-6 sm:min-h-[560px] sm:p-10 lg:min-h-0 lg:p-16"
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
