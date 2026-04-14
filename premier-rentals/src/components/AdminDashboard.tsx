@@ -46,6 +46,7 @@ import {
   type PaymentStatus,
   type AdminStats,
   type StaffUser,
+  supabase,
 } from "../lib/supabase";
 import { STATUS_TAILWIND, PAYMENT_ACTIVE_CLS, PAYMENT_TEXT_CLS } from "../lib/constants";
 import { formatPHP } from "../lib/propertyData";
@@ -110,6 +111,30 @@ export default function AdminDashboard() {
         setLoading(false);
       });
   }, [page, isOwner]);
+
+  useEffect(() => {
+  const channel = supabase
+    .channel("bookings-realtime")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "bookings",
+      },
+      () => {
+        console.log("Realtime update triggered");
+
+        // 🔥 reuse your existing refresh logic
+        refreshData();
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, []);
 
   async function handleSignOut() {
     await adminSignOut();
