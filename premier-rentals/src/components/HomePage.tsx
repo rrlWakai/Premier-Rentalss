@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import Navbar from "./Navbar";
 import Hero from "./Hero";
 import Stats from "./Stats";
@@ -10,42 +12,31 @@ import Contact from "./Contact";
 import Footer from "./Footer";
 
 export default function HomePage() {
+  const location = useLocation();
+
+  // Smooth scroll to hash on mount (e.g. /#retreats)
+  useEffect(() => {
+    if (location.hash) {
+      const el = document.querySelector(location.hash);
+      if (el) {
+        setTimeout(() => el.scrollIntoView({ behavior: "smooth" }), 100);
+      }
+    } else {
+      window.scrollTo(0, 0);
+    }
+  }, [location]);
+
   return (
     <div className="min-h-screen">
       <Navbar />
-
-      <section id="home">
-        <Hero />
-      </section>
-
-      <section id="stats">
-        <Stats />
-      </section>
-
-      <section id="retreats">
-        <Retreats />
-      </section>
-
-      <section id="about">
-        <MoreThanStay />
-      </section>
-
-      <section id="amenities">
-        <Amenities />
-      </section>
-
-      <section id="gallery">
-        <Gallery />
-      </section>
-
-      <section id="testimonials">
-        <TestimonialBanner />
-      </section>
-
-      <section id="contact">
-        <Contact />
-      </section>
-
+      <Hero />
+      <Stats />
+      <Retreats />
+      <MoreThanStay />
+      <Amenities />
+      <Gallery />
+      <TestimonialBanner />
+      <Contact />
       <Footer />
     </div>
   );

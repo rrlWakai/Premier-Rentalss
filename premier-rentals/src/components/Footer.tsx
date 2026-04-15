@@ -1,5 +1,25 @@
 import { Link } from 'react-router-dom'
-import { Facebook, Instagram, Mail, MapPin } from 'lucide-react'
+import { Mail, MapPin } from 'lucide-react'
+
+type BrandIconProps = { size?: number; color?: string; strokeWidth?: number }
+
+function FacebookIcon({ size = 16, color = 'currentColor', strokeWidth = 1.75 }: BrandIconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+    </svg>
+  )
+}
+
+function InstagramIcon({ size = 16, color = 'currentColor', strokeWidth = 1.75 }: BrandIconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+    </svg>
+  )
+}
 
 const locations = [
   {
@@ -16,22 +36,22 @@ const connectLinks = [
   {
     label: 'Pool House Facebook',
     href: 'https://www.facebook.com/premierpoolhouse',
-    icon: Facebook,
+    icon: FacebookIcon,
   },
   {
     label: 'Pool House Instagram',
     href: 'https://www.instagram.com/premierpoolhouse/',
-    icon: Instagram,
+    icon: InstagramIcon,
   },
   {
     label: 'Patio Facebook',
     href: 'https://www.facebook.com/profile.php?id=61555665219280',
-    icon: Facebook,
+    icon: FacebookIcon,
   },
   {
     label: 'Patio Instagram',
     href: 'https://www.instagram.com/premierpatiobypph/',
-    icon: Instagram,
+    icon: InstagramIcon,
   },
   { label: 'Email', href: 'mailto:hello@premierrentals.com', icon: Mail },
 ]
@@ -45,8 +65,8 @@ export default function Footer() {
   return (
     <footer style={{ background: '#111111' }}>
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-12 lg:py-20">
-        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.95fr)_minmax(0,0.8fr)_minmax(0,0.8fr)] lg:gap-12">
-          <div>
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.95fr)_minmax(0,0.8fr)_minmax(0,0.8fr)] lg:gap-12">
+          <div className="sm:col-span-2 lg:col-span-1">
             <p
               className="mb-4 text-white"
               style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '2rem', fontWeight: 400 }}

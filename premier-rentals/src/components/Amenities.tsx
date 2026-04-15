@@ -89,7 +89,7 @@ export default function Amenities() {
               <div className="mb-6">
                 <h3
                   className="text-[#1b1b1b]"
-                  style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.95rem', fontWeight: 400 }}
+                  style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(1.55rem, 3.5vw, 1.95rem)', fontWeight: 400 }}
                 >
                   {group.title}
                 </h3>
@@ -103,7 +103,7 @@ export default function Amenities() {
                     whileHover={{ x: 4, opacity: 0.9 }}
                     transition={{ duration: 0.2, ease: 'easeOut' }}
                   >
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#fbf8f3]">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#fbf8f3] border border-[#ebe4da]">
                       <Icon size={17} color="#b79458" strokeWidth={1.4} />
                     </div>
                     <p

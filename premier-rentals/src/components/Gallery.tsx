@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { containerVariant, scaleVariant } from "../lib/animations";
@@ -88,6 +88,7 @@ function GalleryTile({
 export default function Gallery() {
   const [modalOpen, setModalOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const touchStartX = useRef(0);
 
   const activeImage = images[activeIndex];
 
@@ -218,8 +219,8 @@ export default function Gallery() {
                 onOpen={openModal}
                 className={`${
                   isHeroTile
-                    ? "h-[240px] sm:h-[280px]"
-                    : "h-[160px] sm:h-[185px]"
+                    ? "h-[260px] sm:h-[310px]"
+                    : "h-[185px] sm:h-[210px]"
                 }`}
                 actionLabel={isLastImage ? "Open" : "View"}
                 featured={isLastImage}
@@ -276,7 +277,14 @@ export default function Gallery() {
               {/* Minimal Content */}
               <div className="flex min-h-0 flex-1 flex-col gap-4 p-4 pt-0 lg:flex-row lg:gap-6 lg:p-6 lg:pt-0">
                 {/* Main Image */}
-                <div className="relative flex min-h-0 flex-1 items-center justify-center rounded-sm bg-black/40">
+                <div
+                  className="relative flex min-h-0 flex-1 items-center justify-center rounded-sm bg-black/40"
+                  onTouchStart={(e) => { touchStartX.current = e.changedTouches[0].clientX; }}
+                  onTouchEnd={(e) => {
+                    const diff = touchStartX.current - e.changedTouches[0].clientX;
+                    if (Math.abs(diff) > 50) diff > 0 ? showNext() : showPrevious();
+                  }}
+                >
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={activeImage.src}
@@ -303,7 +311,7 @@ export default function Gallery() {
                           e.stopPropagation();
                           showPrevious();
                         }}
-                        className="absolute left-2 flex h-12 w-12 items-center justify-center text-white/50 opacity-0 transition-all duration-300 hover:text-white focus:opacity-100 lg:group-hover:opacity-100 sm:left-4"
+                        className="absolute left-2 flex h-12 w-12 items-center justify-center text-white/50 transition-all duration-300 hover:text-white opacity-100 lg:opacity-0 lg:focus:opacity-100 lg:group-hover:opacity-100 sm:left-4"
                         aria-label="Previous image"
                       >
                         <ChevronLeft size={28} strokeWidth={1} />
@@ -314,7 +322,7 @@ export default function Gallery() {
                           e.stopPropagation();
                           showNext();
                         }}
-                        className="absolute right-2 flex h-12 w-12 items-center justify-center text-white/50 opacity-0 transition-all duration-300 hover:text-white focus:opacity-100 lg:group-hover:opacity-100 sm:right-4"
+                        className="absolute right-2 flex h-12 w-12 items-center justify-center text-white/50 transition-all duration-300 hover:text-white opacity-100 lg:opacity-0 lg:focus:opacity-100 lg:group-hover:opacity-100 sm:right-4"
                         aria-label="Next image"
                       >
                         <ChevronRight size={28} strokeWidth={1} />

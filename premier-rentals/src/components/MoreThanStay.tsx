@@ -10,7 +10,7 @@ export default function MoreThanStay() {
 
         {/* Image — local /public/images/gallery/spa.jpg */}
         <motion.div
-          className="relative overflow-hidden min-h-[400px] lg:min-h-0"
+          className="relative overflow-hidden min-h-[260px] sm:min-h-[360px] lg:min-h-0"
           variants={slideLeftVariant}
           initial="hidden"
           whileInView="visible"
@@ -26,7 +26,7 @@ export default function MoreThanStay() {
 
         {/* Content */}
         <motion.div
-          className="flex flex-col justify-center px-5 py-14 sm:px-8 lg:px-16 lg:py-20"
+          className="flex flex-col justify-center px-5 py-10 sm:px-8 sm:py-14 lg:px-16 lg:py-20"
           style={{ background: '#1a1a1a' }}
           initial={{ opacity: 0, x: 40 }}
           whileInView={{ opacity: 1, x: 0 }}
@@ -43,7 +43,7 @@ export default function MoreThanStay() {
             Premier Rentals offers private, thoughtfully designed spaces across Metro Manila, each with its own unique experience, but built on the same promise of comfort, privacy, and convenience.
           </p>
 
-          <div className="mb-10 flex flex-col gap-4">
+          <div className="mb-8 flex flex-col gap-4 sm:mb-10">
             {[
               'Premier Pool House, located in Novaliches, Quezon City, is designed for fun, gatherings, and shared moments. With its spacious layout, private pool, and entertainment areas, it is the perfect space for celebrations, family time, and group staycations.',
               'Premier Patio, located in Caloocan, offers a more relaxed and intimate setting. With its clean, modern design and cozy atmosphere, it is ideal for small gatherings, quiet stays, and laid-back city escapes.',
@@ -64,7 +64,7 @@ export default function MoreThanStay() {
           </div>
 
           <motion.div
-            className="mb-10 rounded-[24px] border border-white/10 bg-white/[0.04] p-5 sm:p-6"
+            className="mb-8 rounded-[24px] border border-white/10 bg-white/[0.04] p-5 sm:mb-10 sm:p-6"
             initial={{ opacity: 0, y: 18 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}

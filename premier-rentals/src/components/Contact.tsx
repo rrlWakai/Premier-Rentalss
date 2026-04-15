@@ -1,12 +1,32 @@
-import { Facebook, Instagram, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { motion } from "framer-motion";
 import { ImgWithFallback } from "../lib/useImage";
 import { CONTACT_BG, FALLBACK } from "../lib/images";
 
+type BrandIconProps = { size?: number; color?: string; strokeWidth?: number };
+
+function FacebookIcon({ size = 16, color = "currentColor", strokeWidth = 1.75 }: BrandIconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+    </svg>
+  );
+}
+
+function InstagramIcon({ size = 16, color = "currentColor", strokeWidth = 1.75 }: BrandIconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+    </svg>
+  );
+}
+
 type SocialLink = {
   label: string;
   href: string;
-  icon: typeof Instagram;
+  icon: (props: BrandIconProps) => JSX.Element;
 };
 
 type ContactCard = {
@@ -28,12 +48,12 @@ const CONTACTS: ContactCard[] = [
       {
         label: "Instagram",
         href: "https://www.instagram.com/premierpoolhouse/",
-        icon: Instagram,
+        icon: InstagramIcon,
       },
       {
         label: "Facebook",
         href: "https://www.facebook.com/premierpoolhouse",
-        icon: Facebook,
+        icon: FacebookIcon,
       },
     ],
   },
@@ -48,12 +68,12 @@ const CONTACTS: ContactCard[] = [
       {
         label: "Instagram",
         href: "https://www.instagram.com/premierpatiobypph/",
-        icon: Instagram,
+        icon: InstagramIcon,
       },
       {
         label: "Facebook",
         href: "https://www.facebook.com/profile.php?id=61555665219280",
-        icon: Facebook,
+        icon: FacebookIcon,
       },
     ],
   },
@@ -76,7 +96,7 @@ function ContactInfoCard({ card }: { card: ContactCard }) {
           className="text-white"
           style={{
             fontFamily: "Cormorant Garamond, serif",
-            fontSize: "1.9rem",
+            fontSize: "clamp(1.5rem, 4vw, 1.9rem)",
             fontWeight: 400,
           }}
         >
@@ -124,7 +144,7 @@ function ContactInfoCard({ card }: { card: ContactCard }) {
         </div>
       </div>
 
-      <div className="mt-5 flex items-center justify-between gap-4">
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p
             className="text-[10px] uppercase tracking-[0.22em] text-white/35"
@@ -168,7 +188,7 @@ export default function Contact() {
     <section id="contact" className="relative">
       <div className="grid min-h-[700px] grid-cols-1 lg:grid-cols-2">
         <motion.div
-          className="relative flex min-h-[400px] flex-col justify-end p-5 sm:p-8 lg:min-h-0 lg:p-16"
+          className="relative flex min-h-[260px] flex-col justify-end p-5 sm:min-h-[380px] sm:p-8 lg:min-h-0 lg:p-16"
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}

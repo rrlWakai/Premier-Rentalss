@@ -187,13 +187,13 @@ export default function Retreats() {
                             pkg: data.packages[0],
                           })
                         }
-                        className="btn-gold px-4 py-2 text-[10px] w-full sm:w-auto"
+                        className="btn-gold px-4 py-2.5 text-xs w-full sm:w-auto"
                       >
                         Book Now
                       </button>
                       <Link
                         to={`/property/${data.slug}`}
-                        className="flex w-full items-center justify-center gap-1.5 border border-white/30 bg-white/10 px-4 py-2 text-[10px] text-white transition-all hover:bg-white hover:text-[#1a1a1a] sm:w-auto"
+                        className="flex w-full items-center justify-center gap-1.5 border border-white/30 bg-white/10 px-4 py-2.5 text-xs text-white transition-all hover:bg-white hover:text-[#1a1a1a] sm:w-auto"
                         style={{
                           fontFamily: "Jost, sans-serif",
                           letterSpacing: "0.1em",
