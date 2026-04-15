@@ -19,6 +19,8 @@ import {
   CreditCard,
   BadgeCheck,
 } from "lucide-react";
+import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css";
 const isPaymentReady = !!import.meta.env.VITE_PAYMONGO_READY;
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -270,6 +272,16 @@ function createInitialFormState(initialPackage: RatePackage): FormState {
   };
 }
 
+// ─── Phone helpers ───────────────────────────────────────────────────────────
+
+const PH_PHONE_RE = /^\+639\d{9}$/;
+
+function isValidPhilippinePhone(value: string): boolean {
+  return PH_PHONE_RE.test(value);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 function getFriendlyErrorMessage(message: string) {
   const normalized = message.toLowerCase();
 
@@ -307,6 +319,7 @@ export default function BookingFormModal({
   const [step, setStep] = useState<Step>("details");
   const [submitting, setSubmitting] = useState(false);
   const [selectedPkg, setSelectedPkg] = useState<RatePackage>(initialPackage);
+  const [phoneError, setPhoneError] = useState("");
   const scrollableRef = useRef<HTMLDivElement>(null);
 
   const [form, setForm] = useState<FormState>(() =>
@@ -323,6 +336,7 @@ export default function BookingFormModal({
     setStep("details");
     setSubmitting(false);
     setSelectedPkg(initialPackage);
+    setPhoneError("");
     setForm(createInitialFormState(initialPackage));
   }, [open, initialPackage, property.slug]);
 
@@ -369,7 +383,8 @@ export default function BookingFormModal({
     form.full_name.trim() &&
     form.email.trim() &&
     form.address.trim() &&
-    form.contact_number.trim();
+    form.contact_number.trim() &&
+    isValidPhilippinePhone(form.contact_number);
   const canProceedBooking =
     form.preferred_dates.trim() &&
     form.rate_label &&
@@ -656,16 +671,63 @@ export default function BookingFormModal({
                     </FieldRow>
 
                     <FieldRow icon={Phone} label="Contact Number *">
-                      <input
-                        type="tel"
-                        inputMode="tel"
-                        value={form.contact_number}
-                        onChange={(e) => set("contact_number", e.target.value)}
-                        placeholder="+63 9XX XXX XXXX"
-                        autoComplete="tel"
-                        className={INPUT_CLS}
-                        style={{ fontFamily: "Jost, sans-serif" }}
-                      />
+                      <div>
+                        <PhoneInput
+                          country="ph"
+                          value={form.contact_number.replace(/^\+/, "")}
+                          onChange={(phone) => {
+                            const intlPhone = "+" + phone;
+                            set("contact_number", intlPhone);
+                            // Only validate once enough digits are present
+                            if (phone.length >= 11) {
+                              setPhoneError(
+                                isValidPhilippinePhone(intlPhone)
+                                  ? ""
+                                  : "Please enter a valid Philippine number",
+                              );
+                            } else {
+                              setPhoneError("");
+                            }
+                          }}
+                          inputStyle={{
+                            width: "100%",
+                            fontFamily: "Jost, sans-serif",
+                            fontSize: "0.875rem",
+                            color: "#1a1a1a",
+                            backgroundColor: "white",
+                            border: `1px solid ${phoneError ? "#f87171" : "#e9e2d7"}`,
+                            borderRadius: "0.75rem",
+                            padding: "0.75rem 1rem 0.75rem 3rem",
+                            outline: "none",
+                            transition: "border-color 300ms",
+                          }}
+                          buttonStyle={{
+                            border: `1px solid ${phoneError ? "#f87171" : "#e9e2d7"}`,
+                            borderRight: "none",
+                            borderRadius: "0.75rem 0 0 0.75rem",
+                            backgroundColor: "white",
+                            transition: "border-color 300ms",
+                          }}
+                          containerStyle={{ width: "100%" }}
+                          enableSearch
+                          disableSearchIcon
+                        />
+                        {phoneError ? (
+                          <p
+                            className="mt-1 text-xs text-red-400"
+                            style={{ fontFamily: "Jost, sans-serif" }}
+                          >
+                            {phoneError}
+                          </p>
+                        ) : (
+                          <p
+                            className="mt-1 text-xs text-[#a0988b]"
+                            style={{ fontFamily: "Jost, sans-serif" }}
+                          >
+                            Format: +63 9XX XXX XXXX
+                          </p>
+                        )}
+                      </div>
                     </FieldRow>
                   </motion.div>
                 )}
