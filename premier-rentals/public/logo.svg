@@ -1,0 +1,33 @@
+<svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .text-main {
+      font-family: 'Georgia', serif;
+      fill: #555;
+      letter-spacing: 3px;
+    }
+    .text-small {
+      font-family: 'Georgia', serif;
+      fill: #777;
+      letter-spacing: 2px;
+    }
+  </style>
+
+  <!-- Roof -->
+  <polyline points="100,140 200,70 300,140" fill="none" stroke="#555" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></polyline>
+
+  <!-- Main Text -->
+  <text x="200" y="200" text-anchor="middle" class="text-main" font-size="36">
+    PREMIER
+  </text>
+  <text x="200" y="240" text-anchor="middle" class="text-main" font-size="36">
+    POOL
+  </text>
+  <text x="200" y="280" text-anchor="middle" class="text-main" font-size="36">
+    HOUSE
+  </text>
+
+  <!-- Sub Text -->
+  <text x="200" y="320" text-anchor="middle" class="text-small" font-size="18">
+    QUEZON CITY
+  </text>
+</svg>
