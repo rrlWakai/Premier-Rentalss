@@ -121,9 +121,15 @@ export default function Retreats() {
                   </div>
 
                   {/* Bottom overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6">
+                  <div
+                    className="absolute bottom-0 left-0 right-0 p-4 sm:p-6"
+                    style={{
+                      background:
+                        "linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.38) 55%, transparent 100%)",
+                    }}
+                  >
                     <p
-                      className="mb-2 text-[10px] uppercase tracking-[0.24em] text-white/60"
+                      className="mb-2 text-xs uppercase tracking-[0.24em] text-white/80"
                       style={{ fontFamily: "Jost, sans-serif" }}
                     >
                       {fit.eyebrow}
@@ -141,7 +147,7 @@ export default function Retreats() {
 
                     {/* Capacity row */}
                     <div
-                      className="mb-3 flex flex-col gap-2 text-[10px] text-white/55 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4"
+                      className="mb-3 flex flex-col gap-2 text-xs text-white/80 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4"
                       style={{ fontFamily: "Jost, sans-serif" }}
                     >
                       <span className="flex items-center gap-1.5">
@@ -152,7 +158,7 @@ export default function Retreats() {
                         <Car size={11} />
                         Max {data.maxCars} cars
                       </span>
-                      <span className="flex items-center gap-1.5 text-white/60">
+                      <span className="flex items-center gap-1.5">
                         <MapPin size={11} />
                         {fit.shortLocation}
                       </span>
@@ -161,7 +167,7 @@ export default function Retreats() {
                     {/* Starting price */}
                     <div className="mb-5 flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-3">
                       <span
-                        className="text-[10px] text-white/40 uppercase tracking-wider"
+                        className="text-xs text-white/65 uppercase tracking-wider"
                         style={{ fontFamily: "Jost, sans-serif" }}
                       >
                         Starting from
