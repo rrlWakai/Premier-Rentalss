@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
+
 import Navbar from "./Navbar";
 import Hero from "./Hero";
 import Stats from "./Stats";
@@ -14,17 +15,31 @@ import Footer from "./Footer";
 export default function HomePage() {
   const location = useLocation();
 
-  // Smooth scroll to hash on mount (e.g. /#retreats)
   useEffect(() => {
-    if (location.hash) {
-      const el = document.querySelector(location.hash);
-      if (el) {
-        setTimeout(() => el.scrollIntoView({ behavior: "smooth" }), 100);
+    const scrollToHash = () => {
+      if (location.hash) {
+        const el = document.querySelector(location.hash);
+
+        if (el) {
+          const navbarOffset = 80; // adjust based on your navbar height
+          const elementTop =
+            el.getBoundingClientRect().top + window.scrollY;
+
+          const offsetPosition = elementTop - navbarOffset;
+
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: "smooth",
+          });
+        }
+      } else {
+        window.scrollTo({ top: 0, behavior: "smooth" });
       }
-    } else {
-      window.scrollTo(0, 0);
-    }
-  }, [location]);
+    };
+
+    // Ensures DOM is ready before scrolling
+    requestAnimationFrame(scrollToHash);
+  }, [location.pathname, location.hash]);
 
   return (
     <div className="min-h-screen">
@@ -35,7 +50,6 @@ export default function HomePage() {
       <MoreThanStay />
       <Amenities />
       <Gallery />
-      {/* <Testimonials /> */}
       <TestimonialBanner />
       <Contact />
       <Footer />

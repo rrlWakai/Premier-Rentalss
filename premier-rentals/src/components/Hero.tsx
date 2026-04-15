@@ -1,9 +1,23 @@
+import { useRef } from "react";
 import { ChevronDown } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { ImgWithFallback } from "../lib/useImage";
 import { HERO_BG, FALLBACK } from "../lib/images";
 
 export default function Hero() {
+  const sectionRef = useRef<HTMLElement>(null);
+
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start start", "end start"],
+  });
+
+  // Background moves at ~30 % of scroll speed — creates depth against the content
+  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
+  // Text drifts upward slightly and fades as you scroll away
+  const textY = useTransform(scrollYProgress, [0, 1], ["0%", "12%"]);
+  const textOpacity = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
+
   const container = {
     hidden: {},
     visible: { transition: { staggerChildren: 0.15, delayChildren: 0.3 } },
@@ -20,12 +34,20 @@ export default function Hero() {
 
   return (
     <section
+      ref={sectionRef}
       id="home"
       className="hero-section relative flex min-h-[100svh] flex-col overflow-hidden py-0"
     >
-      <div className="absolute inset-0 overflow-hidden">
+      {/* ── Parallax background ── */}
+      <div className="absolute inset-0">
+        {/*
+          Extend the image 20 % above and below so the parallax shift (max ~30 %
+          of this div's height) never exposes a gap at the edges.
+          overflow-hidden on the section clips the overflow cleanly.
+        */}
         <motion.div
-          className="h-full w-full"
+          className="absolute inset-x-0 -top-[20%] -bottom-[20%]"
+          style={{ y: bgY }}
           initial={{ scale: 1.08 }}
           animate={{ scale: 1 }}
           transition={{ duration: 1.8, ease: "easeOut" }}
@@ -40,7 +62,11 @@ export default function Hero() {
         <div className="hero-overlay absolute inset-0" />
       </div>
 
-      <div className="relative flex flex-1 items-center justify-center">
+      {/* ── Content (drifts up + fades on scroll) ── */}
+      <motion.div
+        className="relative flex flex-1 items-center justify-center"
+        style={{ y: textY, opacity: textOpacity }}
+      >
         <div className="mx-auto flex w-full max-w-7xl items-center justify-center px-4 pb-16 pt-24 sm:px-6 sm:pb-16 sm:pt-28 lg:px-12 lg:pb-20 lg:pt-32">
           <motion.div
             className="mx-auto flex w-full max-w-3xl flex-col items-center gap-6 text-center sm:gap-7"
@@ -91,7 +117,7 @@ export default function Hero() {
             </motion.div>
           </motion.div>
         </div>
-      </div>
+      </motion.div>
 
       <motion.a
         href="#stats"
