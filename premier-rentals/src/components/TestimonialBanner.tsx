@@ -83,7 +83,7 @@ export default function TestimonialBanner() {
   return (
     <section
       ref={sectionRef}
-      className="relative overflow-hidden py-32"
+      className="relative overflow-hidden py-16 sm:py-24 lg:py-32"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
@@ -106,56 +106,59 @@ export default function TestimonialBanner() {
       </motion.div>
 
       {/* ── Content ── */}
-      <div className="relative max-w-3xl mx-auto px-6 text-center">
-        {/* Prev / Next */}
-        <button
-          onClick={() => navigate(-1)}
-          aria-label="Previous review"
-          className="absolute left-0 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 text-white/50 transition-all duration-200 hover:border-white/50 hover:text-white"
-        >
-          <ChevronLeft size={16} />
-        </button>
-        <button
-          onClick={() => navigate(1)}
-          aria-label="Next review"
-          className="absolute right-0 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 text-white/50 transition-all duration-200 hover:border-white/50 hover:text-white"
-        >
-          <ChevronRight size={16} />
-        </button>
+      <div className="relative mx-auto max-w-3xl px-4 sm:px-6">
+        {/* Prev / Next + slide in a flex row so buttons never touch the screen edge */}
+        <div className="flex items-center gap-3 sm:gap-5">
+          <button
+            onClick={() => navigate(-1)}
+            aria-label="Previous review"
+            className="shrink-0 flex h-8 w-8 items-center justify-center rounded-full border border-white/20 text-white/50 transition-all duration-200 hover:border-white/50 hover:text-white sm:h-9 sm:w-9"
+          >
+            <ChevronLeft size={15} />
+          </button>
 
-        {/* Slide */}
-        <div className="overflow-hidden px-10">
-          <AnimatePresence mode="wait" custom={direction}>
-            <motion.div
-              key={current}
-              custom={direction}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-            >
-              <div
-                className="mb-4 text-[#c9a96e] text-5xl leading-none select-none"
-                style={{ fontFamily: "Georgia, serif" }}
+          {/* Slide */}
+          <div className="min-w-0 flex-1 overflow-hidden text-center">
+            <AnimatePresence mode="wait" custom={direction}>
+              <motion.div
+                key={current}
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
               >
-                "
-              </div>
-              <p className="testimonial-quote mb-8">
-                {REVIEWS[current].quote}
-              </p>
-              <div className="divider-gold mx-auto mb-4" />
-              <p
-                className="text-white/50 text-xs tracking-widest uppercase"
-                style={{ fontFamily: "Jost, sans-serif" }}
-              >
-                &mdash; {REVIEWS[current].author}
-              </p>
-            </motion.div>
-          </AnimatePresence>
+                <div
+                  className="mb-3 text-[#c9a96e] text-4xl leading-none select-none sm:text-5xl"
+                  style={{ fontFamily: "Georgia, serif" }}
+                >
+                  "
+                </div>
+                <p className="testimonial-quote mb-6 sm:mb-8 whitespace-pre-line">
+                  {REVIEWS[current].quote}
+                </p>
+                <div className="divider-gold mx-auto mb-4" />
+                <p
+                  className="text-white/50 text-[10px] tracking-widest uppercase sm:text-xs"
+                  style={{ fontFamily: "Jost, sans-serif" }}
+                >
+                  &mdash; {REVIEWS[current].author}
+                </p>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          <button
+            onClick={() => navigate(1)}
+            aria-label="Next review"
+            className="shrink-0 flex h-8 w-8 items-center justify-center rounded-full border border-white/20 text-white/50 transition-all duration-200 hover:border-white/50 hover:text-white sm:h-9 sm:w-9"
+          >
+            <ChevronRight size={15} />
+          </button>
         </div>
 
         {/* Dot indicators */}
-        <div className="mt-10 flex items-center justify-center gap-2">
+        <div className="mt-8 flex items-center justify-center gap-2 sm:mt-10">
           {REVIEWS.map((_, i) => (
             <button
               key={i}
