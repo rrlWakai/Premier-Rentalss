@@ -118,7 +118,7 @@ export default function TestimonialBanner() {
           </button>
 
           {/* Slide */}
-          <div className="min-w-0 flex-1 overflow-hidden text-center">
+          <div className="min-w-0 flex-1 overflow-hidden text-center min-h-[220px] sm:min-h-[200px] flex flex-col justify-center">
             <AnimatePresence mode="wait" custom={direction}>
               <motion.div
                 key={current}
@@ -127,6 +127,7 @@ export default function TestimonialBanner() {
                 initial="enter"
                 animate="center"
                 exit="exit"
+                className="flex flex-col items-center"
               >
                 <div
                   className="mb-3 text-[#c9a96e] text-3xl leading-none select-none sm:text-4xl lg:text-5xl"
@@ -164,10 +165,10 @@ export default function TestimonialBanner() {
               key={i}
               onClick={() => goTo(i)}
               aria-label={`Go to review ${i + 1}`}
-              className={`h-1 rounded-full transition-all duration-300 ${
+              className={`h-2 w-2 rounded-full transition-all duration-300 ${
                 i === current
-                  ? "w-6 bg-[#c9a96e]"
-                  : "w-1.5 bg-white/30 hover:bg-white/50"
+                  ? "bg-[#c9a96e]"
+                  : "bg-white/30 hover:bg-white/50"
               }`}
             />
           ))}
