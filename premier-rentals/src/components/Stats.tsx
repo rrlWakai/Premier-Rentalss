@@ -44,7 +44,7 @@ function CountUp({ target, suffix }: { target: number; suffix: string }) {
 
 export default function Stats() {
   return (
-    <section id="stats" className="py-14 bg-white border-b border-[#ede8df]">
+    <section id="stats" className="bg-white border-b border-[#ede8df]">
       <div className="max-w-5xl mx-auto px-6">
         <motion.div
           className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 text-center"

@@ -83,7 +83,7 @@ export default function TestimonialBanner() {
   return (
     <section
       ref={sectionRef}
-      className="relative overflow-hidden py-16 sm:py-24 lg:py-32"
+      className="relative overflow-hidden"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
@@ -129,7 +129,7 @@ export default function TestimonialBanner() {
                 exit="exit"
               >
                 <div
-                  className="mb-3 text-[#c9a96e] text-4xl leading-none select-none sm:text-5xl"
+                  className="mb-3 text-[#c9a96e] text-3xl leading-none select-none sm:text-4xl lg:text-5xl"
                   style={{ fontFamily: "Georgia, serif" }}
                 >
                   "

@@ -139,9 +139,9 @@ body {
 .testimonial-quote {
   font-family: var(--font-display);
   font-style: italic;
-  font-size: clamp(1.3rem, 2.5vw, 1.8rem);
+  font-size: clamp(1.05rem, 3.5vw, 1.8rem);
   font-weight: 300;
-  line-height: 1.6;
+  line-height: 1.65;
   color: white;
 }
 
@@ -302,9 +302,29 @@ img { max-width: 100%; }
   cursor: pointer;
 }
 
-/* Fluid section padding on mobile */
+/* ─── Consistent section spacing system ──────────────────────────────────
+   .hero-section  — handles its own viewport-height layout (excluded)
+   .full-bleed    — full-bleed image+content grids; no outer padding needed
+   ──────────────────────────────────────────────────────────────────────── */
+section:not(.hero-section):not(.full-bleed) {
+  padding-top: 4rem;
+  padding-bottom: 4rem;
+}
+@media (min-width: 640px) {
+  section:not(.hero-section):not(.full-bleed) {
+    padding-top: 6rem;
+    padding-bottom: 6rem;
+  }
+}
+@media (min-width: 1024px) {
+  section:not(.hero-section):not(.full-bleed) {
+    padding-top: 8rem;
+    padding-bottom: 8rem;
+  }
+}
+
+/* Button sizing on mobile */
 @media (max-width: 640px) {
-  section:not(.hero-section) { padding-top: 4rem; padding-bottom: 4rem; }
   .btn-gold, .btn-outline-gold { padding: 0.75rem 1.5rem; font-size: 0.65rem; }
 }
 

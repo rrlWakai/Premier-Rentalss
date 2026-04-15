@@ -128,7 +128,7 @@ export default function Gallery() {
   }, [modalOpen]);
 
   return (
-    <section id="gallery" className="bg-[#f8f4ee] py-18 sm:py-22 lg:py-24">
+    <section id="gallery" className="bg-[#f8f4ee]">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-12">
         <motion.div
           className="mb-9 max-w-3xl sm:mb-10 lg:mb-12"

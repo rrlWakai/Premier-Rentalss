@@ -185,8 +185,8 @@ function ContactInfoCard({ card }: { card: ContactCard }) {
 
 export default function Contact() {
   return (
-    <section id="contact" className="relative">
-      <div className="grid min-h-[700px] grid-cols-1 lg:grid-cols-2">
+    <section id="contact" className="full-bleed relative">
+      <div className="grid grid-cols-1 sm:min-h-[700px] lg:grid-cols-2">
         <motion.div
           className="relative flex min-h-[260px] flex-col justify-end p-5 sm:min-h-[380px] sm:p-8 lg:min-h-0 lg:p-16"
           initial={{ opacity: 0 }}

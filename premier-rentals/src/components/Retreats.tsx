@@ -45,7 +45,7 @@ export default function Retreats() {
   } | null>(null);
 
   return (
-    <section id="retreats" className="bg-[#f8f4ee] py-16 sm:py-20 lg:py-24">
+    <section id="retreats" className="bg-[#f8f4ee]">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-12">
         {/* Header */}
         <div className="mb-10 max-w-3xl sm:mb-12">

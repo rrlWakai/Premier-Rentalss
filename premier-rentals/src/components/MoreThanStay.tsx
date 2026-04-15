@@ -5,8 +5,8 @@ import { MORE_THAN_BG, FALLBACK } from '../lib/images'
 
 export default function MoreThanStay() {
   return (
-    <section id="about" className="relative overflow-hidden">
-      <div className="grid min-h-[600px] grid-cols-1 lg:grid-cols-2">
+    <section id="about" className="full-bleed relative overflow-hidden">
+      <div className="grid grid-cols-1 sm:min-h-[600px] lg:grid-cols-2">
 
         {/* Image — local /public/images/gallery/spa.jpg */}
         <motion.div

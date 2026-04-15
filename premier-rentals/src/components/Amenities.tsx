@@ -41,7 +41,7 @@ export default function Amenities() {
   return (
     <section
       id="amenities"
-      className="relative overflow-hidden bg-[#f6f1ea] py-18 sm:py-22 lg:py-28"
+      className="relative overflow-hidden bg-[#f6f1ea]"
     >
       <div
         className="absolute inset-x-0 top-0 h-32 opacity-70"
