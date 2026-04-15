@@ -20,7 +20,7 @@
         { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://maps.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https://*.googleapis.com https://*.gstatic.com https:; media-src 'self'; connect-src 'self' https://*.supabase.co https://api.paymongo.com https://api.resend.com; frame-src https://www.google.com https://maps.google.com; frame-ancestors 'self';"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://maps.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https://*.googleapis.com https://*.gstatic.com https:; media-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.paymongo.com https://api.resend.com; frame-src https://www.google.com https://maps.google.com; frame-ancestors 'self';"
         }
       ]
     }
