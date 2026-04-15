@@ -124,8 +124,6 @@ export default function AdminDashboard() {
       },
       () => {
         console.log("Realtime update triggered");
-
-        // 🔥 reuse your existing refresh logic
         refreshData();
       }
     )
