@@ -38,10 +38,6 @@ export default function MoreThanStay() {
             style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2rem, 3.5vw, 2.8rem)', fontWeight: 400, lineHeight: 1.15 }}>
             About <span style={{ color: '#c9a96e', fontStyle: 'italic' }}>Premier Rentals</span>
           </h2>
-          <p className="text-white/55 text-sm leading-relaxed mb-5 max-w-2xl"
-            style={{ fontFamily: 'Jost, sans-serif', fontWeight: 300 }}>
-            Premier Rentals offers private, thoughtfully designed spaces across Metro Manila, each with its own unique experience, but built on the same promise of comfort, privacy, and convenience.
-          </p>
 
           <div className="mb-8 flex flex-col gap-4 sm:mb-10">
             {[
