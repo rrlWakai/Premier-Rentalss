@@ -2,7 +2,6 @@
 import {
   BOOKING_CATALOG,
   getBookingAmounts,
-  labelToTimeSlot,
   normalizeTimeSlot,
 } from "../_shared/catalog";
 import { enforceRateLimit } from "../_shared/rateLimit";
