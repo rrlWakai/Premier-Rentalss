@@ -42,9 +42,15 @@ export interface PropertyData {
   policies: string[]
 }
 
+export interface AmenitySubGroup {
+  label: string
+  items: string[]
+}
+
 export interface AmenityGroup {
   group: string
   items: string[]
+  subGroups?: AmenitySubGroup[]
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -196,28 +202,30 @@ export const POOL_HOUSE_DATA: PropertyData = {
   ],
   amenities: [
     {
-      group: 'Outdoor Area',
-      items: ['Pool Deck', 'Swimming Pool', 'Kiddie Pool', 'Poolside Day Beds', 'Outdoor Shower Area', '2 Toilet & Bath', 'Outdoor Dining Area', 'Bar Area', 'Parking Area', 'Spacious Grass Area', 'Wifi Access', 'Indoor Parking'],
+      group: 'Outdoor Experience',
+      items: ['Swimming Pool', 'Spacious Grass Area', 'Mini Golf', 'Piko', 'Outdoor Dining Area', 'Bar Area', '2 Toilet & Bath'],
     },
     {
-      group: 'Indoor Ground Floor',
-      items: ['Spacious Living Room', 'Bohemian Style Table Set Up', 'Airconditioned Multipurpose/Videoke Room', 'Netflix Access', '2 Toilets'],
+      group: 'Indoor Comfort',
+      items: ['Sunken Living Area', 'Airconditioned Videoke Room', 'Elegant Dining Area', 'WiFi Access', 'Netflix, Prime & Disney+'],
     },
     {
-      group: 'Indoor Second Floor',
-      items: ['Spacious Living Room', 'Game Lounge', 'Balcony View'],
+      group: 'Rooms & Accommodation',
+      items: [],
+      subGroups: [
+        {
+          label: 'Bedroom 1',
+          items: ['Airconditioned Room', 'Good for 10 persons', 'Private Toilet & Bath with Water Heater', 'Balcony View'],
+        },
+        {
+          label: 'Bedroom 2',
+          items: ['Airconditioned Room', 'Good for 2–5 persons', 'King Size Bed + Sofa Bed', 'Private Toilet & Bath'],
+        },
+      ],
     },
     {
-      group: 'Bedroom 1',
-      items: ['Airconditioned Room', '20 Persons Capacity', 'Bed Space / Floor Cushions & Table', '1 Private Toilet & Bath', 'Spacious Balcony', 'Balcony View'],
-    },
-    {
-      group: 'Bedroom 2 (Premium & Platinum)',
-      items: ['Airconditioned Room', '4 Persons Capacity', 'Hotel-like Twin Beds', 'Cabinet & Drawers', '1 Private Toilet & Bath'],
-    },
-    {
-      group: 'Indoor Kitchen',
-      items: ['Microwave', 'Oven Toaster', 'Kettle', 'Coffee Maker', 'Refrigerator', 'Stove', 'Pots & Pans', 'Plates & Utensils', 'Glass Cups', 'Griller', 'Rice Cooker'],
+      group: 'Kitchen & Essentials',
+      items: ['Refrigerator', 'Microwave', 'Rice Cooker', '2 Burner Stove', 'Griller', 'Pots & Pans', 'Plates & Utensils', 'Drinking Water'],
     },
   ],
   houseRules: [

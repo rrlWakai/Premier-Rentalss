@@ -10,6 +10,7 @@ import {
   UtensilsCrossed,
   Waves,
   BedDouble,
+  Sofa,
   ChevronDown,
   ChevronUp,
   Info,
@@ -45,11 +46,14 @@ const GALLERY_FALLBACKS: Record<string, string[]> = {
 };
 
 const AMENITY_ICONS: Record<string, typeof Wifi> = {
-  "Wifi Access": Wifi,
-  "Swimming Pool": Waves,
-  "Pool Deck": Waves,
-  "Kiddie Pool": Waves,
-  "Indoor Kitchen": UtensilsCrossed,
+  "Outdoor Experience": Waves,
+  "Indoor Comfort": Sofa,
+  "Rooms & Accommodation": BedDouble,
+  "Kitchen & Essentials": UtensilsCrossed,
+  // patio fallbacks
+  "Outdoor Area": Waves,
+  "Indoor Ground Floor": Sofa,
+  "Indoor Second Floor": Sofa,
   "Outdoor Kitchen": UtensilsCrossed,
   "Bedroom 1": BedDouble,
   "Bedroom 2": BedDouble,
@@ -598,38 +602,71 @@ export default function PropertyPage() {
             {/* Amenities */}
             <div>
               <p className="section-label mb-4">Amenities & Features</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {property.amenities.map((group) => {
                   const Icon = AMENITY_ICONS[group.group] ?? Wifi;
                   return (
                     <div
                       key={group.group}
-                      className="bg-white rounded-xl border border-[#ede8df] p-4"
+                      className="bg-white rounded-xl border border-[#ede8df] p-5"
                     >
-                      <div className="flex items-center gap-2 mb-3">
-                        <Icon size={14} color="#c9a96e" strokeWidth={1.5} />
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "rgba(201,169,110,0.1)" }}>
+                          <Icon size={14} color="#c9a96e" strokeWidth={1.5} />
+                        </div>
                         <p
-                          className="text-xs font-medium text-[#1a1a1a] tracking-wide"
+                          className="text-xs font-semibold text-[#1a1a1a] tracking-wide uppercase"
                           style={{ fontFamily: "Jost, sans-serif" }}
                         >
                           {group.group}
                         </p>
                       </div>
-                      <ul className="flex flex-col gap-1">
-                        {group.items.map((item) => (
-                          <li
-                            key={item}
-                            className="text-[11px] text-[#8a8a7a] flex items-start gap-1.5"
-                            style={{ fontFamily: "Jost, sans-serif" }}
-                          >
-                            <span
-                              className="mt-1 w-1 h-1 rounded-full shrink-0"
-                              style={{ background: "#c9a96e" }}
-                            />
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
+                      {group.items.length > 0 && (
+                        <ul className="flex flex-col gap-1.5">
+                          {group.items.map((item) => (
+                            <li
+                              key={item}
+                              className="text-[11px] text-[#8a8a7a] flex items-start gap-1.5"
+                              style={{ fontFamily: "Jost, sans-serif" }}
+                            >
+                              <span
+                                className="mt-[5px] w-1 h-1 rounded-full shrink-0"
+                                style={{ background: "#c9a96e" }}
+                              />
+                              {item}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {group.subGroups && (
+                        <div className="flex flex-col gap-4">
+                          {group.subGroups.map((sub) => (
+                            <div key={sub.label}>
+                              <p
+                                className="text-[10px] font-semibold uppercase tracking-widest mb-2"
+                                style={{ fontFamily: "Jost, sans-serif", color: "#c9a96e" }}
+                              >
+                                {sub.label}
+                              </p>
+                              <ul className="flex flex-col gap-1.5">
+                                {sub.items.map((item) => (
+                                  <li
+                                    key={item}
+                                    className="text-[11px] text-[#8a8a7a] flex items-start gap-1.5"
+                                    style={{ fontFamily: "Jost, sans-serif" }}
+                                  >
+                                    <span
+                                      className="mt-[5px] w-1 h-1 rounded-full shrink-0"
+                                      style={{ background: "#c9a96e" }}
+                                    />
+                                    {item}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
