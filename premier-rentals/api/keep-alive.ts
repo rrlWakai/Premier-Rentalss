@@ -11,7 +11,7 @@ export default async function handler(
   )
 
   const { data, error } = await supabase
-    .from('your_table') // change this
+    .from('bookings') 
     .select('*')
     .limit(1)
 
