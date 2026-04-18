@@ -1,4 +1,4 @@
-import { requireAdmin, requireStaff } from "../_shared/adminAuth";
+import {  requireStaff } from "../_shared/adminAuth";
 import { json } from "../_shared/response";
 import { supabaseAdmin } from "../_shared/supabaseAdmin";
 

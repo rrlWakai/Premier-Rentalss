@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/keep-alive",
+      "path": "/api/keep-alive?ts=ping",
       "schedule": "0 0 */3 * *"
     }
   ],
