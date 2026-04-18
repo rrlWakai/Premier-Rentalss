@@ -373,11 +373,21 @@ export default function BookingFormModal({
   const {
     priceType,
     totalAmount,
-    downpaymentAmount,
-    remainingBalance,
   } = getBookingPriceBreakdown(selectedRate, form.preferred_dates);
   const priceTypeLabel =
     priceType === "weekend" ? "Weekend Rate Applied" : "Weekday Rate Applied";
+
+  const selectedGuests = Number(form.num_guests) || 0;
+  const basePax = selectedPkg.maxPax;
+  const extraPax = Math.max(0, selectedGuests - basePax);
+  const extraRate =
+    form.preferred_time === "Day"
+      ? selectedPkg.additionalPaxDay
+      : selectedPkg.additionalPaxNight;
+  const extraCost = extraPax * extraRate;
+  const finalTotal = totalAmount + extraCost;
+  const finalDownpayment = finalTotal * 0.5;
+  const finalRemaining = finalTotal - finalDownpayment;
 
   const canProceedDetails =
     form.full_name.trim() &&
@@ -390,7 +400,7 @@ export default function BookingFormModal({
     form.rate_label &&
     form.num_guests &&
     Number(form.num_guests) >= 1 &&
-    Number(form.num_guests) <= selectedPkg.maxPax &&
+    Number(form.num_guests) <= selectedPkg.maxPax + selectedPkg.maxAdditionalPax &&
     form.num_cars &&
     Number(form.num_cars) >= 1 &&
     Number(form.num_cars) <= property.maxCars;
@@ -815,16 +825,16 @@ export default function BookingFormModal({
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <FieldRow
                         icon={Users}
-                        label={`Guests (max ${selectedPkg.maxPax}) *`}
+                        label={`Guests (max ${selectedPkg.maxPax + selectedPkg.maxAdditionalPax}) *`}
                       >
                         <input
                           type="number"
                           inputMode="numeric"
                           min={1}
-                          max={selectedPkg.maxPax}
+                          max={selectedPkg.maxPax + selectedPkg.maxAdditionalPax}
                           value={form.num_guests}
                           onChange={(e) => set("num_guests", e.target.value)}
-                          placeholder={`1–${selectedPkg.maxPax}`}
+                          placeholder={`1–${selectedPkg.maxPax + selectedPkg.maxAdditionalPax}`}
                           className={INPUT_CLS}
                           style={{ fontFamily: "Jost, sans-serif" }}
                         />
@@ -963,6 +973,13 @@ export default function BookingFormModal({
                         {reviewSummaryItems.map((item) => (
                           <SummaryItem key={item.label} {...item} />
                         ))}
+                        {extraPax > 0 && (
+                          <SummaryItem
+                            icon={Users}
+                            label="Extra Pax Fee"
+                            value={`${extraPax} pax × ${formatPHP(extraRate)} = ${formatPHP(extraCost)}`}
+                          />
+                        )}
                         {form.special_requests && (
                           <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:gap-3 sm:px-5">
                             <Package
@@ -1002,7 +1019,7 @@ export default function BookingFormModal({
                               color: "#1a1a1a",
                             }}
                           >
-                            {formatPHP(totalAmount)}
+                            {formatPHP(finalTotal)}
                           </p>
                           <p
                             className="mt-1 text-[10px] uppercase tracking-[0.18em] text-[#8a8a7a]"
@@ -1026,7 +1043,7 @@ export default function BookingFormModal({
                               color: "#c9a96e",
                             }}
                           >
-                            {formatPHP(downpaymentAmount)}
+                            {formatPHP(finalDownpayment)}
                           </p>
                         </div>
                         <div>
@@ -1044,7 +1061,7 @@ export default function BookingFormModal({
                               color: "#1a1a1a",
                             }}
                           >
-                            {formatPHP(remainingBalance)}
+                            {formatPHP(finalRemaining)}
                           </p>
                         </div>
                       </div>
@@ -1133,8 +1150,8 @@ export default function BookingFormModal({
                     </>
                   ) : (
                     <>
-                      <span className="hidden sm:inline">Proceed to Secure Payment ({formatPHP(downpaymentAmount)})</span>
-                      <span className="sm:hidden">Pay {formatPHP(downpaymentAmount)}</span>
+                      <span className="hidden sm:inline">Proceed to Secure Payment ({formatPHP(finalDownpayment)})</span>
+                      <span className="sm:hidden">Pay {formatPHP(finalDownpayment)}</span>
                       <ChevronRight size={14} />
                     </>
                   )}
