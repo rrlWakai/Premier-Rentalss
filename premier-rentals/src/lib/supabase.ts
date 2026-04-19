@@ -586,3 +586,72 @@ export async function removeStaff(id: string): Promise<boolean> {
     return false;
   }
 }
+
+// ── DISCOUNTS ─────────────────────────────────────────────────────────
+
+export interface Discount {
+  id: string;
+  name: string;
+  percentage: number;
+  applies_to: "all" | "property" | "rate";
+  property_ids: string[] | null;
+  rate_labels: string[] | null;
+  start_date: string;
+  end_date: string;
+  active: boolean;
+  created_at: string;
+}
+
+export type DiscountPayload = Omit<Discount, "id" | "created_at">;
+
+export async function fetchDiscounts(): Promise<Discount[]> {
+  const { data, error } = await supabase
+    .from("discounts")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("fetchDiscounts:", error);
+    return [];
+  }
+  return data ?? [];
+}
+
+export async function createDiscount(payload: DiscountPayload): Promise<Discount | null> {
+  const { data, error } = await supabase
+    .from("discounts")
+    .insert(payload)
+    .select()
+    .single();
+  if (error) {
+    console.error("createDiscount:", error);
+    return null;
+  }
+  return data;
+}
+
+export async function updateDiscount(
+  id: string,
+  payload: Partial<DiscountPayload>,
+): Promise<boolean> {
+  const { error } = await supabase
+    .from("discounts")
+    .update(payload)
+    .eq("id", id);
+  if (error) {
+    console.error("updateDiscount:", error);
+    return false;
+  }
+  return true;
+}
+
+export async function deleteDiscount(id: string): Promise<boolean> {
+  const { error } = await supabase
+    .from("discounts")
+    .delete()
+    .eq("id", id);
+  if (error) {
+    console.error("deleteDiscount:", error);
+    return false;
+  }
+  return true;
+}

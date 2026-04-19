@@ -81,19 +81,35 @@ export default async function handler(request: Request) {
       .single();
 
     if (bookingError || !booking) {
+      console.warn("[PAYMENT] booking not found:", { bookingId });
       return json({ error: "Booking not found" }, { status: 404 });
     }
 
-    if (!booking.locked_until || new Date(booking.locked_until).getTime() <= Date.now()) {
+    // Safety check: reject if booking hold has expired.
+    const lockExpiry = booking.locked_until
+      ? new Date(booking.locked_until).getTime()
+      : 0;
+    if (lockExpiry <= Date.now()) {
+      console.warn("[PAYMENT] booking expired:", {
+        bookingId,
+        lockedUntil: booking.locked_until,
+      });
       return json({ error: "Booking expired" }, { status: 410 });
     }
 
+    // Safety check: reject if already confirmed or paid.
     if (booking.status === "confirmed" || booking.payment_status === "paid") {
+      console.warn("[PAYMENT] booking already complete:", {
+        bookingId,
+        status: booking.status,
+        paymentStatus: booking.payment_status,
+      });
       return json({ error: "Slot already booked" }, { status: 409 });
     }
 
     if (booking.checkout_session_id) {
       if (String(booking.checkout_session_id).startsWith("initializing:")) {
+        console.warn("[PAYMENT] checkout already initializing:", { bookingId });
         return json({ error: "Checkout already initialized" }, { status: 409 });
       }
 
@@ -105,16 +121,16 @@ export default async function handler(request: Request) {
         .maybeSingle();
 
       if (existingPaymentError) {
+        console.error("[PAYMENT] payment lookup failed:", existingPaymentError.message);
         return json({ error: "Failed to verify checkout session" }, { status: 500 });
       }
 
       if (existingPayment?.checkout_session_id && existingPayment.status === "pending") {
-        // Active pending session — block duplicate checkout
+        console.warn("[PAYMENT] active pending session exists:", { bookingId });
         return json({ error: "Checkout already initialized" }, { status: 409 });
       }
 
-      // Session is terminal (expired/failed/cancelled) or missing from payments table.
-      // Clear the stale session ID so the initialization lock below can proceed.
+      // Session is terminal (expired/failed/cancelled) — clear it so the lock below can proceed.
       const { error: clearError } = await supabaseAdmin
         .from("bookings")
         .update({ checkout_session_id: null })
@@ -122,45 +138,36 @@ export default async function handler(request: Request) {
         .eq("checkout_session_id", booking.checkout_session_id);
 
       if (clearError) {
+        console.error("[PAYMENT] failed to clear stale session:", clearError.message);
         return json({ error: "Failed to reset checkout session" }, { status: 500 });
       }
+
+      console.log("[PAYMENT] cleared stale checkout session:", { bookingId });
     }
 
     const property = BOOKING_CATALOG[booking.property_id];
     if (!property) {
+      console.error("[PAYMENT] unknown property_id:", booking.property_id);
       return json({ error: "Invalid booking property" }, { status: 500 });
     }
 
+    // Safety check: downpayment_amount was written by computeBookingPrice() at booking
+    // creation and is the authoritative amount to charge. Never recompute here.
     const downpaymentAmount = Number(booking.downpayment_amount);
     if (!Number.isFinite(downpaymentAmount) || downpaymentAmount <= 0) {
+      console.error("[PAYMENT] invalid downpayment_amount:", {
+        bookingId,
+        downpaymentAmount: booking.downpayment_amount,
+      });
       return json({ error: "Invalid booking payment amount" }, { status: 500 });
     }
 
-    // Re-derive expected amounts from the catalog to prevent tampered DB records
-    // from charging the wrong amount.
-    const { getBookingAmounts } = await import("../_shared/catalog");
-    const expectedAmounts = getBookingAmounts({
+    console.log("[PAYMENT] initiating checkout:", {
+      bookingId,
       propertyId: booking.property_id,
-      rateTier: booking.rate_tier ?? "",
-      rateLabel: booking.rate_label ?? "",
-      reservationDate: booking.booking_date,
+      downpaymentAmount,
+      lockedUntil: booking.locked_until,
     });
-
-    if (expectedAmounts) {
-      const expectedDownpayment = expectedAmounts.downpaymentAmount;
-      const tolerance = 1; // 1 PHP tolerance for floating-point rounding
-      if (Math.abs(expectedDownpayment - downpaymentAmount) > tolerance) {
-        console.error("[payments/checkout] amount mismatch", {
-          bookingId: booking.id,
-          stored: downpaymentAmount,
-          expected: expectedDownpayment,
-        });
-        return json(
-          { error: "Booking pricing inconsistency detected. Please contact support." },
-          { status: 409 },
-        );
-      }
-    }
 
     const initializationToken = `initializing:${crypto.randomUUID()}`;
     const nowIso = new Date().toISOString();
@@ -234,6 +241,10 @@ export default async function handler(request: Request) {
         return json({ error: "Failed to save checkout details" }, { status: 500 });
       }
 
+      console.log("[PAYMENT] checkout session created:", {
+        bookingId: booking.id,
+        checkoutSessionId,
+      });
       return json({ checkout_url: checkoutUrl }, { status: 200 });
     } catch (error: any) {
       await clearCheckoutInitializationLock(booking.id, initializationToken);

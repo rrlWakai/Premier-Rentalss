@@ -18,6 +18,7 @@ import {
   Lock,
   CreditCard,
   BadgeCheck,
+  Tag,
 } from "lucide-react";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
@@ -35,7 +36,6 @@ import {
   type PreferredPlan,
   formatPHP,
 } from "../lib/propertyData";
-import { getBookingPriceBreakdown } from "../lib/bookingPricing";
 import toast from "react-hot-toast";
 
 if (!isPaymentReady) {
@@ -88,7 +88,8 @@ function labelToPlan(label: string): PreferredPlan {
 
 function formatDisplayDate(value: string) {
   if (!value) return "";
-  const date = new Date(`${value}T00:00:00`);
+  // Parse as UTC noon to avoid off-by-one day caused by local-timezone midnight.
+  const date = new Date(`${value}T12:00:00Z`);
   if (Number.isNaN(date.getTime())) return value;
 
   return new Intl.DateTimeFormat("en-PH", {
@@ -114,6 +115,23 @@ interface FormState {
 }
 
 type IconComponent = typeof User;
+
+type PriceBreakdown = {
+  priceType: "weekday" | "weekend";
+  maxPax: number;
+  guests: number;
+  extraPax: number;
+  basePrice: number;
+  additionalPaxRate: number;
+  extraCost: number;
+  subtotal: number;
+  discountLabel: string;
+  discountPercentage: number;
+  discountAmount: number;
+  finalTotal: number;
+  downpayment: number;
+  remainingBalance: number;
+};
 
 interface SummaryItemData {
   icon: IconComponent;
@@ -326,6 +344,11 @@ export default function BookingFormModal({
     createInitialFormState(initialPackage),
   );
 
+  const [priceBreakdown, setPriceBreakdown] = useState<PriceBreakdown | null>(null);
+  const [priceLoading, setPriceLoading] = useState(false);
+  const [priceError, setPriceError] = useState("");
+  const [priceRetryKey, setPriceRetryKey] = useState(0);
+
   const stepIndex = STEPS.findIndex((item) => item.id === step);
 
   const set = (field: keyof FormState, value: string) =>
@@ -338,6 +361,10 @@ export default function BookingFormModal({
     setSelectedPkg(initialPackage);
     setPhoneError("");
     setForm(createInitialFormState(initialPackage));
+    setPriceBreakdown(null);
+    setPriceLoading(false);
+    setPriceError("");
+    setPriceRetryKey(0);
   }, [open, initialPackage, property.slug]);
 
   // Scroll focused field into view after keyboard opens (~300 ms delay)
@@ -360,6 +387,71 @@ export default function BookingFormModal({
     return () => el.removeEventListener("focusin", onFocusIn);
   }, []);
 
+  // Fetch authoritative price from backend whenever key booking inputs change.
+  // Uses AbortController so stale in-flight requests never overwrite newer state.
+  // priceRetryKey is incremented by the retry button to force a re-fetch without
+  // changing any other dependency.
+  useEffect(() => {
+    const date = form.preferred_dates;
+    const label = form.rate_label;
+    const guestCount = Number(form.num_guests);
+
+    if (!date || !label || guestCount < 1) {
+      setPriceBreakdown(null);
+      setPriceLoading(false);
+      setPriceError("");
+      return;
+    }
+
+    setPriceLoading(true);
+    setPriceError("");
+
+    const controller = new AbortController();
+
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch("/api/pricing/compute", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            property_id: property.slug,
+            rate_tier: selectedPkg.tier,
+            rate_label: label,
+            reservation_date: date,
+            guests: guestCount,
+          }),
+        });
+
+        // Guard: if this request was aborted after the response arrived, discard it.
+        if (controller.signal.aborted) return;
+
+        const data = await response.json();
+        if (!response.ok) {
+          setPriceError(data.error || "Unable to compute price.");
+          setPriceBreakdown(null);
+        } else {
+          setPriceBreakdown(data as PriceBreakdown);
+          setPriceError("");
+        }
+      } catch (err) {
+        // AbortError means a newer request superseded this one — do nothing.
+        if (err instanceof Error && err.name === "AbortError") return;
+        setPriceError("Unable to compute price. Please try again.");
+        setPriceBreakdown(null);
+      } finally {
+        if (!controller.signal.aborted) {
+          setPriceLoading(false);
+        }
+      }
+    }, 500);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [property.slug, selectedPkg.tier, form.rate_label, form.preferred_dates, form.num_guests, priceRetryKey]);
+
   // When rate changes, auto-set preferred_time and preferred_plan
   function handleRateChange(label: string) {
     set("rate_label", label);
@@ -367,27 +459,11 @@ export default function BookingFormModal({
     set("preferred_plan", labelToPlan(label));
   }
 
-  const selectedRate = selectedPkg.rates.find(
-    (r) => r.label === form.rate_label,
-  );
-  const {
-    priceType,
-    totalAmount,
-  } = getBookingPriceBreakdown(selectedRate, form.preferred_dates);
-  const priceTypeLabel =
-    priceType === "weekend" ? "Weekend Rate Applied" : "Weekday Rate Applied";
-
-  const selectedGuests = Number(form.num_guests) || 0;
-  const basePax = selectedPkg.maxPax;
-  const extraPax = Math.max(0, selectedGuests - basePax);
-  const extraRate =
-    form.preferred_time === "Day"
-      ? selectedPkg.additionalPaxDay
-      : selectedPkg.additionalPaxNight;
-  const extraCost = extraPax * extraRate;
-  const finalTotal = totalAmount + extraCost;
-  const finalDownpayment = finalTotal * 0.5;
-  const finalRemaining = finalTotal - finalDownpayment;
+  const priceTypeLabel = priceBreakdown
+    ? priceBreakdown.priceType === "weekend"
+      ? "Weekend Rate Applied"
+      : "Weekday Rate Applied"
+    : "";
 
   const canProceedDetails =
     form.full_name.trim() &&
@@ -403,7 +479,9 @@ export default function BookingFormModal({
     Number(form.num_guests) <= selectedPkg.maxPax + selectedPkg.maxAdditionalPax &&
     form.num_cars &&
     Number(form.num_cars) >= 1 &&
-    Number(form.num_cars) <= property.maxCars;
+    Number(form.num_cars) <= property.maxCars &&
+    priceBreakdown !== null &&
+    !priceLoading;
 
   const reviewSummaryItems: SummaryItemData[] = [
     {
@@ -459,6 +537,10 @@ export default function BookingFormModal({
   ];
 
   async function handleSubmit() {
+    if (!priceBreakdown) {
+      toast.error("Pricing is not ready. Please wait a moment and try again.");
+      return;
+    }
     setSubmitting(true);
 
     try {
@@ -857,6 +939,28 @@ export default function BookingFormModal({
                       </FieldRow>
                     </div>
 
+                    {priceError && (
+                      <div className="flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+                        <div className="flex items-start gap-2.5">
+                          <AlertCircle size={14} color="#ef4444" className="mt-0.5 shrink-0" />
+                          <p
+                            className="text-[11px] text-red-600"
+                            style={{ fontFamily: "Jost, sans-serif" }}
+                          >
+                            {priceError}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setPriceRetryKey((k) => k + 1)}
+                          className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-red-500 underline underline-offset-2 hover:text-red-700 transition-colors"
+                          style={{ fontFamily: "Jost, sans-serif" }}
+                        >
+                          Retry
+                        </button>
+                      </div>
+                    )}
+
                     <FieldRow icon={Wallet} label="Payment Method *">
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         {SUPPORTED_PAYMENT_METHODS.map((mode) => (
@@ -973,12 +1077,34 @@ export default function BookingFormModal({
                         {reviewSummaryItems.map((item) => (
                           <SummaryItem key={item.label} {...item} />
                         ))}
-                        {extraPax > 0 && (
+                        {(priceBreakdown?.extraPax ?? 0) > 0 && (
                           <SummaryItem
                             icon={Users}
                             label="Extra Pax Fee"
-                            value={`${extraPax} pax × ${formatPHP(extraRate)} = ${formatPHP(extraCost)}`}
+                            value={`${priceBreakdown!.extraPax} pax × ${formatPHP(priceBreakdown!.additionalPaxRate)} = ${formatPHP(priceBreakdown!.extraCost)}`}
                           />
+                        )}
+                        {(priceBreakdown?.discountAmount ?? 0) > 0 && (
+                          <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:gap-3 sm:px-5 bg-green-50/60">
+                            <Tag
+                              size={13}
+                              color="#16a34a"
+                              className="mt-0.5 shrink-0"
+                              strokeWidth={1.5}
+                            />
+                            <span
+                              className="shrink-0 text-[11px] text-[#8a8a7a] sm:w-28"
+                              style={{ fontFamily: "Jost, sans-serif" }}
+                            >
+                              Discount
+                            </span>
+                            <span
+                              className="text-[11px] font-medium text-green-700"
+                              style={{ fontFamily: "Jost, sans-serif" }}
+                            >
+                              {priceBreakdown!.discountLabel} ({priceBreakdown!.discountPercentage}% off) — −{formatPHP(priceBreakdown!.discountAmount)}
+                            </span>
+                          </div>
                         )}
                         {form.special_requests && (
                           <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:gap-3 sm:px-5">
@@ -1019,7 +1145,7 @@ export default function BookingFormModal({
                               color: "#1a1a1a",
                             }}
                           >
-                            {formatPHP(finalTotal)}
+                            {priceLoading ? "Computing…" : formatPHP(priceBreakdown?.finalTotal ?? 0)}
                           </p>
                           <p
                             className="mt-1 text-[10px] uppercase tracking-[0.18em] text-[#8a8a7a]"
@@ -1043,7 +1169,7 @@ export default function BookingFormModal({
                               color: "#c9a96e",
                             }}
                           >
-                            {formatPHP(finalDownpayment)}
+                            {priceLoading ? "Computing…" : formatPHP(priceBreakdown?.downpayment ?? 0)}
                           </p>
                         </div>
                         <div>
@@ -1061,7 +1187,7 @@ export default function BookingFormModal({
                               color: "#1a1a1a",
                             }}
                           >
-                            {formatPHP(finalRemaining)}
+                            {priceLoading ? "Computing…" : formatPHP(priceBreakdown?.remainingBalance ?? 0)}
                           </p>
                         </div>
                       </div>
@@ -1150,8 +1276,8 @@ export default function BookingFormModal({
                     </>
                   ) : (
                     <>
-                      <span className="hidden sm:inline">Proceed to Secure Payment ({formatPHP(finalDownpayment)})</span>
-                      <span className="sm:hidden">Pay {formatPHP(finalDownpayment)}</span>
+                      <span className="hidden sm:inline">Proceed to Secure Payment ({formatPHP(priceBreakdown?.downpayment ?? 0)})</span>
+                      <span className="sm:hidden">Pay {formatPHP(priceBreakdown?.downpayment ?? 0)}</span>
                       <ChevronRight size={14} />
                     </>
                   )}

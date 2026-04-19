@@ -23,6 +23,7 @@ import {
   RefreshCw,
   Trash2,
   UserCog,
+  Tag,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
@@ -51,10 +52,11 @@ import {
 import { STATUS_TAILWIND, PAYMENT_ACTIVE_CLS, PAYMENT_TEXT_CLS } from "../lib/constants";
 import { formatPHP } from "../lib/propertyData";
 import AdminCalendarView from "./AdminCalendarView";
+import DiscountsTab from "./DiscountsTab";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 
-type Tab = "overview" | "bookings" | "calendar" | "staff";
+type Tab = "overview" | "bookings" | "calendar" | "discounts" | "staff";
 
 const TIER_LABELS: Record<string, string> = {
   staycation: "Staycation",
@@ -306,6 +308,7 @@ export default function AdminDashboard() {
     { id: "overview", label: "Overview", icon: LayoutDashboard },
     { id: "bookings", label: "Bookings", icon: BookOpen },
     { id: "calendar", label: "Calendar", icon: CalendarDays },
+    ...(isOwner ? [{ id: "discounts" as Tab, label: "Discounts", icon: Tag }] : []),
     ...(isOwner ? [{ id: "staff" as Tab, label: "Staff", icon: UserCog }] : []),
   ];
 
@@ -949,6 +952,11 @@ export default function AdminDashboard() {
                     onRemoveBlock={handleRemoveBlock}
                   />
                 </motion.div>
+              )}
+
+              {/* DISCOUNTS */}
+              {tab === "discounts" && isOwner && (
+                <DiscountsTab />
               )}
 
               {/* STAFF MANAGEMENT */}
