@@ -18,7 +18,7 @@ export default function DiscountBadge({ discount, className = "" }: Props) {
         className="text-[10px] font-bold tracking-wide text-white uppercase leading-none"
         style={{ fontFamily: "Jost, sans-serif" }}
       >
-        🔥 {discount.percentage}% OFF
+         {discount.percentage}% OFF
       </span>
       {discount.name && (
         <>
