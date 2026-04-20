@@ -9,6 +9,7 @@ import { BookingSuccess, BookingFailed } from './components/BookingPages'
 import HomePage from './components/HomePage'
 import LegalPage from './components/LegalPage'
 import ErrorBoundary from './components/ErrorBoundary'
+import AuthCallback from './components/AuthCallback'
 
 export default function App() {
   return (
@@ -40,7 +41,7 @@ export default function App() {
           <Route path="/booking/success" element={<BookingSuccess />} />
           <Route path="/booking/failed" element={<BookingFailed />} />
           <Route path="/legal/:type" element={<LegalPage />} />
-
+<Route path="/auth/callback" element={<AuthCallback />} />
           {/* Admin */}
           <Route path="/admin" element={<AdminLogin />} />
           <Route
