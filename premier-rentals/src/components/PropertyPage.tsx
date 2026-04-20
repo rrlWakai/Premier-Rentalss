@@ -30,6 +30,8 @@ import { ImgWithFallback } from "../lib/useImage";
 import { FALLBACK } from "../lib/images";
 import BookingFormModal from "./BookingFormModal";
 import { fadeUpVariant, containerVariant } from "../lib/animations";
+import DiscountBadge from "./DiscountBadge";
+import { useActiveDiscounts } from "../lib/useActiveDiscounts";
 
 const PROPERTIES: Record<string, PropertyData> = {
   "premier-pool-house": POOL_HOUSE_DATA,
@@ -289,6 +291,8 @@ export default function PropertyPage() {
   const [rulesOpen, setRulesOpen] = useState(false);
 
   const property = slug ? PROPERTIES[slug] : null;
+  const { getBestDiscount } = useActiveDiscounts();
+  const badge = slug ? getBestDiscount(slug) : null;
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -448,8 +452,8 @@ export default function PropertyPage() {
           }}
         />
 
-        {/* Tag badge */}
-        <div className="absolute left-4 top-4 sm:left-5 sm:top-5">
+        {/* Tag badge + optional discount badge stacked */}
+        <div className="absolute left-4 top-4 flex flex-col items-start gap-2 sm:left-5 sm:top-5">
           <span
             className="border border-white/30 px-2.5 py-1 text-[9px] uppercase tracking-[0.18em] text-white/90 backdrop-blur-sm sm:px-3 sm:text-[10px]"
             style={{
@@ -459,6 +463,7 @@ export default function PropertyPage() {
           >
             {property.tagline}
           </span>
+          {badge && <DiscountBadge discount={badge} />}
         </div>
 
         <div className="absolute inset-x-0 bottom-0">

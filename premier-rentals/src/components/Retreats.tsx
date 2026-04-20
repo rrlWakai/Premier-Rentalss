@@ -14,6 +14,8 @@ import { ImgWithFallback } from "../lib/useImage";
 import { POOL_HOUSE, PATIO, FALLBACK } from "../lib/images";
 import { containerVariant, fadeUpVariant } from "../lib/animations";
 import BookingFormModal from "./BookingFormModal";
+import DiscountBadge from "./DiscountBadge";
+import { useActiveDiscounts } from "../lib/useActiveDiscounts";
 
 const PROPERTIES: { data: PropertyData; local: string; fallback: string }[] = [
   {
@@ -43,6 +45,7 @@ export default function Retreats() {
     property: PropertyData;
     pkg: RatePackage;
   } | null>(null);
+  const { getBestDiscount } = useActiveDiscounts();
 
   return (
     <section id="retreats" className="bg-[#f8f4ee]">
@@ -90,6 +93,7 @@ export default function Retreats() {
         >
           {PROPERTIES.map(({ data, local, fallback }, i) => {
             const fit = PROPERTY_FIT[data.slug];
+            const badge = getBestDiscount(data.slug);
 
             return (
               <motion.div
@@ -107,8 +111,8 @@ export default function Retreats() {
                   />
                   <div className="retreat-card-overlay absolute inset-0" />
 
-                  {/* Tag */}
-                  <div className="absolute left-3 top-3 sm:left-4 sm:top-4">
+                  {/* Tags — tagline chip + optional discount badge stacked */}
+                  <div className="absolute left-3 top-3 flex flex-col items-start gap-2 sm:left-4 sm:top-4">
                     <span
                       className="border border-white/30 px-2.5 py-1 text-[9px] uppercase tracking-[0.18em] text-white/90 backdrop-blur-sm sm:px-3 sm:text-[10px]"
                       style={{
@@ -118,6 +122,7 @@ export default function Retreats() {
                     >
                       {data.tagline}
                     </span>
+                    {badge && <DiscountBadge discount={badge} />}
                   </div>
 
                   {/* Bottom overlay */}

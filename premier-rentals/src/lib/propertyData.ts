@@ -175,7 +175,7 @@ export const PATIO_DATA: PropertyData = {
 // PREMIER POOL HOUSE
 // Rate Sheet 3 → Staycation Rates (20 pax)
 // Rate Sheet 4 → Family Rates     (30 pax)
-// Rate Sheet 5 → Big Group Rates  (40 pax)
+// Rate Sheet 5 → Big Group Rates  (40 pax) 
 // ═══════════════════════════════════════════════════════════════════
 export const POOL_HOUSE_DATA: PropertyData = {
   slug: 'premier-pool-house',
