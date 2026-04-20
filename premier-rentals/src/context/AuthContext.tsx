@@ -35,8 +35,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session)
+      // Create a profile row on first login; ignoreDuplicates prevents overwriting an existing admin role
+      if (event === 'SIGNED_IN' && session?.user) {
+        supabase
+          .from('profiles')
+          .upsert({ id: session.user.id, role: 'user' }, { onConflict: 'id', ignoreDuplicates: true })
+          .then(({ error }) => { if (error) console.error('Profile upsert error:', error) })
+      }
     })
 
     return () => subscription.unsubscribe()

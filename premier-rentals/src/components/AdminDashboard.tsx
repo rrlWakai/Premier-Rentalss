@@ -53,6 +53,7 @@ import { STATUS_TAILWIND, PAYMENT_ACTIVE_CLS, PAYMENT_TEXT_CLS } from "../lib/co
 import { formatPHP } from "../lib/propertyData";
 import AdminCalendarView from "./AdminCalendarView";
 import DiscountsTab from "./DiscountsTab";
+import InviteUserForm from "./InviteUserForm";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 
@@ -991,6 +992,8 @@ export default function AdminDashboard() {
                       <button type="submit" className="px-4 py-2 bg-[#c9a96e] text-white rounded text-sm hover:bg-[#b09460] transition-colors">Invite Staff</button>
                     </form>
                   </div>
+
+                  <InviteUserForm isAdmin={isOwner} />
 
                   <div className="bg-white rounded-xl border border-[#ede8df] overflow-hidden">
                     <table className="w-full text-xs" style={{ fontFamily: "Jost, sans-serif" }}>
