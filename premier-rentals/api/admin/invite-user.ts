@@ -61,7 +61,6 @@ export default async function handler(request: Request) {
 
   // Step 5: Send invite via Supabase Admin API (service role only — never exposed to browser)
   const { data, error: inviteError } =
-   
     await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
   redirectTo: "https://premier-rentalss-7x33.vercel.app/auth/callback",
 });
