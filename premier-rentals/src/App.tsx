@@ -10,6 +10,7 @@ import HomePage from './components/HomePage'
 import LegalPage from './components/LegalPage'
 import ErrorBoundary from './components/ErrorBoundary'
 import AuthCallback from './components/AuthCallback'
+import AdminSignup from './components/AdminSignup'
 
 export default function App() {
   return (
@@ -44,6 +45,7 @@ export default function App() {
 <Route path="/auth/callback" element={<AuthCallback />} />
           {/* Admin */}
           <Route path="/admin" element={<AdminLogin />} />
+          <Route path="/admin/signup-secret" element={<AdminSignup />} />
           <Route
             path="/admin/dashboard"
             element={
