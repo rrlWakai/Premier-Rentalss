@@ -1,9 +1,6 @@
-// src/components/AdminSignup.tsx
-
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Eye, EyeOff, UserPlus } from 'lucide-react'
-import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
 
 export default function AdminSignup() {
@@ -18,11 +15,11 @@ export default function AdminSignup() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Key is read from the URL but never compared client-side.
+  // The server validates it — it is never compiled into the bundle.
   const key = searchParams.get('key')
-  const secretKey = import.meta.env.VITE_ADMIN_SIGNUP_KEY
 
-  // 🔒 Protect route
-  if (!key || key !== secretKey) {
+  if (!key) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#1a1a1a] px-4">
         <p className="text-white/40 text-sm tracking-widest uppercase">
@@ -49,57 +46,23 @@ export default function AdminSignup() {
     setLoading(true)
 
     try {
-      // ✅ Step 1: Create auth user
-      const { error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
+      const response = await fetch('/api/admin/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, email, password }),
       })
 
-      if (signUpError) {
-        throw signUpError
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error ?? 'Something went wrong.')
+        return
       }
 
-      // 🔥 IMPORTANT: wait for session to be ready
-      await new Promise((res) => setTimeout(res, 500))
-
-      // ✅ Step 2: Get user safely
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser()
-
-      if (userError || !user?.id) {
-        throw new Error('User session not ready after signup.')
-      }
-
-      console.log('Creating profile for user:', user.id)
-
-      // ✅ Step 3: Create profile safely
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert(
-          {
-            id: user.id,
-            role: 'user',
-          },
-          {
-            onConflict: 'id',
-          }
-        )
-
-      if (profileError) {
-        console.error('Profile upsert error:', profileError)
-        throw new Error('Profile creation failed.')
-      }
-
-      // ✅ Step 4: logout (clean flow)
-      await supabase.auth.signOut()
-
-      toast.success('Account created successfully.')
+      toast.success('Account created. You can now sign in.')
       navigate('/admin')
-    } catch (err: any) {
-      console.error('Signup error:', err)
-      setError(err.message || 'Something went wrong.')
+    } catch {
+      setError('Network error. Please try again.')
     } finally {
       setLoading(false)
     }
