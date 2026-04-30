@@ -27,15 +27,27 @@ function getBaseUrl(request: Request) {
    HELPERS (NEW)
 ========================= */
 
-function parseDateToISO(input: string) {
-  if (!input) return "";
+function normalizeDate(input: string): string | null {
+  if (!input) return null;
 
-  if (/^\d{4}-\d{2}-\d{2}$/.test(input)) return input;
+  // Case 1: already ISO
+  if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
+    return input;
+  }
 
+  // Case 2: DD/MM/YYYY
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(input)) {
+    const [day, month, year] = input.split("/");
+    return `${year}-${month}-${day}`;
+  }
+
+  // Case 3: "May 1, 2026"
   const parsed = new Date(input);
-  if (isNaN(parsed.getTime())) return "";
+  if (!isNaN(parsed.getTime())) {
+    return parsed.toISOString().split("T")[0];
+  }
 
-  return parsed.toISOString().split("T")[0];
+  return null;
 }
 
 function parseNumber(input: unknown) {
@@ -88,9 +100,12 @@ export default async function handler(request: Request) {
 
     const propertyId = typeof body?.property_id === "string" ? body.property_id : "";
 
-    const rawDate = typeof body?.date === "string" ? body.date : "";
-    const reservationDate = parseDateToISO(rawDate);
+    const rawDate = body?.reservation_date || body?.date;
+    const reservationDate = normalizeDate(rawDate);
 
+    if (!reservationDate) {
+      return json({ error: "Invalid date format" }, { status: 400 });
+    }
     const timeSlot = normalizeTimeSlot(
       typeof body?.time_slot === "string" ? body.time_slot : ""
     );

@@ -16,6 +16,29 @@ function json(data: unknown, init?: ResponseInit) {
   });
 }
 
+function normalizeDate(input: string): string | null {
+  if (!input) return null;
+
+  // Case 1: already ISO
+  if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
+    return input;
+  }
+
+  // Case 2: DD/MM/YYYY
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(input)) {
+    const [day, month, year] = input.split("/");
+    return `${year}-${month}-${day}`;
+  }
+
+  // Case 3: "May 1, 2026"
+  const parsed = new Date(input);
+  if (!isNaN(parsed.getTime())) {
+    return parsed.toISOString().split("T")[0];
+  }
+
+  return null;
+}
+
 export default async function handler(request: Request) {
   if (request.method === "OPTIONS") {
     return json(null, {
@@ -34,8 +57,14 @@ export default async function handler(request: Request) {
 
   try {
     const body = await request.json();
-    const { property_id, rate_tier, rate_label, reservation_date, guests } =
-      body ?? {};
+    const { property_id, rate_tier, rate_label, guests } = body ?? {};
+
+    const rawDate = body?.reservation_date;
+    const reservation_date = normalizeDate(rawDate);
+
+    if (!reservation_date) {
+      return json({ error: "Invalid date format" }, { status: 400 });
+    }
 
     if (
       typeof property_id !== "string" ||
@@ -44,8 +73,6 @@ export default async function handler(request: Request) {
       !rate_tier ||
       typeof rate_label !== "string" ||
       !rate_label ||
-      typeof reservation_date !== "string" ||
-      !/^\d{4}-\d{2}-\d{2}$/.test(reservation_date) ||
       typeof guests !== "number" ||
       !Number.isInteger(guests) ||
       guests < 1
