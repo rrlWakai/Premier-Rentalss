@@ -161,8 +161,11 @@ export async function fetchBookings(
     const retreats = await fetchRetreats();
     const retreatMap = new Map(retreats.map((r) => [r.id, r]));
 
+    const resultBookings = raw.map((b) => ({ ...b, retreat: retreatMap.get(b.retreat_id) }));
+    console.log("ADMIN BOOKINGS:", resultBookings);
+
     return {
-      bookings: raw.map((b) => ({ ...b, retreat: retreatMap.get(b.retreat_id) })),
+      bookings: resultBookings,
       total,
     };
   } catch (error) {
