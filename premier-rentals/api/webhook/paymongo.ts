@@ -110,6 +110,51 @@
           }
         );
 
+// 👇 ADD THIS HERE
+if (!rpcResult || rpcResult.status !== "success") {
+  console.error("[WEBHOOK] RPC failed or returned non-success:", rpcResult);
+
+  if (session?.booking_payload) {
+    console.log("[WEBHOOK] Running forced fallback insert...");
+
+    const payload = session.booking_payload;
+
+    const insertData = {
+      property_id: payload.property_id,
+      retreat_id: payload.retreat_id,
+      full_name: payload.full_name || "Guest",
+      email: payload.email,
+      phone: payload.phone || payload.contact_number,
+      booking_type: payload.time_slot || "day",
+      time_slot: payload.time_slot || "daytime",
+      booking_date: payload.date,
+      checkin: payload.date,
+      guests: payload.guests || 1,
+      num_guests: payload.guests || 1,
+      num_cars: payload.cars || 0,
+      total_amount: payload.total_amount || 0,
+      downpayment_amount: payload.downpayment_amount || paymentAmount,
+      status: "confirmed",
+      payment_status: "paid",
+      checkout_session_id: checkoutSessionId,
+      special_requests: payload.special_requests,
+      rate_tier: payload.rate_tier,
+      mode_of_payment: payload.mode_of_payment
+    };
+
+    const { data: newBooking, error: insertError } = await supabaseAdmin
+      .from("bookings")
+      .insert(insertData)
+      .select("id")
+      .single();
+
+    if (insertError) {
+      console.error("❌ FALLBACK INSERT FAILED:", insertError);
+    } else {
+      console.log("✅ FALLBACK INSERT SUCCESS:", newBooking.id);
+    }
+  }
+}
         console.log("RPC RESULT:", rpcResult);
         console.log("RPC ERROR:", rpcError);
 
