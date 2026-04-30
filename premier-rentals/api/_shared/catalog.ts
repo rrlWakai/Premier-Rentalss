@@ -124,8 +124,8 @@ export function labelToTimeSlot(label: string): TimeSlot {
 }
 
 export function normalizeTimeSlot(input: string): TimeSlot | null {
-  if (input === "daytime" || input === "nighttime" || input === "overnight") {
-    return input;
-  }
+  if (input === "day" || input === "daytime") return "daytime";
+  if (input === "night" || input === "nighttime") return "nighttime";
+  if (input === "overnight") return "overnight";
   return null;
 }

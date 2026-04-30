@@ -22,7 +22,7 @@ type ViewState = "loading" | "confirmed" | "processing" | "interrupted" | "faile
 
 function formatDisplayDate(value: string | null) {
   if (!value) return null;
-  const date = new Date(`${value}T00:00:00`);
+  const date = new Date(`${value}T12:00:00Z`);
   if (Number.isNaN(date.getTime())) return value;
 
   return new Intl.DateTimeFormat("en-PH", {
