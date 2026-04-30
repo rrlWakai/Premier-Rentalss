@@ -1,6 +1,5 @@
   import { verifyPayMongoWebhookSignature } from "../_shared/paymongo";
   import { supabaseAdmin } from "../_shared/supabaseAdmin";
-  import { sendBookingReceipt, type BookingReceiptData } from "../_shared/email";
   export const config = {
     runtime: "edge",
   };
@@ -190,39 +189,7 @@
         }
 
         // SEND RECEIPT EMAIL
-        if (finalBookingId) {
-          const { data: booking } = await supabaseAdmin
-            .from("bookings")
-            .select(`
-              id, full_name, email, num_guests, total_amount, downpayment_amount,
-              remaining_balance, booking_type, booking_date, special_requests,
-              retreats(name)
-            `)
-            .eq("id", finalBookingId)
-            .single();
-            
-          if (booking) {
-            const retreatRow = booking.retreats as { name?: string } | null;
-            const receiptData: BookingReceiptData = {
-              bookingId: booking.id,
-              customerName: booking.full_name,
-              customerEmail: booking.email,
-              propertyName: retreatRow?.name ?? "Premier Rentals",
-              checkInDate: booking.booking_date,
-              bookingType: booking.booking_type,
-              guests: booking.num_guests || 1,
-              totalAmount: parseFloat(booking.total_amount) || 0,
-              downpaymentAmount: parseFloat(booking.downpayment_amount) || 0,
-              remainingBalance: parseFloat(booking.remaining_balance) || 0,
-              specialRequests: booking.special_requests,
-            };
-            try {
-              await sendBookingReceipt(receiptData);
-            } catch (err) {
-              console.error("[WEBHOOK] Failed to send receipt email:", err);
-            }
-          }
-        }
+       
       }
       return json({ received: true }, { status: 200 });
     } catch (error) {
