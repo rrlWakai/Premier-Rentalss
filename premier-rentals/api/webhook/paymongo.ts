@@ -33,6 +33,13 @@ function resolvePaymentAmount(eventPayload: any) {
   return 0;
 }
 
+function resolveBookingType(timeSlot: unknown) {
+  if (timeSlot === "daytime" || timeSlot === "day") return "day";
+  if (timeSlot === "nighttime" || timeSlot === "night") return "night";
+  if (timeSlot === "overnight") return "overnight";
+  return "day";
+}
+
 export default async function handler(request: Request) {
   console.log("🔥 WEBHOOK HIT");
   console.log("REQUEST METHOD:", request.method);
@@ -72,45 +79,88 @@ export default async function handler(request: Request) {
 
     const eventId = eventPayload?.data?.id as string | undefined;
     const eventType = eventPayload?.data?.attributes?.type as string | undefined;
-
-    // FIX 2 (cont.): webhook reads booking_id — the same key checkout.ts stores
-    // and BookingPages looks up. session_id is never the primary reference.
-    const booking_id =
+    const paymongoCheckoutSessionId =
+      eventPayload?.data?.attributes?.data?.id as string | undefined;
+    const metadataBookingId =
       eventPayload?.data?.attributes?.data?.attributes?.metadata?.booking_id ||
       eventPayload?.data?.attributes?.data?.attributes?.payments?.[0]?.attributes?.metadata
         ?.booking_id;
 
     console.log("WEBHOOK EVENT:", JSON.stringify(eventPayload, null, 2));
     console.log("EVENT TYPE:", eventType);
-    console.log("BOOKING ID:", booking_id);
+    console.log("PAYMONGO CHECKOUT SESSION ID:", paymongoCheckoutSessionId);
+    console.log("METADATA BOOKING ID:", metadataBookingId);
 
     if (!eventId || !eventType) {
       return json({ received: true, ignored: true }, { status: 200 });
     }
 
+    // Idempotency: ignore duplicate event IDs before doing any inserts.
+    const { data: existingEvent } = await supabaseAdmin
+      .from("payment_webhook_events")
+      .select("id")
+      .eq("event_id", eventId)
+      .maybeSingle();
+
+    if (existingEvent) {
+      return json({ received: true, ignored: "duplicate_event" }, { status: 200 });
+    }
+
+    // Persist the raw event for audit trail as soon as possible.
+    const { error: eventInsertError } = await supabaseAdmin
+      .from("payment_webhook_events")
+      .insert({
+        event_id: eventId,
+        event_type: eventType,
+        payload: eventPayload,
+      });
+
+    if (eventInsertError) {
+      console.error("[WEBHOOK] Failed to persist webhook event:", eventInsertError);
+      return json({ received: true, error: "event_persist_failed" }, { status: 200 });
+    }
+
     if (eventType === "payment.paid" || eventType === "checkout_session.payment.paid") {
-      if (!booking_id) {
-        console.error("[WEBHOOK] Missing booking_id in metadata");
-        return json({ received: true, error: "missing_booking_id" }, { status: 200 });
+      if (!paymongoCheckoutSessionId && !metadataBookingId) {
+        console.error("[WEBHOOK] Missing checkout session references");
+        return json({ received: true, error: "missing_checkout_reference" }, { status: 200 });
       }
 
       const paymentAmount = resolvePaymentAmount(eventPayload);
 
-      const { data: session } = await supabaseAdmin
-        .from("checkout_sessions")
-        .select("booking_payload")
-        .eq("booking_id", booking_id)
-        .single();
+      // Primary lookup: PayMongo checkout session ID from the event.
+      // Fallbacks: metadata booking_id against checkout_sessions.booking_id,
+      // and metadata booking_id against checkout_sessions.checkout_session_id
+      // for legacy rows.
+      const sessionFilters: string[] = [];
+      if (paymongoCheckoutSessionId) {
+        sessionFilters.push(`checkout_session_id.eq.${paymongoCheckoutSessionId}`);
+      }
+      if (metadataBookingId) {
+        sessionFilters.push(`booking_id.eq.${metadataBookingId}`);
+        sessionFilters.push(`checkout_session_id.eq.${metadataBookingId}`);
+      }
 
-      if (!session) {
-        console.error("[CRITICAL] Session not found:", booking_id);
+      const { data: session, error: sessionLookupError } = await supabaseAdmin
+        .from("checkout_sessions")
+        .select("id, booking_id, checkout_session_id, booking_payload, consumed")
+        .or(sessionFilters.join(","))
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (sessionLookupError || !session) {
+        console.error("[CRITICAL] Session not found:", sessionLookupError);
         return json({ received: true, error: "session_not_found" }, { status: 200 });
       }
 
-      const payload = session.booking_payload;
+      if (session.consumed) {
+        return json({ received: true, ignored: "session_already_consumed" }, { status: 200 });
+      }
+
+      const payload = session.booking_payload as Record<string, any>;
 
       const insertData = {
-        booking_id: payload.booking_id,
         property_id: payload.property_id,
         retreat_id: payload.retreat_id,
         booking_date: payload.booking_date,
@@ -119,35 +169,55 @@ export default async function handler(request: Request) {
         email: payload.email,
         phone: payload.phone,
         address: payload.address,
-        guests: payload.guests,
+        guests: payload.guests ?? payload.num_guests,
         num_guests: payload.num_guests ?? payload.guests,
-        num_cars: payload.num_cars,
+        num_cars: payload.num_cars ?? payload.cars ?? 0,
         total_amount: payload.total_amount,
         downpayment_amount: payload.downpayment_amount,
         status: "confirmed",
         payment_status: "paid",
-        checkout_session_id: eventPayload?.data?.attributes?.data?.id || eventId,
+        checkout_session_id: paymongoCheckoutSessionId || session.checkout_session_id,
+        booking_type: payload.booking_type ?? resolveBookingType(payload.time_slot),
+        special_requests: payload.special_requests ?? null,
+        rate_tier: payload.rate_tier ?? null,
+        mode_of_payment: payload.mode_of_payment ?? null,
       };
 
-      const { error: insertError } = await supabaseAdmin.from("bookings").insert(insertData);
+      const { data: insertedBooking, error: insertError } = await supabaseAdmin
+        .from("bookings")
+        .insert(insertData)
+        .select("id")
+        .single();
 
       if (insertError) {
         console.error("[CRITICAL] Booking insert failed:", insertError);
         await supabaseAdmin.from("failed_bookings").insert({
-          checkout_session_id: eventPayload?.data?.attributes?.data?.id || eventId,
-          payload: session.booking_payload,
-          payment_amount: paymentAmount,
+          checkout_session_id: paymongoCheckoutSessionId || session.checkout_session_id || eventId,
+          booking_payload: session.booking_payload,
+          amount: paymentAmount,
+          user_email: payload.email ?? null,
           reason: "insert_failed_or_duplicate",
           created_at: new Date().toISOString(),
         });
+        return json({ received: true, error: "booking_insert_failed" }, { status: 200 });
       }
 
       await supabaseAdmin
         .from("checkout_sessions")
-        .update({ consumed: true })
-        .eq("booking_id", booking_id);
+        .update({
+          consumed: true,
+          consumed_at: new Date().toISOString(),
+        })
+        .eq("id", session.id);
 
-      console.log("[WEBHOOK] booking_id:", booking_id);
+      if (insertedBooking?.id) {
+        await supabaseAdmin
+          .from("payment_webhook_events")
+          .update({ booking_id: insertedBooking.id })
+          .eq("event_id", eventId);
+      }
+
+      console.log("[WEBHOOK] booking_id:", insertedBooking?.id);
       console.log("[WEBHOOK] payload:", payload);
       console.log("[WEBHOOK] insertData:", insertData);
     }
