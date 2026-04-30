@@ -214,6 +214,8 @@ export default async function handler(request: Request) {
     const fullPayload = {
       ...body,
       date: reservationDate,
+      booking_date: reservationDate, // ✅ required by RPC
+      booking_type: timeSlot,        // ✅ required by DB
       guests: guestCount,
       cars: carCount,
       retreat_id: retreat.id,

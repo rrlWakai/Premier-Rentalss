@@ -95,7 +95,10 @@ BEGIN
 
   -- Extract aligned payload fields
   v_property_id := v_session.booking_payload->>'property_id';
-  v_booking_date := (v_session.booking_payload->>'booking_date')::date;
+  v_booking_date := COALESCE(
+    (v_session.booking_payload->>'booking_date')::date,
+    (v_session.booking_payload->>'date')::date
+  );
   v_time_slot := v_session.booking_payload->>'time_slot';
   v_retreat_id := (v_session.booking_payload->>'retreat_id')::uuid;
 
@@ -146,7 +149,15 @@ BEGIN
       p_payment_status,
       v_status,
       p_checkout_session_id,
-      v_session.booking_payload->>'booking_type',
+      COALESCE(
+        v_session.booking_payload->>'booking_type',
+        CASE
+          WHEN v_session.booking_payload->>'time_slot' IN ('day','daytime') THEN 'day'
+          WHEN v_session.booking_payload->>'time_slot' IN ('night','nighttime') THEN 'night'
+          WHEN v_session.booking_payload->>'time_slot' = 'overnight' THEN 'overnight'
+          ELSE 'day'
+        END
+      ),
       v_session.booking_payload->>'special_requests',
       v_session.booking_payload->>'rate_tier',
       v_session.booking_payload->>'mode_of_payment'
