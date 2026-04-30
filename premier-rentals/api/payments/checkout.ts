@@ -190,6 +190,12 @@ export default async function handler(request: Request) {
        PAYLOAD
     ========================= */
 
+    console.log("DEBUG CHECKOUT:", {
+  propertyId,
+  rawDate: body?.date,
+  parsedDate: reservationDate,
+  timeSlot
+});
     const fullPayload = {
       ...body,
       date: reservationDate,
