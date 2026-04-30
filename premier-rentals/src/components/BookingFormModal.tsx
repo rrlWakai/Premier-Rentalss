@@ -385,6 +385,13 @@ export default function BookingFormModal({
     return () => el.removeEventListener("focusin", onFocusIn);
   }, []);
 
+function formatDateToISO(dateStr: string): string {
+  if (!dateStr) return "";
+  if (dateStr.includes("-")) return dateStr;
+  const [day, month, year] = dateStr.split("/");
+  return `${year}-${month}-${day}`;
+}
+
   // Fetch authoritative price from backend whenever key booking inputs change.
   // Uses AbortController so stale in-flight requests never overwrite newer state.
   // priceRetryKey is incremented by the retry button to force a re-fetch without
@@ -416,7 +423,7 @@ export default function BookingFormModal({
             property_id: property.slug,
             rate_tier: selectedPkg.tier,
             rate_label: label,
-            date: date,
+            reservation_date: formatDateToISO(date),
             guests: guestCount,
           }),
         });
