@@ -1,7 +1,7 @@
 type CreateBookingPayload = {
   property_id: string;
   date: string;
-  time_slot: "daytime" | "nighttime" | "overnight";
+  time_slot: "day" | "night" | "overnight";
   guests: number;
   cars: number;
   full_name: string;
@@ -72,19 +72,12 @@ async function getJson<T>(url: string): Promise<T> {
   }
   return data;
 }
-
-export async function createBookingReservation(payload: CreateBookingPayload) {
-  return postJson<{
-    booking_id: string;
-    amount: number;
-    downpayment_amount: number;
-    locked_until: string;
-  }>(
-    "/api/bookings/create",
-    payload,
+export async function initializeCheckout(payload: CreateBookingPayload) {
+  return postJson<{ checkout_url: string }>(
+    "/api/payments/checkout",
+    payload
   );
 }
-
 export async function createPayMongoCheckout(bookingId: string) {
   return postJson<{ checkout_url: string }>("/api/payments/checkout", {
     booking_id: bookingId,

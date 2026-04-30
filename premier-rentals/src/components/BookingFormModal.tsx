@@ -25,9 +25,7 @@ import "react-phone-input-2/lib/style.css";
 const isPaymentReady = !!import.meta.env.VITE_PAYMONGO_READY;
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  createBookingReservation,
-  createPayMongoCheckout,
-  savePendingBooking,
+  initializeCheckout,
 } from "../lib/bookingApi";
 import {
   type PropertyData,
@@ -418,7 +416,7 @@ export default function BookingFormModal({
             property_id: property.slug,
             rate_tier: selectedPkg.tier,
             rate_label: label,
-            reservation_date: date,
+            date: date,
             guests: guestCount,
           }),
         });
@@ -535,23 +533,23 @@ export default function BookingFormModal({
       value: form.mode_of_payment,
     },
   ];
-
   async function handleSubmit() {
     if (!priceBreakdown) {
       toast.error("Pricing is not ready. Please wait a moment and try again.");
       return;
     }
+
     setSubmitting(true);
 
     try {
-      const timeSlot =
+      const timeSlot: "day" | "night" | "overnight" =
         form.preferred_time === "Day"
-          ? "daytime"
+          ? "day"
           : form.preferred_time === "Night"
-            ? "nighttime"
+            ? "night"
             : "overnight";
 
-      const booking = await createBookingReservation({
+      const payload = {
         property_id: property.slug,
         date: form.preferred_dates,
         time_slot: timeSlot,
@@ -565,33 +563,15 @@ export default function BookingFormModal({
         rate_label: form.rate_label,
         mode_of_payment: form.mode_of_payment,
         special_requests: form.special_requests.trim() || undefined,
-      });
+      };
 
-      savePendingBooking({
-        bookingId: booking.booking_id,
-        propertyId: property.slug,
-        propertyName: property.name,
-        guestName: form.full_name,
-        lockedUntil: booking.locked_until,
-        createdAt: new Date().toISOString(),
-      });
+      const checkout = await initializeCheckout(payload);
 
-      const checkout = await createPayMongoCheckout(booking.booking_id);
       toast.success("Redirecting to secure checkout...");
       window.location.href = checkout.checkout_url;
     } catch (error) {
-      const message = error instanceof Error ? error.message : "";
-      if (
-        message.toLowerCase().includes("network") ||
-        message.toLowerCase().includes("failed to fetch") ||
-        message.toLowerCase().includes("internal server error")
-      ) {
-        toast.error(
-          "We couldn't complete checkout right now. If your reservation hold was created, you can resume from the return page after refreshing.",
-        );
-      } else {
-        toast.error(getFriendlyErrorMessage(message));
-      }
+      const message = error instanceof Error ? error.message : "An unexpected error occurred.";
+      toast.error(getFriendlyErrorMessage(message));
       setSubmitting(false);
     }
   }

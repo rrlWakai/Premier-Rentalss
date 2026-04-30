@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import {
   clearPendingBooking,
-  createPayMongoCheckout,
+  initializeCheckout,
   fetchBookingStatus,
   getPendingBooking,
   type BookingStatusResponse,
@@ -373,17 +373,18 @@ export function BookingFailed() {
     setResumingCheckout(true);
 
     try {
-      const checkout = await createPayMongoCheckout(bookingId);
+      const checkout = await initializeCheckout(payload);
       window.location.href = checkout.checkout_url;
     } catch (resumeCheckoutError) {
       setResumeError(
-        resumeCheckoutError instanceof Error
-          ? resumeCheckoutError.message
-          : "Unable to resume checkout.",
-      );
-      setResumingCheckout(false);
+          resumeCheckoutError instanceof Error
+            ? resumeCheckoutError.message
+            : "Unable to resume checkout.",
+        );
+        setResumingCheckout(false);
     }
   };
+  
 
   if (loading) {
     return (
