@@ -178,6 +178,7 @@ export default async function handler(request: Request) {
         rateLabel: trimmedRateLabel,
         reservationDate: booking_date,
         guests: guestCount,
+        num_cars: carCount,
         appliedDiscount,
       });
     } catch (err) {

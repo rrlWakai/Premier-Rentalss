@@ -94,6 +94,7 @@ export default async function handler(request: Request) {
       rateLabel: rate_label,
       reservationDate: reservation_date,
       guests,
+      num_cars: 0,
       appliedDiscount,
     });
 
