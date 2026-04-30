@@ -44,8 +44,14 @@
   }
   export default async function handler(request: Request) {
     console.log("🔥 WEBHOOK HIT");
+    console.log("REQUEST METHOD:", request.method);
+
+    if (request.method === "GET") {
+      return json({ message: "Webhook active" }, { status: 200 });
+    }
+
     if (request.method !== "POST") {
-      return json({ error: "Method not allowed" }, { status: 200 });
+      return json({ received: true, error: "Method not allowed" }, { status: 200 });
     }
     try {
       const rawBody = await request.text();
@@ -57,7 +63,14 @@
         console.warn("[WEBHOOK] Signature invalid — bypassing for debug");
         // Do NOT return — continue execution
       }
-      const eventPayload = JSON.parse(rawBody);
+
+      let eventPayload;
+      try {
+        eventPayload = JSON.parse(rawBody);
+      } catch (parseError) {
+        console.error("[WEBHOOK] JSON Parse Error:", parseError);
+        return json({ received: true, error: "Invalid JSON body" }, { status: 200 });
+      }
       const eventId = eventPayload?.data?.id as string | undefined;
       const eventType = eventPayload?.data?.attributes?.type as string | undefined;
       const checkoutSessionId = resolveCheckoutSessionId(eventPayload);
