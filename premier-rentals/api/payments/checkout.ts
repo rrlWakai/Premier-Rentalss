@@ -23,6 +23,36 @@ function getBaseUrl(request: Request) {
   return process.env.PUBLIC_SITE_URL || new URL(request.url).origin;
 }
 
+/* =========================
+   HELPERS (NEW)
+========================= */
+
+function parseDateToISO(input: string) {
+  if (!input) return "";
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(input)) return input;
+
+  const parsed = new Date(input);
+  if (isNaN(parsed.getTime())) return "";
+
+  return parsed.toISOString().split("T")[0];
+}
+
+function parseNumber(input: unknown) {
+  if (typeof input === "number") return input;
+
+  if (typeof input === "string") {
+    const num = parseInt(input.replace(/[^\d]/g, ""), 10);
+    return isNaN(num) ? 0 : num;
+  }
+
+  return 0;
+}
+
+/* =========================
+   HANDLER
+========================= */
+
 export default async function handler(request: Request) {
   if (request.method === "OPTIONS") {
     return json(null, {
@@ -50,21 +80,34 @@ export default async function handler(request: Request) {
     if (!checkoutRateLimit.allowed) {
       return json(
         { error: "Too many checkout attempts. Please try again shortly." },
-        { status: 429, headers: { "Retry-After": String(checkoutRateLimit.retryAfterSeconds) } },
+        { status: 429, headers: { "Retry-After": String(checkoutRateLimit.retryAfterSeconds) } }
       );
     }
 
     const body = await request.json();
-    
-    // Extract payload similar to old create.ts
+
     const propertyId = typeof body?.property_id === "string" ? body.property_id : "";
-    const reservationDate = typeof body?.date === "string" ? body.date : "";
-    const timeSlot = normalizeTimeSlot(typeof body?.time_slot === "string" ? body.time_slot : "");
-    const guestCount = Number(body?.guests);
-    const carCount = Number(body?.cars);
-    
+
+    const rawDate = typeof body?.date === "string" ? body.date : "";
+    const reservationDate = parseDateToISO(rawDate);
+
+    const timeSlot = normalizeTimeSlot(
+      typeof body?.time_slot === "string" ? body.time_slot : ""
+    );
+
+    const guestCount = parseNumber(body?.guests);
+    const carCount = parseNumber(body?.cars);
+
     if (!propertyId || !reservationDate || !timeSlot) {
       return json({ error: "Missing critical booking details" }, { status: 400 });
+    }
+
+    if (!Number.isInteger(guestCount) || guestCount < 1) {
+      return json({ error: "Invalid guest count" }, { status: 400 });
+    }
+
+    if (!Number.isInteger(carCount) || carCount < 0) {
+      return json({ error: "Invalid car count" }, { status: 400 });
     }
 
     const property = BOOKING_CATALOG[propertyId];
@@ -72,7 +115,10 @@ export default async function handler(request: Request) {
       return json({ error: "Invalid property selection" }, { status: 400 });
     }
 
-    // 1. PRE-PAYMENT VALIDATION (Soft Check)
+    /* =========================
+       AVAILABILITY CHECK
+    ========================= */
+
     const { data: existingBooking, error: checkError } = await supabaseAdmin
       .from("bookings")
       .select("id")
@@ -88,14 +134,26 @@ export default async function handler(request: Request) {
     }
 
     if (existingBooking) {
-      return json({ error: "⚠️ This schedule is already booked. Please choose another date or package." }, { status: 409 });
+      return json(
+        { error: "⚠️ This schedule is already booked. Please choose another date or package." },
+        { status: 409 }
+      );
     }
 
-    // Compute Price
-    const trimmedRateLabel = typeof body?.rate_label === "string" ? body.rate_label.trim() : "";
-    const trimmedRateTier = typeof body?.rate_tier === "string" ? body.rate_tier.trim() : "";
-    
-    const appliedDiscount = await getActiveDiscount(reservationDate, propertyId, trimmedRateLabel);
+    /* =========================
+       PRICING
+    ========================= */
+
+    const trimmedRateLabel =
+      typeof body?.rate_label === "string" ? body.rate_label.trim() : "";
+    const trimmedRateTier =
+      typeof body?.rate_tier === "string" ? body.rate_tier.trim() : "";
+
+    const appliedDiscount = await getActiveDiscount(
+      reservationDate,
+      propertyId,
+      trimmedRateLabel
+    );
 
     let pricing;
     try {
@@ -114,9 +172,10 @@ export default async function handler(request: Request) {
       throw err;
     }
 
-    const downpaymentAmount = pricing.downpayment;
+    /* =========================
+       RETREAT LOOKUP
+    ========================= */
 
-    // Fetch retreat ID
     const { data: retreat } = await supabaseAdmin
       .from("retreats")
       .select("id")
@@ -127,29 +186,36 @@ export default async function handler(request: Request) {
       return json({ error: "Retreat not found" }, { status: 404 });
     }
 
-    // Prepare Payload
+    /* =========================
+       PAYLOAD
+    ========================= */
+
     const fullPayload = {
       ...body,
+      date: reservationDate,
+      guests: guestCount,
+      cars: carCount,
       retreat_id: retreat.id,
       total_amount: pricing.finalTotal,
       downpayment_amount: pricing.downpayment,
     };
 
     const baseUrl = getBaseUrl(request);
-    
-    // We pass a dummy bookingId to PayMongo metadata for backward compatibility if needed,
-    // but the source of truth is now the checkout_sessions table.
+
     const tempReference = `req_${crypto.randomUUID()}`;
 
+    /* =========================
+       PAYMONGO SESSION
+    ========================= */
+
     const checkoutSession = await createCheckoutSession({
-      amount: downpaymentAmount,
+      amount: pricing.downpayment,
       propertyName: property.name,
       description: `${property.name} booking for ${reservationDate} (${timeSlot})`,
       bookingId: tempReference,
       guestName: body?.full_name || "Guest",
       guestEmail: body?.email || "no-reply@example.com",
       guestPhone: body?.phone || body?.contact_number || "",
-      // Notice we use the session reference so the success page can lookup if needed
       successUrl: `${baseUrl}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
       cancelUrl: `${baseUrl}/booking/failed?session_id={CHECKOUT_SESSION_ID}`,
     });
@@ -161,7 +227,10 @@ export default async function handler(request: Request) {
       return json({ error: "Failed to initialize payment checkout" }, { status: 502 });
     }
 
-    // Store in checkout_sessions
+    /* =========================
+       STORE SESSION
+    ========================= */
+
     const { error: sessionInsertError } = await supabaseAdmin
       .from("checkout_sessions")
       .insert({
@@ -174,7 +243,8 @@ export default async function handler(request: Request) {
       return json({ error: "Failed to initialize booking session" }, { status: 500 });
     }
 
-    console.log("[CHECKOUT] Session created successfully:", checkoutSessionId);
+    console.log("[CHECKOUT] Session created:", checkoutSessionId);
+
     return json({ checkout_url: checkoutUrl }, { status: 200 });
 
   } catch (error) {
