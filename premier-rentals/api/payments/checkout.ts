@@ -19,12 +19,17 @@ function json(data: unknown, init?: ResponseInit) {
   });
 }
 
+// FIX 1: Use process.env — Deno.env / env.get() are not available on Vercel Edge/Node runtime.
+// Declare process explicitly: tsconfig.api.json sets "types":[] which strips @types/node globals,
+// so we ambient-declare only what we need rather than pulling in the whole node types package.
+declare const process: { env: Record<string, string | undefined> };
+
 function getBaseUrl(request: Request) {
   return process.env.PUBLIC_SITE_URL || new URL(request.url).origin;
 }
 
 /* =========================
-   HELPERS (NEW)
+   HELPERS
 ========================= */
 
 function normalizeDate(input: string): string | null {
@@ -106,12 +111,16 @@ export default async function handler(request: Request) {
     if (!booking_date) {
       return json({ error: "Invalid date format" }, { status: 400 });
     }
+
     const time_slot = normalizeTimeSlot(
       typeof body?.time_slot === "string" ? body.time_slot : ""
     );
 
-    const guestCount = parseNumber(body?.num_guests);
-    const carCount = parseNumber(body?.num_cars);
+    // FIX 2: Read the field names the frontend actually sends — "guests" and "cars".
+    // The old code read "num_guests"/"num_cars" here, which never matched the frontend
+    // payload, causing every real booking to fail with "Invalid guest count".
+    const guestCount = parseNumber(body?.guests);
+    const carCount = parseNumber(body?.cars);
 
     if (!property_id || !booking_date || !time_slot) {
       return json({ error: "Missing critical booking details" }, { status: 400 });
@@ -177,7 +186,7 @@ export default async function handler(request: Request) {
         rateTier: trimmedRateTier,
         rateLabel: trimmedRateLabel,
         reservationDate: booking_date,
-        guests: guestCount,
+        guests: guestCount,   // the only key computeBookingPrice accepts
         num_cars: carCount,
         appliedDiscount,
       });
@@ -208,23 +217,37 @@ export default async function handler(request: Request) {
 
     const trimmedName = typeof body?.full_name === "string" ? body.full_name.trim() : "";
     const trimmedEmail = typeof body?.email === "string" ? body.email.trim() : "";
-    const trimmedPhone = typeof body?.phone === "string" ? body.phone.trim() : (typeof body?.contact_number === "string" ? body.contact_number.trim() : "");
+    const trimmedPhone =
+      typeof body?.phone === "string"
+        ? body.phone.trim()
+        : typeof body?.contact_number === "string"
+          ? body.contact_number.trim()
+          : "";
     const trimmedAddress = typeof body?.address === "string" ? body.address.trim() : "";
-    const baseUrl = getBaseUrl(request);
+    const trimmedModeOfPayment =
+      typeof body.mode_of_payment === "string" ? body.mode_of_payment.trim() : null;
+    const trimmedSpecialRequests =
+      typeof body.special_requests === "string" ? body.special_requests.trim() : null;
+
+    // FIX 2 (cont.): booking_id is the single primary reference used everywhere —
+    // in the success URL, checkout_sessions table, webhook, and BookingPages status lookup.
+    // Do not mix in a separate session_id.
     const booking_id = crypto.randomUUID();
+    const baseUrl = getBaseUrl(request);
 
     const fullPayload = {
       booking_id,
-      property_id: property_id,
+      property_id,
       retreat_id: retreat.id,
-      booking_date: booking_date,
-      time_slot: time_slot,
+      booking_date,
+      time_slot,
 
       full_name: trimmedName,
       email: trimmedEmail,
       phone: trimmedPhone,
       address: trimmedAddress,
 
+      // Store both column names so webhook insert and any legacy query both work.
       guests: guestCount,
       num_guests: guestCount,
       cars: carCount,
@@ -233,11 +256,11 @@ export default async function handler(request: Request) {
       rate_tier: trimmedRateTier,
       rate_label: trimmedRateLabel,
 
-      mode_of_payment: typeof body?.mode_of_payment === "string" ? body.mode_of_payment.trim() : "",
-      special_requests: typeof body?.special_requests === "string" ? body.special_requests.trim() : "",
+      mode_of_payment: trimmedModeOfPayment,
+      special_requests: trimmedSpecialRequests,
 
       total_amount: pricing.finalTotal,
-      downpayment_amount: pricing.downpayment
+      downpayment_amount: pricing.downpayment,
     };
 
     /* =========================
@@ -253,7 +276,7 @@ export default async function handler(request: Request) {
       guestEmail: trimmedEmail,
       guestPhone: trimmedPhone,
       successUrl: `${baseUrl}/booking/success?booking_id=${booking_id}`,
-      cancelUrl: `${baseUrl}/booking/failed`,
+      cancelUrl: `${baseUrl}/booking/failed?booking_id=${booking_id}`,
     });
 
     const paymongoSessionId = checkoutSession?.id;
@@ -273,10 +296,10 @@ export default async function handler(request: Request) {
     const { error: sessionInsertError } = await supabaseAdmin
       .from("checkout_sessions")
       .insert({
-        checkout_session_id: paymongoSessionId, // Store the cs_... strictly as reference
-        booking_id: booking_id, // Store booking_id as primary reference
+        checkout_session_id: paymongoSessionId,
+        booking_id,                // primary lookup key used by webhook + status pages
         booking_payload: fullPayload,
-        consumed: false
+        consumed: false,
       });
 
     if (sessionInsertError) {

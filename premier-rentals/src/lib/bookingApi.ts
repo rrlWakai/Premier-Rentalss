@@ -1,11 +1,9 @@
 type CreateBookingPayload = {
   property_id: string;
   booking_date: string;
-  time_slot: "daytime" | "nighttime" | "overnight";
+  time_slot: "day" | "night" | "overnight";
   guests: number;
-  num_guests: number;
   cars: number;
-  num_cars: number;
   full_name: string;
   email: string;
   phone: string;

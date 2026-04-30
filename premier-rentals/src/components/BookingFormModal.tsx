@@ -24,9 +24,7 @@ import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 const isPaymentReady = !!import.meta.env.VITE_PAYMONGO_READY;
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  initializeCheckout,
-} from "../lib/bookingApi";
+import { initializeCheckout } from "../lib/bookingApi";
 import {
   type PropertyData,
   type RatePackage,
@@ -270,7 +268,6 @@ const PAYMENT_DETAILS: Record<SupportedPaymentMode, string> = {
   Card: "Use your debit or credit card securely on PayMongo's encrypted checkout page.",
 };
 
-
 function createInitialFormState(initialPackage: RatePackage): FormState {
   return {
     full_name: "",
@@ -342,7 +339,9 @@ export default function BookingFormModal({
     createInitialFormState(initialPackage),
   );
 
-  const [priceBreakdown, setPriceBreakdown] = useState<PriceBreakdown | null>(null);
+  const [priceBreakdown, setPriceBreakdown] = useState<PriceBreakdown | null>(
+    null,
+  );
   const [priceLoading, setPriceLoading] = useState(false);
   const [priceError, setPriceError] = useState("");
   const [priceRetryKey, setPriceRetryKey] = useState(0);
@@ -385,12 +384,12 @@ export default function BookingFormModal({
     return () => el.removeEventListener("focusin", onFocusIn);
   }, []);
 
-function formatDateToISO(dateStr: string): string {
-  if (!dateStr) return "";
-  if (dateStr.includes("-")) return dateStr;
-  const [day, month, year] = dateStr.split("/");
-  return `${year}-${month}-${day}`;
-}
+  function formatDateToISO(dateStr: string): string {
+    if (!dateStr) return "";
+    if (dateStr.includes("-")) return dateStr;
+    const [day, month, year] = dateStr.split("/");
+    return `${year}-${month}-${day}`;
+  }
 
   // Fetch authoritative price from backend whenever key booking inputs change.
   // Uses AbortController so stale in-flight requests never overwrite newer state.
@@ -455,7 +454,14 @@ function formatDateToISO(dateStr: string): string {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [property.slug, selectedPkg.tier, form.rate_label, form.preferred_dates, form.num_guests, priceRetryKey]);
+  }, [
+    property.slug,
+    selectedPkg.tier,
+    form.rate_label,
+    form.preferred_dates,
+    form.num_guests,
+    priceRetryKey,
+  ]);
 
   // When rate changes, auto-set preferred_time and preferred_plan
   function handleRateChange(label: string) {
@@ -481,7 +487,8 @@ function formatDateToISO(dateStr: string): string {
     form.rate_label &&
     form.num_guests &&
     Number(form.num_guests) >= 1 &&
-    Number(form.num_guests) <= selectedPkg.maxPax + selectedPkg.maxAdditionalPax &&
+    Number(form.num_guests) <=
+      selectedPkg.maxPax + selectedPkg.maxAdditionalPax &&
     form.num_cars &&
     Number(form.num_cars) >= 1 &&
     Number(form.num_cars) <= property.maxCars &&
@@ -549,11 +556,11 @@ function formatDateToISO(dateStr: string): string {
     setSubmitting(true);
 
     try {
-      const timeSlot: "daytime" | "nighttime" | "overnight" =
+      const timeSlot: "day" | "night" | "overnight" =
         form.preferred_time === "Day"
-          ? "daytime"
+          ? "day"
           : form.preferred_time === "Night"
-            ? "nighttime"
+            ? "night"
             : "overnight";
 
       const payload = {
@@ -561,9 +568,7 @@ function formatDateToISO(dateStr: string): string {
         booking_date: form.preferred_dates,
         time_slot: timeSlot,
         guests: Number(form.num_guests),
-        num_guests: Number(form.num_guests),
         cars: Number(form.num_cars),
-        num_cars: Number(form.num_cars),
         full_name: form.full_name,
         email: form.email,
         phone: form.contact_number,
@@ -581,7 +586,10 @@ function formatDateToISO(dateStr: string): string {
       toast.success("Redirecting to secure checkout...");
       window.location.href = checkout.checkout_url;
     } catch (error) {
-      const message = error instanceof Error ? error.message : "An unexpected error occurred.";
+      const message =
+        error instanceof Error
+          ? error.message
+          : "An unexpected error occurred.";
       toast.error(getFriendlyErrorMessage(message));
       setSubmitting(false);
     }
@@ -904,7 +912,9 @@ function formatDateToISO(dateStr: string): string {
                           type="number"
                           inputMode="numeric"
                           min={1}
-                          max={selectedPkg.maxPax + selectedPkg.maxAdditionalPax}
+                          max={
+                            selectedPkg.maxPax + selectedPkg.maxAdditionalPax
+                          }
                           value={form.num_guests}
                           onChange={(e) => set("num_guests", e.target.value)}
                           placeholder={`1–${selectedPkg.maxPax + selectedPkg.maxAdditionalPax}`}
@@ -933,7 +943,11 @@ function formatDateToISO(dateStr: string): string {
                     {priceError && (
                       <div className="flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
                         <div className="flex items-start gap-2.5">
-                          <AlertCircle size={14} color="#ef4444" className="mt-0.5 shrink-0" />
+                          <AlertCircle
+                            size={14}
+                            color="#ef4444"
+                            className="mt-0.5 shrink-0"
+                          />
                           <p
                             className="text-[11px] text-red-600"
                             style={{ fontFamily: "Jost, sans-serif" }}
@@ -1093,7 +1107,9 @@ function formatDateToISO(dateStr: string): string {
                               className="text-[11px] font-medium text-green-700"
                               style={{ fontFamily: "Jost, sans-serif" }}
                             >
-                              {priceBreakdown!.discountLabel} ({priceBreakdown!.discountPercentage}% off) — −{formatPHP(priceBreakdown!.discountAmount)}
+                              {priceBreakdown!.discountLabel} (
+                              {priceBreakdown!.discountPercentage}% off) — −
+                              {formatPHP(priceBreakdown!.discountAmount)}
                             </span>
                           </div>
                         )}
@@ -1136,7 +1152,9 @@ function formatDateToISO(dateStr: string): string {
                               color: "#1a1a1a",
                             }}
                           >
-                            {priceLoading ? "Computing…" : formatPHP(priceBreakdown?.finalTotal ?? 0)}
+                            {priceLoading
+                              ? "Computing…"
+                              : formatPHP(priceBreakdown?.finalTotal ?? 0)}
                           </p>
                           <p
                             className="mt-1 text-[10px] uppercase tracking-[0.18em] text-[#8a8a7a]"
@@ -1160,7 +1178,9 @@ function formatDateToISO(dateStr: string): string {
                               color: "#c9a96e",
                             }}
                           >
-                            {priceLoading ? "Computing…" : formatPHP(priceBreakdown?.downpayment ?? 0)}
+                            {priceLoading
+                              ? "Computing…"
+                              : formatPHP(priceBreakdown?.downpayment ?? 0)}
                           </p>
                         </div>
                         <div>
@@ -1178,7 +1198,11 @@ function formatDateToISO(dateStr: string): string {
                               color: "#1a1a1a",
                             }}
                           >
-                            {priceLoading ? "Computing…" : formatPHP(priceBreakdown?.remainingBalance ?? 0)}
+                            {priceLoading
+                              ? "Computing…"
+                              : formatPHP(
+                                  priceBreakdown?.remainingBalance ?? 0,
+                                )}
                           </p>
                         </div>
                       </div>
@@ -1238,7 +1262,12 @@ function formatDateToISO(dateStr: string): string {
               </AnimatePresence>
             </div>
 
-            <div className="flex items-center justify-between gap-3 border-t border-[#ede8df] bg-[linear-gradient(180deg,#fcfaf7_0%,#f6f1e9_100%)] px-5 py-5 shrink-0 sm:px-7" style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}>
+            <div
+              className="flex items-center justify-between gap-3 border-t border-[#ede8df] bg-[linear-gradient(180deg,#fcfaf7_0%,#f6f1e9_100%)] px-5 py-5 shrink-0 sm:px-7"
+              style={{
+                paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))",
+              }}
+            >
               <button
                 onClick={() => {
                   if (submitting) return;
@@ -1262,13 +1291,20 @@ function formatDateToISO(dateStr: string): string {
                   {submitting ? (
                     <>
                       <Lock size={14} />
-                      <span className="hidden sm:inline">Redirecting to secure checkout...</span>
+                      <span className="hidden sm:inline">
+                        Redirecting to secure checkout...
+                      </span>
                       <span className="sm:hidden">Redirecting...</span>
                     </>
                   ) : (
                     <>
-                      <span className="hidden sm:inline">Proceed to Secure Payment ({formatPHP(priceBreakdown?.downpayment ?? 0)})</span>
-                      <span className="sm:hidden">Pay {formatPHP(priceBreakdown?.downpayment ?? 0)}</span>
+                      <span className="hidden sm:inline">
+                        Proceed to Secure Payment (
+                        {formatPHP(priceBreakdown?.downpayment ?? 0)})
+                      </span>
+                      <span className="sm:hidden">
+                        Pay {formatPHP(priceBreakdown?.downpayment ?? 0)}
+                      </span>
                       <ChevronRight size={14} />
                     </>
                   )}
