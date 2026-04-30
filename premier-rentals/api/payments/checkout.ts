@@ -205,27 +205,39 @@ export default async function handler(request: Request) {
        PAYLOAD
     ========================= */
 
-    console.log("DEBUG CHECKOUT:", {
-  propertyId,
-  rawDate: body?.date,
-  parsedDate: reservationDate,
-  timeSlot
-});
+    const trimmedName = typeof body?.full_name === "string" ? body.full_name.trim() : "";
+    const trimmedEmail = typeof body?.email === "string" ? body.email.trim() : "";
+    const trimmedPhone = typeof body?.phone === "string" ? body.phone.trim() : (typeof body?.contact_number === "string" ? body.contact_number.trim() : "");
+    const trimmedAddress = typeof body?.address === "string" ? body.address.trim() : "";
+    const trimmedModeOfPayment = typeof body?.mode_of_payment === "string" ? body.mode_of_payment.trim() : "";
+    const trimmedSpecialRequests = typeof body?.special_requests === "string" ? body.special_requests.trim() : "";
+
     const fullPayload = {
-      ...body,
-      date: reservationDate,
-      booking_date: reservationDate, // ✅ required by RPC
-      booking_type: timeSlot,        // ✅ required by DB
+      property_id: propertyId,
+      retreat_id: retreat.id,
+      booking_date: reservationDate,
+      time_slot: timeSlot,
+
+      full_name: trimmedName,
+      email: trimmedEmail,
+      phone: trimmedPhone,
+      address: trimmedAddress,
+
       guests: guestCount,
       cars: carCount,
-      retreat_id: retreat.id,
+
+      rate_tier: trimmedRateTier,
+      rate_label: trimmedRateLabel,
+
+      mode_of_payment: trimmedModeOfPayment,
+      special_requests: trimmedSpecialRequests,
+
       total_amount: pricing.finalTotal,
-      downpayment_amount: pricing.downpayment,
+      downpayment_amount: pricing.downpayment
     };
 
     const baseUrl = getBaseUrl(request);
-
-    const tempReference = `req_${crypto.randomUUID()}`;
+    const checkoutSessionId = crypto.randomUUID();
 
     /* =========================
        PAYMONGO SESSION
@@ -234,21 +246,24 @@ export default async function handler(request: Request) {
     const checkoutSession = await createCheckoutSession({
       amount: pricing.downpayment,
       propertyName: property.name,
-      description: `${property.name} booking for ${reservationDate} (${timeSlot})`,
-      bookingId: tempReference,
-      guestName: body?.full_name || "Guest",
-      guestEmail: body?.email || "no-reply@example.com",
-      guestPhone: body?.phone || body?.contact_number || "",
-      successUrl: `${baseUrl}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancelUrl: `${baseUrl}/booking/failed?session_id={CHECKOUT_SESSION_ID}`,
+      description: `${property.name} booking`,
+      bookingId: checkoutSessionId,
+      guestName: trimmedName,
+      guestEmail: trimmedEmail,
+      guestPhone: trimmedPhone,
+      successUrl: `${baseUrl}/booking/success?session_id=${checkoutSessionId}`,
+      cancelUrl: `${baseUrl}/booking/failed?session_id=${checkoutSessionId}`,
     });
 
-    const checkoutSessionId = checkoutSession?.id;
+    const paymongoSessionId = checkoutSession?.id;
     const checkoutUrl = checkoutSession?.attributes?.checkout_url;
 
-    if (!checkoutSessionId || !checkoutUrl) {
+    if (!paymongoSessionId || !checkoutUrl) {
       return json({ error: "Failed to initialize payment checkout" }, { status: 502 });
     }
+
+    console.log("[CHECKOUT PAYLOAD]", fullPayload);
+    console.log("[CHECKOUT SESSION ID]", checkoutSessionId);
 
     /* =========================
        STORE SESSION
