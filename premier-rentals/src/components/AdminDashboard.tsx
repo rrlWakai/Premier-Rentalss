@@ -598,7 +598,7 @@ export default function AdminDashboard() {
                         style={{ fontFamily: "Jost, sans-serif" }}
                       >
                         <option value="all">All Status</option>
-                        <option value="pending">Pending</option>
+                        <option value="half">Half</option>
                         <option value="confirmed">Confirmed</option>
                         <option value="cancelled">Cancelled</option>
                         <option value="completed">Completed</option>
@@ -848,7 +848,7 @@ export default function AdminDashboard() {
                             {(
                               [
                                 "confirmed",
-                                "pending",
+                                "half",
                                 "cancelled",
                                 "completed",
                               ] as BookingStatus[]

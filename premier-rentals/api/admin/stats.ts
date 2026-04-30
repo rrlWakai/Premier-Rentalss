@@ -29,7 +29,7 @@ export default async function handler(request: Request) {
 
   const { data: bookings, error: bookingsError } = await supabaseAdmin
     .from("bookings")
-    .select("status, payment_status, total_amount, num_guests");
+    .select("status, payment_status, total_amount, guests");
 
   if (bookingsError) {
     console.error("fetchStats error:", bookingsError);
@@ -39,14 +39,14 @@ export default async function handler(request: Request) {
   const totalRevenue =
     role === "admin"
       ? (bookings
-          ?.filter((b) => b.payment_status === "paid")
+          ?.filter((b) => b.status === "half" || b.status === "confirmed")
           .reduce((sum, b) => sum + (b.total_amount || 0), 0) ?? 0)
       : 0;
 
   const confirmed = bookings?.filter((b) => b.status === "confirmed").length ?? 0;
-  const pending = bookings?.filter((b) => b.status === "pending").length ?? 0;
+  const pending = bookings?.filter((b) => b.status === "half").length ?? 0;
   const totalGuests =
-    bookings?.reduce((sum, b) => sum + (b.num_guests || 0), 0) ?? 0;
+    bookings?.reduce((sum, b) => sum + (b.guests || 0), 0) ?? 0;
 
   const { count: inquiryCount, error: inquiryError } = await supabaseAdmin
     .from("inquiries")
