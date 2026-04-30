@@ -224,8 +224,8 @@ export default async function handler(request: Request) {
       phone: trimmedPhone,
       address: trimmedAddress,
 
-      guests: guestCount,
-      cars: carCount,
+      num_guests: guestCount,
+      num_cars: carCount,
 
       rate_tier: trimmedRateTier,
       rate_label: trimmedRateLabel,

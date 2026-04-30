@@ -15,7 +15,7 @@ export type PriceBreakdown = {
   priceType: PriceType;
   maxPax: number;
   maxAdditionalPax: number;
-  guests: number;
+  num_guests: number;
   extraPax: number;
   basePrice: number;
   additionalPaxRate: number;
@@ -169,7 +169,8 @@ export function computeBookingPrice(input: {
     priceType,
     maxPax,
     maxAdditionalPax,
-    guests,
+    num_guests: guests,
+    num_cars: cars,
     extraPax,
     basePrice,
     additionalPaxRate,

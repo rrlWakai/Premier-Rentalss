@@ -98,22 +98,22 @@ export default async function handler(request: Request) {
 
     const body = await request.json();
 
-    const propertyId = typeof body?.property_id === "string" ? body.property_id : "";
+    const property_id = typeof body?.property_id === "string" ? body.property_id : "";
 
-    const rawDate = body?.reservation_date || body?.date;
-    const reservationDate = normalizeDate(rawDate);
+    const rawDate = body?.booking_date;
+    const booking_date = normalizeDate(rawDate);
 
-    if (!reservationDate) {
+    if (!booking_date) {
       return json({ error: "Invalid date format" }, { status: 400 });
     }
-    const timeSlot = normalizeTimeSlot(
+    const time_slot = normalizeTimeSlot(
       typeof body?.time_slot === "string" ? body.time_slot : ""
     );
 
-    const guestCount = parseNumber(body?.guests);
-    const carCount = parseNumber(body?.cars);
+    const guestCount = parseNumber(body?.num_guests);
+    const carCount = parseNumber(body?.num_cars);
 
-    if (!propertyId || !reservationDate || !timeSlot) {
+    if (!property_id || !booking_date || !time_slot) {
       return json({ error: "Missing critical booking details" }, { status: 400 });
     }
 
@@ -125,7 +125,7 @@ export default async function handler(request: Request) {
       return json({ error: "Invalid car count" }, { status: 400 });
     }
 
-    const property = BOOKING_CATALOG[propertyId];
+    const property = BOOKING_CATALOG[property_id];
     if (!property) {
       return json({ error: "Invalid property selection" }, { status: 400 });
     }
@@ -137,9 +137,9 @@ export default async function handler(request: Request) {
     const { data: existingBooking, error: checkError } = await supabaseAdmin
       .from("bookings")
       .select("id")
-      .eq("property_id", propertyId)
-      .eq("booking_date", reservationDate)
-      .eq("time_slot", timeSlot)
+      .eq("property_id", property_id)
+      .eq("booking_date", booking_date)
+      .eq("time_slot", time_slot)
       .in("status", ["half", "confirmed"])
       .maybeSingle();
 
@@ -165,18 +165,18 @@ export default async function handler(request: Request) {
       typeof body?.rate_tier === "string" ? body.rate_tier.trim() : "";
 
     const appliedDiscount = await getActiveDiscount(
-      reservationDate,
-      propertyId,
+      booking_date,
+      property_id,
       trimmedRateLabel
     );
 
     let pricing;
     try {
       pricing = computeBookingPrice({
-        propertyId,
+        propertyId: property_id,
         rateTier: trimmedRateTier,
         rateLabel: trimmedRateLabel,
-        reservationDate,
+        reservationDate: booking_date,
         guests: guestCount,
         appliedDiscount,
       });
@@ -194,7 +194,7 @@ export default async function handler(request: Request) {
     const { data: retreat } = await supabaseAdmin
       .from("retreats")
       .select("id")
-      .eq("slug", propertyId)
+      .eq("slug", property_id)
       .single();
 
     if (!retreat) {
@@ -209,14 +209,15 @@ export default async function handler(request: Request) {
     const trimmedEmail = typeof body?.email === "string" ? body.email.trim() : "";
     const trimmedPhone = typeof body?.phone === "string" ? body.phone.trim() : (typeof body?.contact_number === "string" ? body.contact_number.trim() : "");
     const trimmedAddress = typeof body?.address === "string" ? body.address.trim() : "";
-    const trimmedModeOfPayment = typeof body?.mode_of_payment === "string" ? body.mode_of_payment.trim() : "";
-    const trimmedSpecialRequests = typeof body?.special_requests === "string" ? body.special_requests.trim() : "";
+    const baseUrl = getBaseUrl(request);
+    const booking_id = crypto.randomUUID();
 
     const fullPayload = {
-      property_id: propertyId,
+      booking_id,
+      property_id: property_id,
       retreat_id: retreat.id,
-      booking_date: reservationDate,
-      time_slot: timeSlot,
+      booking_date: booking_date,
+      time_slot: time_slot,
 
       full_name: trimmedName,
       email: trimmedEmail,
@@ -224,20 +225,19 @@ export default async function handler(request: Request) {
       address: trimmedAddress,
 
       guests: guestCount,
+      num_guests: guestCount,
       cars: carCount,
+      num_cars: carCount,
 
       rate_tier: trimmedRateTier,
       rate_label: trimmedRateLabel,
 
-      mode_of_payment: trimmedModeOfPayment,
-      special_requests: trimmedSpecialRequests,
+      mode_of_payment: typeof body?.mode_of_payment === "string" ? body.mode_of_payment.trim() : "",
+      special_requests: typeof body?.special_requests === "string" ? body.special_requests.trim() : "",
 
       total_amount: pricing.finalTotal,
       downpayment_amount: pricing.downpayment
     };
-
-    const baseUrl = getBaseUrl(request);
-    const checkoutSessionId = crypto.randomUUID();
 
     /* =========================
        PAYMONGO SESSION
@@ -247,12 +247,12 @@ export default async function handler(request: Request) {
       amount: pricing.downpayment,
       propertyName: property.name,
       description: `${property.name} booking`,
-      bookingId: checkoutSessionId,
+      bookingId: booking_id,
       guestName: trimmedName,
       guestEmail: trimmedEmail,
       guestPhone: trimmedPhone,
-      successUrl: `${baseUrl}/booking/success?session_id=${checkoutSessionId}`,
-      cancelUrl: `${baseUrl}/booking/failed?session_id=${checkoutSessionId}`,
+      successUrl: `${baseUrl}/booking/success?booking_id=${booking_id}`,
+      cancelUrl: `${baseUrl}/booking/failed`,
     });
 
     const paymongoSessionId = checkoutSession?.id;
@@ -263,7 +263,7 @@ export default async function handler(request: Request) {
     }
 
     console.log("[CHECKOUT PAYLOAD]", fullPayload);
-    console.log("[CHECKOUT SESSION ID]", checkoutSessionId);
+    console.log("[CHECKOUT BOOKING ID]", booking_id);
 
     /* =========================
        STORE SESSION
@@ -272,8 +272,10 @@ export default async function handler(request: Request) {
     const { error: sessionInsertError } = await supabaseAdmin
       .from("checkout_sessions")
       .insert({
-        checkout_session_id: checkoutSessionId,
+        checkout_session_id: paymongoSessionId, // Store the cs_... strictly as reference
+        booking_id: booking_id, // Store booking_id as primary reference
         booking_payload: fullPayload,
+        consumed: false
       });
 
     if (sessionInsertError) {
@@ -281,7 +283,7 @@ export default async function handler(request: Request) {
       return json({ error: "Failed to initialize booking session" }, { status: 500 });
     }
 
-    console.log("[CHECKOUT] Session created:", checkoutSessionId);
+    console.log("[CHECKOUT] Session created:", booking_id);
 
     return json({ checkout_url: checkoutUrl }, { status: 200 });
 

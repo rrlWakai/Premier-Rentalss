@@ -12,18 +12,6 @@
       },
     });
   }
-  function resolveCheckoutSessionId(eventPayload: any) {
-    const eventType = eventPayload?.data?.attributes?.type;
-    const eventData = eventPayload?.data?.attributes?.data;
-    if (eventType?.startsWith("checkout_session")) {
-      return eventData?.id ?? null;
-    }
-    return (
-      eventData?.attributes?.checkout_session_id ||
-      eventData?.attributes?.metadata?.checkout_session_id ||
-      null
-    );
-  }
   function resolvePaymentAmount(eventPayload: any) {
     const eventType = eventPayload?.data?.attributes?.type;
     const eventData = eventPayload?.data?.attributes?.data;
@@ -72,169 +60,83 @@
       }
       const eventId = eventPayload?.data?.id as string | undefined;
       const eventType = eventPayload?.data?.attributes?.type as string | undefined;
-      const checkoutSessionId = resolveCheckoutSessionId(eventPayload);
+      
+      const booking_id =
+        eventPayload?.data?.attributes?.data?.attributes?.metadata?.booking_id ||
+        eventPayload?.data?.attributes?.data?.attributes?.payments?.[0]?.attributes?.metadata?.booking_id;
 
       console.log("WEBHOOK EVENT:", JSON.stringify(eventPayload, null, 2));
       console.log("EVENT TYPE:", eventType);
-      console.log("CHECKOUT SESSION ID:", checkoutSessionId);
+      console.log("BOOKING ID:", booking_id);
 
-      if (!eventId || !eventType || !checkoutSessionId) {
+      if (!eventId || !eventType) {
         return json({ received: true, ignored: true }, { status: 200 });
       }
 
       // Process only successful payments
       if (eventType === "payment.paid" || eventType === "checkout_session.payment.paid") {
+        if (!booking_id) {
+          console.error("[WEBHOOK] Missing booking_id in metadata");
+          return json({ received: true, error: "missing_booking_id" }, { status: 200 }); // Changed from 400 to 200 per standard webhook logic
+        }
+
         const paymentAmount = resolvePaymentAmount(eventPayload);
         
-        // VERIFY checkout_sessions MATCH
         const { data: session } = await supabaseAdmin
           .from("checkout_sessions")
           .select("booking_payload")
-          .eq("checkout_session_id", checkoutSessionId)
+          .eq("booking_id", booking_id)
           .single();
           
         if (!session) {
-          console.error("[CRITICAL] Checkout session not found in DB:", checkoutSessionId);
+          console.error("[CRITICAL] Session not found:", booking_id);
+          return json({ received: true, error: "session_not_found" }, { status: 200 });
         }
 
-        // Atomic processing via stored procedure
-        const { data: rpcResult, error: rpcError } = await supabaseAdmin.rpc(
-          "process_webhook_booking",
-          {
-            p_event_id: eventId,
-            p_event_type: eventType,
-            p_checkout_session_id: checkoutSessionId,
-            p_payment_amount: paymentAmount,
-            p_payment_status: "paid",
-            p_full_event_payload: eventPayload
-          }
-        );
+        const payload = session.booking_payload;
 
-// 👇 ADD THIS HERE
-if (!rpcResult || rpcResult.status !== "success") {
-  console.error("[WEBHOOK] RPC failed or returned non-success:", rpcResult);
+        const insertData = {
+          booking_id: payload.booking_id,
+          property_id: payload.property_id,
+          retreat_id: payload.retreat_id,
+          booking_date: payload.booking_date,
+          time_slot: payload.time_slot,
+          full_name: payload.full_name,
+          email: payload.email,
+          phone: payload.phone,
+          address: payload.address, // Ensures address is recorded
+          guests: payload.guests,
+          num_guests: payload.num_guests || payload.guests, // Ensures compatibility
+          num_cars: payload.num_cars,
+          total_amount: payload.total_amount,
+          downpayment_amount: payload.downpayment_amount,
+          status: "confirmed",
+          payment_status: "paid",
+          checkout_session_id: eventPayload?.data?.attributes?.data?.id || eventId
+        };
 
-  if (session?.booking_payload) {
-    console.log("[WEBHOOK] Running forced fallback insert...");
-
-    const payload = session.booking_payload;
-
-    const insertData = {
-      property_id: payload.property_id,
-      retreat_id: payload.retreat_id,
-      full_name: payload.full_name || "Guest",
-      email: payload.email,
-      phone: payload.phone || payload.contact_number,
-      booking_type: payload.time_slot || "day",
-      time_slot: payload.time_slot || "daytime",
-      booking_date: payload.date,
-      checkin: payload.date,
-      guests: payload.guests || 1,
-      num_guests: payload.guests || 1,
-      num_cars: payload.cars || 0,
-      total_amount: payload.total_amount || 0,
-      downpayment_amount: payload.downpayment_amount || paymentAmount,
-      status: "confirmed",
-      payment_status: "paid",
-      checkout_session_id: checkoutSessionId,
-      special_requests: payload.special_requests,
-      rate_tier: payload.rate_tier,
-      mode_of_payment: payload.mode_of_payment
-    };
-
-    const { data: newBooking, error: insertError } = await supabaseAdmin
-      .from("bookings")
-      .insert(insertData)
-      .select("id")
-      .single();
-
-    if (insertError) {
-      console.error("❌ FALLBACK INSERT FAILED:", insertError);
-    } else {
-      console.log("✅ FALLBACK INSERT SUCCESS:", newBooking.id);
-    }
-  }
-}
-        console.log("RPC RESULT:", rpcResult);
-        console.log("RPC ERROR:", rpcError);
-
-        let finalBookingId = rpcResult?.booking_id;
-        const status = rpcResult?.status;
-
-        // HANDLE FAILED BOOKING CASE
-        if (status === "failed_booking") {
-          console.error(`[CRITICAL] Double booking prevented! Payment succeeded but slot was taken. Session: ${checkoutSessionId}`);
-          console.error("[CRITICAL] FULL PAYLOAD:", JSON.stringify(session?.booking_payload, null, 2));
-          
-          await supabaseAdmin.from("failed_bookings").insert({
-            checkout_session_id: checkoutSessionId,
-            payload: session?.booking_payload || {},
-            payment_amount: paymentAmount,
-            reason: "double_booking",
-            created_at: new Date().toISOString()
-          });
-          
-          return json({ received: true, double_booking_prevented: true }, { status: 200 });
+        const { error: insertError } = await supabaseAdmin.from("bookings").insert(insertData);
+        
+        if (insertError) {
+           console.error("[CRITICAL] Booking insert failed:", insertError);
+           // Fallback to failed_bookings for visibility
+           await supabaseAdmin.from("failed_bookings").insert({
+             checkout_session_id: eventPayload?.data?.attributes?.data?.id || eventId,
+             payload: session.booking_payload,
+             payment_amount: paymentAmount,
+             reason: "insert_failed_or_duplicate",
+             created_at: new Date().toISOString()
+           });
         }
 
-        // FIX RPC FAILURE HANDLING & ADD FALLBACK INSERT
-        if (rpcError || status === "error") {
-          console.error("[CRITICAL] RPC Error or returned error status. Details:", rpcError, rpcResult);
-          
-          if (session?.booking_payload) {
-            console.log("[WEBHOOK] Attempting manual fallback insert...");
-            const payload = session.booking_payload;
-            
-            // FIX SCHEMA MISMATCH
-            const mappedTimeSlot = ["day", "night", "overnight"].includes(payload.time_slot) 
-              ? payload.time_slot 
-              : "day";
-              
-            const insertData = {
-              property_id: payload.property_id,
-              retreat_id: payload.retreat_id,
-              full_name: payload.full_name || "Guest",
-              email: payload.email,
-              phone: payload.phone || payload.contact_number,
-              booking_type: mappedTimeSlot,
-              time_slot: mappedTimeSlot,
-              checkin: payload.date,
-              booking_date: payload.date,
-              guests: payload.guests || 1,
-              total_amount: payload.total_amount || 0,
-              downpayment_amount: payload.downpayment_amount || paymentAmount,
-              status: "confirmed",
-              payment_status: "paid",
-              payment_reference: checkoutSessionId,
-              checkout_session_id: checkoutSessionId,
-              special_requests: payload.special_requests,
-              rate_tier: payload.rate_tier,
-              mode_of_payment: payload.mode_of_payment,
-              num_guests: payload.guests || 1,
-              num_cars: payload.cars || 0
-            };
+        await supabaseAdmin
+          .from("checkout_sessions")
+          .update({ consumed: true })
+          .eq("booking_id", booking_id);
 
-            const { data: newBooking, error: insertError } = await supabaseAdmin
-              .from("bookings")
-              .insert(insertData)
-              .select("id")
-              .single();
-
-            if (insertError) {
-              console.error("[CRITICAL] Fallback insert also failed:", insertError);
-            } else {
-              console.log("[WEBHOOK] Fallback insert succeeded! ID:", newBooking.id);
-              finalBookingId = newBooking.id;
-            }
-          }
-        }
-
-        if (status === "ignored") {
-          return json({ received: true, ignored: true }, { status: 200 });
-        }
-
-        // SEND RECEIPT EMAIL
-       
+        console.log("[WEBHOOK] booking_id:", booking_id);
+        console.log("[WEBHOOK] payload:", payload);
+        console.log("[WEBHOOK] insertData:", insertData);
       }
       return json({ received: true }, { status: 200 });
     } catch (error) {

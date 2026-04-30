@@ -549,19 +549,21 @@ function formatDateToISO(dateStr: string): string {
     setSubmitting(true);
 
     try {
-      const timeSlot: "day" | "night" | "overnight" =
+      const timeSlot: "daytime" | "nighttime" | "overnight" =
         form.preferred_time === "Day"
-          ? "day"
+          ? "daytime"
           : form.preferred_time === "Night"
-            ? "night"
+            ? "nighttime"
             : "overnight";
 
       const payload = {
         property_id: property.slug,
-        date: form.preferred_dates,
+        booking_date: form.preferred_dates,
         time_slot: timeSlot,
         guests: Number(form.num_guests),
+        num_guests: Number(form.num_guests),
         cars: Number(form.num_cars),
+        num_cars: Number(form.num_cars),
         full_name: form.full_name,
         email: form.email,
         phone: form.contact_number,
@@ -571,6 +573,8 @@ function formatDateToISO(dateStr: string): string {
         mode_of_payment: form.mode_of_payment,
         special_requests: form.special_requests.trim() || undefined,
       };
+
+      console.log("[FINAL PAYLOAD]", payload);
 
       const checkout = await initializeCheckout(payload);
 
