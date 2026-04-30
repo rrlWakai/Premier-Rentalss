@@ -8,13 +8,6 @@ import { getActiveDiscount } from "../_shared/discounts";
 import { enforceRateLimit } from "../_shared/rateLimit";
 import { supabaseAdmin } from "../_shared/supabaseAdmin";
 
-function rateLabelToPlan(label: string): string {
-  const l = label.toLowerCase();
-  if (l.includes("platinum") || l.includes("overnight")) return "Platinum";
-  if (l.includes("premium")) return "Premium";
-  return "Basic";
-}
-
 export const config = {
   runtime: "edge",
 };
@@ -124,7 +117,7 @@ export default async function handler(request: Request) {
     const trimmedSpecialRequests =
       typeof special_requests === "string" ? special_requests.trim() : "";
 
-    // Field length validation
+    // Validate Input Lengths
     const fieldLengths: Record<string, string> = {
       full_name: trimmedName,
       email: trimmedEmail,
@@ -132,6 +125,7 @@ export default async function handler(request: Request) {
       address: trimmedAddress,
       special_requests: trimmedSpecialRequests,
     };
+    
     for (const [field, value] of Object.entries(fieldLengths)) {
       if (value.length > MAX_LENGTHS[field]) {
         return json(
@@ -181,11 +175,7 @@ export default async function handler(request: Request) {
       );
     }
 
-    // ── Authoritative price computation ───────────────────────────────────────
-    // computeBookingPrice is the single source of truth.
-    // It validates guests, applies the holiday weekend override, and computes
-    // the full total (base + extra pax). It throws PricingError on any
-    // validation failure so there are no silent fallbacks.
+    // Compute Price
     const appliedDiscount = await getActiveDiscount(reservationDate, propertyId, trimmedRateLabel);
 
     let pricing: PriceBreakdown;
@@ -205,23 +195,25 @@ export default async function handler(request: Request) {
       throw err;
     }
 
-    console.log("[BOOKING] pricing computed:", {
-      propertyId,
-      rateTier: trimmedRateTier,
-      rateLabel: trimmedRateLabel,
-      reservationDate,
-      guests: guestCount,
-      priceType: pricing.priceType,
-      basePrice: pricing.basePrice,
-      extraPax: pricing.extraPax,
-      extraCost: pricing.extraCost,
-      finalTotal: pricing.finalTotal,
-      downpayment: pricing.downpayment,
-    });
+    // Check Availability
+    const { data: existingBookings, error: availabilityError } = await supabaseAdmin
+      .from("bookings")
+      .select("id")
+      .eq("property_id", propertyId)
+      .eq("booking_date", reservationDate)
+      .eq("time_slot", timeSlot)
+      .in("status", ["half", "confirmed"]);
 
-    // ── DB lookup ─────────────────────────────────────────────────────────────
-    const lockedUntil = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    if (availabilityError) {
+      console.error("[BOOKING] Availability check failed:", availabilityError.message);
+      return json({ error: "Failed to verify availability. Please try again." }, { status: 500 });
+    }
 
+    if (existingBookings && existingBookings.length > 0) {
+      return json({ error: "The selected date and time slot are no longer available." }, { status: 409 });
+    }
+
+    // Validate Property
     const { data: retreat, error: retreatError } = await supabaseAdmin
       .from("retreats")
       .select("id, slug")
@@ -229,118 +221,48 @@ export default async function handler(request: Request) {
       .single();
 
     if (retreatError || !retreat?.id) {
-      console.error(
-        "[BOOKING] retreat lookup failed:",
-        retreatError?.message,
-      );
-      return json({ error: "Property record not found" }, { status: 500 });
+      console.error("[BOOKING] Retreat lookup failed:", retreatError?.message);
+      return json({ error: "Property record not found" }, { status: 404 });
     }
 
-    // ── Create locked booking ─────────────────────────────────────────────────
-    const { data: booking, error: bookingError } = await supabaseAdmin.rpc(
-      "create_locked_booking",
-      {
-        p_retreat_id: retreat.id,
-        p_property_id: propertyId,
-        p_booking_date: reservationDate,
-        p_time_slot: timeSlot,
-        p_full_name: trimmedName,
-        p_email: trimmedEmail,
-        p_phone: trimmedPhone,
-        p_contact_number: trimmedPhone,
-        p_address: trimmedAddress,
-        p_booking_type:
-          timeSlot === "daytime"
-            ? "day"
-            : timeSlot === "nighttime"
-              ? "night"
-              : "overnight",
-        p_preferred_dates: reservationDate,
-        p_preferred_time:
-          timeSlot === "daytime"
-            ? "Day"
-            : timeSlot === "nighttime"
-              ? "Night"
-              : "Overnight",
-        p_preferred_plan: rateLabelToPlan(trimmedRateLabel),
-        p_rate_tier: trimmedRateTier,
-        p_mode_of_payment: trimmedModeOfPayment,
-        p_num_guests: guestCount,
-        p_num_cars: carCount,
-        // Full price computed by backend — includes base + extra pax.
-        p_total_amount: pricing.finalTotal,
-        p_downpayment_amount: pricing.downpayment,
-        p_special_requests: trimmedSpecialRequests || null,
-        p_locked_until: lockedUntil,
+    // Create Checkout Session
+    const checkoutSessionId = crypto.randomUUID();
+
+    const { error: insertError } = await supabaseAdmin.from("checkout_sessions").insert({
+      checkout_session_id: checkoutSessionId,
+      booking_payload: {
+        propertyId,
+        retreatId: retreat.id,
+        reservationDate,
+        timeSlot,
+        full_name: trimmedName,
+        email: trimmedEmail,
+        phone: trimmedPhone,
+        address: trimmedAddress,
+        guests: guestCount,
+        cars: carCount,
+        rate_tier: trimmedRateTier,
+        rate_label: trimmedRateLabel,
+        mode_of_payment: trimmedModeOfPayment,
+        special_requests: trimmedSpecialRequests,
+        pricing,
       },
-    );
-
-    if (bookingError) {
-      console.error("[BOOKING] RPC error:", bookingError.message);
-      return json(
-        { error: "Unable to create booking. Please try again." },
-        { status: 500 },
-      );
-    }
-
-    const row = Array.isArray(booking) ? booking[0] : booking;
-    if (!row) {
-      return json({ error: "Unable to create booking" }, { status: 500 });
-    }
-
-    console.log("[BOOKING] booking created:", {
-      bookingId: row.id,
-      propertyId,
-      reservationDate,
-      timeSlot,
-      finalTotal: pricing.finalTotal,
-      downpayment: pricing.downpayment,
-      lockedUntil,
     });
 
-    // ── Pricing snapshot ──────────────────────────────────────────────────────
-    // Stores the exact computed values at booking time for audit and debugging.
-    // Best-effort: a failure here does NOT block the booking.
-    const pricingSnapshot = {
-      rateLabel: trimmedRateLabel,
-      rateTier: trimmedRateTier,
-      basePrice: pricing.basePrice,
-      extraPax: pricing.extraPax,
-      extraCost: pricing.extraCost,
-      subtotal: pricing.subtotal,
-      discountLabel: pricing.discountLabel || null,
-      discountPercentage: pricing.discountPercentage || null,
-      discountAmount: pricing.discountAmount || null,
-      finalTotal: pricing.finalTotal,
-      downpayment: pricing.downpayment,
-      weekendApplied: pricing.priceType === "weekend",
-    };
-
-    const { error: snapshotError } = await supabaseAdmin
-      .from("bookings")
-      .update({ pricing_snapshot: pricingSnapshot })
-      .eq("id", row.id);
-
-    if (snapshotError) {
-      console.error("[BOOKING] pricing_snapshot update failed (booking still created):", {
-        bookingId: row.id,
-        snapshotError: snapshotError.message,
-        pricingSnapshot,
-      });
+    if (insertError) {
+      console.error("[BOOKING] Failed to insert checkout session:", insertError.message);
+      return json({ error: "Failed to initialize checkout session." }, { status: 500 });
     }
 
-    return json(
-      {
-        booking_id: row.id,
-        amount: row.total_amount,
-        downpayment_amount: row.downpayment_amount,
-        locked_until: row.locked_until,
-      },
-      { status: 201 },
-    );
+    // Return Response
+    return json({
+      checkout_session_id: checkoutSessionId,
+      message: "Proceed to payment",
+    });
+
   } catch (error) {
     console.error(
-      "[BOOKING] unhandled error:",
+      "[BOOKING] Unhandled error:",
       error instanceof Error ? error.message : String(error),
     );
     return json(
