@@ -132,7 +132,7 @@ function BookingMeta({
   const metaItems = [
     {
       label: "Guest",
-      value: booking.guest_name,
+      value: booking.guest_name ?? "—",
     },
     {
       label: "Date",

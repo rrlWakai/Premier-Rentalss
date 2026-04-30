@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -85,6 +85,11 @@ export default function AdminDashboard() {
   const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
   const [page, setPage] = useState(1);
   const [totalBookings, setTotalBookings] = useState(0);
+  const pageRef = useRef(page);
+
+  useEffect(() => {
+    pageRef.current = page;
+  }, [page]);
 
   useEffect(() => {
     const basePromise = Promise.all([
@@ -127,7 +132,7 @@ export default function AdminDashboard() {
       },
       () => {
         console.log("Realtime update triggered");
-        refreshData();
+        void refreshData(pageRef.current);
       }
     )
     .subscribe();
@@ -143,11 +148,11 @@ export default function AdminDashboard() {
     toast.success("Signed out");
   }
 
-  async function refreshData() {
+  async function refreshData(targetPage = page) {
     setLoading(true);
     try {
       const basePromise = Promise.all([
-        fetchBookings(page, PAGE_SIZE),
+        fetchBookings(targetPage, PAGE_SIZE),
         fetchBlockedDates(),
         fetchRetreats(),
         fetchAdminStats(),
@@ -383,7 +388,7 @@ export default function AdminDashboard() {
           </h1>
           <div className="flex items-center gap-3">
             <button
-              onClick={refreshData}
+              onClick={() => void refreshData()}
               disabled={loading}
               className="p-2 text-[#8a8a7a] hover:text-[#c9a96e] transition-colors disabled:opacity-50"
               title="Refresh data"

@@ -28,7 +28,7 @@ export type BookingStatusResponse = {
   property_id: string | null;
   booking_date: string | null;
   time_slot: string | null;
-  guest_name: string;
+  guest_name: string | null;
 };
 
 export type PendingBookingState = {
@@ -79,7 +79,7 @@ export async function initializeCheckout(payload: CreateBookingPayload) {
   );
 }
 export async function createPayMongoCheckout(bookingId: string) {
-  return postJson<{ checkout_url: string }>("/api/payments/checkout", {
+  return postJson<{ checkout_url: string }>("/api/payments/resume-checkout", {
     booking_id: bookingId,
   });
 }

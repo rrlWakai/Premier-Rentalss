@@ -26,6 +26,7 @@ export default async function handler(request: Request) {
   const auth = await requireStaff(request);
   if (auth instanceof Response) return auth;
   const role = auth.role;
+  const isOwnerRole = role === "admin";
 
   // GET - Fetch bookings with pagination
   if (request.method === "GET") {
@@ -82,7 +83,7 @@ export default async function handler(request: Request) {
     // Allowlist: limit fields to avoid sneaky updates
     let ALLOWED_FIELDS: Set<string>;
 
-    if (role === "admin") {
+    if (isOwnerRole) {
       // Owners can update everything
       ALLOWED_FIELDS = new Set([
         "status",
@@ -135,7 +136,7 @@ export default async function handler(request: Request) {
   // DELETE - Permanently remove a booking
   if (request.method === "DELETE") {
     // Re-verify that user is strictly 'admin' (owner), not just 'staff'
-    if (role !== "admin") {
+    if (!isOwnerRole) {
       return json(
         { error: "Forbidden: Only owners can delete bookings" },
         { status: 403 }
