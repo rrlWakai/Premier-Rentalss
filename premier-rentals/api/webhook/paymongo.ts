@@ -16,34 +16,6 @@ function json(data: unknown, init?: ResponseInit) {
   });
 }
 
-async function resolveBookingIdFromEvent(eventPayload: any) {
-  const eventType = eventPayload?.data?.attributes?.type;
-  const eventData = eventPayload?.data?.attributes?.data;
-
-  const metadataBookingId =
-    eventData?.attributes?.metadata?.booking_id ||
-    eventData?.attributes?.payment_intent?.attributes?.metadata?.booking_id ||
-    eventData?.attributes?.payments?.[0]?.attributes?.metadata?.booking_id ||
-    eventData?.attributes?.metadata?.bookingId;
-
-  if (metadataBookingId) return metadataBookingId as string;
-
-  const checkoutSessionId =
-    eventType?.startsWith("checkout_session") ? eventData?.id : null;
-
-  if (checkoutSessionId) {
-    const { data: payment } = await supabaseAdmin
-      .from("payments")
-      .select("booking_id")
-      .eq("checkout_session_id", checkoutSessionId)
-      .maybeSingle();
-
-    if (payment?.booking_id) return payment.booking_id as string;
-  }
-
-  return null;
-}
-
 function resolveCheckoutSessionId(eventPayload: any) {
   const eventType = eventPayload?.data?.attributes?.type;
   const eventData = eventPayload?.data?.attributes?.data;
@@ -59,41 +31,23 @@ function resolveCheckoutSessionId(eventPayload: any) {
   );
 }
 
-async function markPaymentState(params: {
-  bookingId: string;
-  paymentStatus: "paid" | "failed";
-  bookingStatus: "confirmed" | "cancelled";
-  checkoutSessionId: string;
-}) {
-  const { data: booking, error: bookingError } = await supabaseAdmin
-    .from("bookings")
-    .select("id, status, payment_status, checkout_session_id")
-    .eq("id", params.bookingId)
-    .single();
+function resolvePaymentAmount(eventPayload: any) {
+  const eventType = eventPayload?.data?.attributes?.type;
+  const eventData = eventPayload?.data?.attributes?.data;
 
-  if (bookingError || !booking) return;
-
-  if (!booking.checkout_session_id || booking.checkout_session_id !== params.checkoutSessionId) {
-    return;
+  if (eventType === "payment.paid") {
+    // Paymongo amount is in cents
+    return (eventData?.attributes?.amount || 0) / 100;
   }
-
-  const paymentUpdate = supabaseAdmin
-    .from("payments")
-    .update({ status: params.paymentStatus })
-    .eq("booking_id", params.bookingId)
-    .eq("checkout_session_id", params.checkoutSessionId);
-
-  const bookingUpdate = supabaseAdmin
-    .from("bookings")
-    .update({
-      payment_status: params.paymentStatus,
-      status: params.bookingStatus,
-      locked_until: null,
-    })
-    .eq("id", params.bookingId)
-    .eq("checkout_session_id", params.checkoutSessionId);
-
-  await Promise.all([paymentUpdate, bookingUpdate]);
+  
+  if (eventType === "checkout_session.payment.paid") {
+    const payments = eventData?.attributes?.payments;
+    if (payments && payments.length > 0) {
+      return (payments[0]?.attributes?.amount || 0) / 100;
+    }
+  }
+  
+  return 0;
 }
 
 export default async function handler(request: Request) {
@@ -115,99 +69,77 @@ export default async function handler(request: Request) {
     const eventPayload = JSON.parse(rawBody);
     const eventId = eventPayload?.data?.id as string | undefined;
     const eventType = eventPayload?.data?.attributes?.type as string | undefined;
-    const bookingId = await resolveBookingIdFromEvent(eventPayload);
     const checkoutSessionId = resolveCheckoutSessionId(eventPayload);
 
-    if (!eventId || !bookingId || !eventType || !checkoutSessionId) {
+    if (!eventId || !eventType || !checkoutSessionId) {
       return json({ received: true, ignored: true }, { status: 200 });
     }
 
-    const { error: eventInsertError } = await supabaseAdmin
-      .from("payment_webhook_events")
-      .insert([
-        {
-          event_id: eventId,
-          event_type: eventType,
-          booking_id: bookingId,
-          payload: eventPayload,
-        },
-      ]);
-
-    if (eventInsertError) {
-      const message = eventInsertError.message || "";
-      if (
-        message.includes("duplicate key") ||
-        message.includes("unique constraint") ||
-        message.includes("payment_webhook_events_event_id_key")
-      ) {
-        return json({ received: true, duplicate: true }, { status: 200 });
-      }
-
-      throw eventInsertError;
-    }
-
+    // Process only successful payments
     if (eventType === "payment.paid" || eventType === "checkout_session.payment.paid") {
-      await markPaymentState({
-        bookingId,
-        paymentStatus: "paid",
-        bookingStatus: "confirmed",
-        checkoutSessionId,
-      });
+      const paymentAmount = resolvePaymentAmount(eventPayload);
+      
+      // Atomic processing via stored procedure
+      const { data: rpcResult, error: rpcError } = await supabaseAdmin.rpc(
+        "process_webhook_booking",
+        {
+          p_event_id: eventId,
+          p_event_type: eventType,
+          p_checkout_session_id: checkoutSessionId,
+          p_payment_amount: paymentAmount,
+          p_payment_status: "paid",
+          p_full_event_payload: eventPayload
+        }
+      );
 
-      // Fetch booking details to send receipt email
-      const { data: booking } = await supabaseAdmin
-        .from("bookings")
-        .select(
-          `id, full_name, email, num_guests, total_amount, downpayment_amount,
-           remaining_balance, booking_type, booking_date, special_requests,
-           retreats(name)`
-        )
-        .eq("id", bookingId)
-        .single();
-
-      if (booking) {
-        // Supabase .single() with a join returns retreats as a plain object, not an array
-        const retreatRow = booking.retreats as { name?: string } | null;
-        const receiptData: BookingReceiptData = {
-          bookingId: booking.id,
-          customerName: booking.full_name,
-          customerEmail: booking.email,
-          propertyName: retreatRow?.name ?? "Premier Rentals",
-          checkInDate: booking.booking_date,
-          bookingType: booking.booking_type,
-          guests: booking.num_guests || 1,
-          totalAmount: parseFloat(booking.total_amount) || 0,
-          downpaymentAmount: parseFloat(booking.downpayment_amount) || 0,
-          remainingBalance: parseFloat(booking.remaining_balance) || 0,
-          specialRequests: booking.special_requests,
-        };
-
-        // Fire and forget — do not block the webhook response
-        sendBookingReceipt(receiptData).catch((err) => {
-          console.error("Failed to send receipt email:", err);
-        });
+      if (rpcError) {
+        console.error("[WEBHOOK] RPC Error:", rpcError.message);
+        throw rpcError;
       }
-    }
 
-    if (eventType === "payment.failed" || eventType === "checkout_session.payment.failed") {
-      const { data: booking } = await supabaseAdmin
-        .from("bookings")
-        .select("payment_status, status, checkout_session_id")
-        .eq("id", bookingId)
-        .single();
+      console.log("[WEBHOOK] Process result:", rpcResult);
 
-      if (
-        booking &&
-        booking.checkout_session_id === checkoutSessionId &&
-        booking.payment_status !== "paid" &&
-        booking.status !== "confirmed"
-      ) {
-        await markPaymentState({
-          bookingId,
-          paymentStatus: "failed",
-          bookingStatus: "cancelled",
-          checkoutSessionId,
-        });
+      const status = rpcResult?.status;
+
+      if (status === "failed_booking") {
+        console.error(`[CRITICAL] Double booking prevented! Payment succeeded but slot was taken. Session: ${checkoutSessionId}`);
+        // Log critical error. Refund handled manually.
+        return json({ received: true, double_booking_prevented: true }, { status: 200 });
+      }
+
+      if (status === "success" && rpcResult.booking_id) {
+        // Send receipt
+        const bookingId = rpcResult.booking_id;
+        const { data: booking } = await supabaseAdmin
+          .from("bookings")
+          .select(`
+            id, full_name, email, num_guests, total_amount, downpayment_amount,
+            remaining_balance, booking_type, booking_date, special_requests,
+            retreats(name)
+          `)
+          .eq("id", bookingId)
+          .single();
+
+        if (booking) {
+          const retreatRow = booking.retreats as { name?: string } | null;
+          const receiptData: BookingReceiptData = {
+            bookingId: booking.id,
+            customerName: booking.full_name,
+            customerEmail: booking.email,
+            propertyName: retreatRow?.name ?? "Premier Rentals",
+            checkInDate: booking.booking_date,
+            bookingType: booking.booking_type,
+            guests: booking.num_guests || 1,
+            totalAmount: parseFloat(booking.total_amount) || 0,
+            downpaymentAmount: parseFloat(booking.downpayment_amount) || 0,
+            remainingBalance: parseFloat(booking.remaining_balance) || 0,
+            specialRequests: booking.special_requests,
+          };
+
+          sendBookingReceipt(receiptData).catch((err) => {
+            console.error("Failed to send receipt email:", err);
+          });
+        }
       }
     }
 
