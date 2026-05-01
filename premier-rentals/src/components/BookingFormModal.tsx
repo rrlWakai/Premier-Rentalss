@@ -346,6 +346,11 @@ export default function BookingFormModal({
   const [priceError, setPriceError] = useState("");
   const [priceRetryKey, setPriceRetryKey] = useState(0);
 
+  // Slot availability state
+  const [slotAvailable, setSlotAvailable] = useState<boolean | null>(null);
+  const [slotChecking, setSlotChecking] = useState(false);
+  const [slotError, setSlotError] = useState("");
+
   const stepIndex = STEPS.findIndex((item) => item.id === step);
 
   const set = (field: keyof FormState, value: string) =>
@@ -362,6 +367,9 @@ export default function BookingFormModal({
     setPriceLoading(false);
     setPriceError("");
     setPriceRetryKey(0);
+    setSlotAvailable(null);
+    setSlotChecking(false);
+    setSlotError("");
   }, [open, initialPackage, property.slug]);
 
   // Scroll focused field into view after keyboard opens (~300 ms delay)
@@ -463,6 +471,72 @@ export default function BookingFormModal({
     priceRetryKey,
   ]);
 
+  // Slot availability check when entering review step
+  useEffect(() => {
+    if (step !== "review") return;
+
+    setSlotAvailable(null);
+    setSlotChecking(true);
+    setSlotError("");
+
+    const controller = new AbortController();
+
+    const timeSlotMap: Record<string, "day" | "night" | "overnight"> = {
+      Day: "day",
+      Night: "night",
+      Overnight: "overnight",
+    };
+    const timeSlot = timeSlotMap[form.preferred_time] || "day";
+
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch("/api/availability/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            property_id: property.slug,
+            booking_date: form.preferred_dates,
+            time_slot: timeSlot,
+            rate_tier: selectedPkg.tier,
+          }),
+        });
+
+        if (controller.signal.aborted) return;
+
+        const data = await response.json();
+        if (!response.ok) {
+          setSlotError(data.error || "Unable to verify availability.");
+          setSlotAvailable(false);
+        } else {
+          setSlotAvailable(data.available);
+          if (!data.available) {
+            setSlotError(data.reason || "This slot is no longer available.");
+          }
+        }
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") return;
+        setSlotError("Unable to verify availability. Please try again.");
+        setSlotAvailable(false);
+      } finally {
+        if (!controller.signal.aborted) {
+          setSlotChecking(false);
+        }
+      }
+    }, 300);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [
+    step,
+    property.slug,
+    form.preferred_dates,
+    form.preferred_time,
+    selectedPkg.tier,
+  ]);
+
   // When rate changes, auto-set preferred_time and preferred_plan
   function handleRateChange(label: string) {
     set("rate_label", label);
@@ -550,6 +624,17 @@ export default function BookingFormModal({
   async function handleSubmit() {
     if (!priceBreakdown) {
       toast.error("Pricing is not ready. Please wait a moment and try again.");
+      return;
+    }
+
+    if (slotChecking) {
+      toast.error("Please wait while we verify availability.");
+      return;
+    }
+    if (!slotAvailable) {
+      toast.error(
+        "This slot is no longer available. Please choose another date or session.",
+      );
       return;
     }
 
@@ -1208,6 +1293,83 @@ export default function BookingFormModal({
                       </div>
                     </div>
 
+                    {/* Slot availability banners */}
+                    {slotChecking && (
+                      <div className="flex items-center gap-3 rounded-[1.1rem] border border-[#e6ddd1] bg-[#faf8f5] px-4 py-3">
+                        <svg
+                          className="animate-spin text-[#c9a96e] shrink-0"
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                        </svg>
+                        <p
+                          className="text-[11px] text-[#4a4a4a]"
+                          style={{ fontFamily: "Jost, sans-serif" }}
+                        >
+                          Verifying availability of your selected slot…
+                        </p>
+                      </div>
+                    )}
+
+                    {!slotChecking && slotAvailable === false && (
+                      <div className="flex flex-col gap-3 rounded-[1.1rem] border border-red-200 bg-red-50 px-4 py-4">
+                        <div className="flex items-start gap-3">
+                          <AlertCircle
+                            size={14}
+                            color="#ef4444"
+                            className="mt-0.5 shrink-0"
+                          />
+                          <div className="flex flex-col gap-1">
+                            <p
+                              className="text-[12px] font-semibold text-red-700"
+                              style={{ fontFamily: "Jost, sans-serif" }}
+                            >
+                              Slot Unavailable
+                            </p>
+                            <p
+                              className="text-[11px] text-red-600"
+                              style={{ fontFamily: "Jost, sans-serif" }}
+                            >
+                              {slotError}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSlotAvailable(null);
+                            setSlotChecking(false);
+                            setSlotError("");
+                            setStep("booking");
+                          }}
+                          className="text-[11px] text-red-600 underline underline-offset-2 hover:text-red-700 transition-colors self-start"
+                          style={{ fontFamily: "Jost, sans-serif" }}
+                        >
+                          ← Change Date or Session
+                        </button>
+                      </div>
+                    )}
+
+                    {!slotChecking && slotAvailable === true && (
+                      <div className="flex items-center gap-3 rounded-[1.1rem] border border-green-200 bg-green-50/80 px-4 py-3">
+                        <Check size={14} color="#16a34a" className="shrink-0" />
+                        <p
+                          className="text-[11px] text-green-700"
+                          style={{ fontFamily: "Jost, sans-serif" }}
+                        >
+                          Your selected date and session is available.
+                        </p>
+                      </div>
+                    )}
+
                     <div className="flex items-start gap-3 rounded-[1.1rem] border border-amber-200 bg-amber-50/90 px-4 py-4 shadow-[0_12px_30px_rgba(217,119,6,0.08)]">
                       <AlertCircle
                         size={14}
@@ -1273,7 +1435,12 @@ export default function BookingFormModal({
                   if (submitting) return;
                   if (step === "details") onClose();
                   else if (step === "booking") setStep("details");
-                  else if (step === "review") setStep("booking");
+                  else if (step === "review") {
+                    setSlotAvailable(null);
+                    setSlotChecking(false);
+                    setSlotError("");
+                    setStep("booking");
+                  }
                 }}
                 disabled={submitting}
                 className="min-h-[44px] px-3 text-xs tracking-wider uppercase text-[#8a8a7a] hover:text-[#1a1a1a] transition-colors disabled:cursor-not-allowed disabled:opacity-40"
@@ -1285,7 +1452,7 @@ export default function BookingFormModal({
               {step === "review" ? (
                 <button
                   onClick={handleSubmit}
-                  disabled={submitting}
+                  disabled={submitting || slotChecking || !slotAvailable}
                   className="btn-gold min-h-[44px] flex-1 max-w-[20rem] justify-center disabled:opacity-60 disabled:cursor-not-allowed text-[11px] sm:text-xs"
                 >
                   {submitting ? (
