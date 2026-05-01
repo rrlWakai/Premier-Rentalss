@@ -36,7 +36,7 @@ export interface Retreat {
 }
 
 export type BookingStatus =
-  | "half"
+  | "pending"
   | "confirmed"
   | "cancelled"
   | "completed";
@@ -74,11 +74,9 @@ export interface Booking {
   remaining_balance?: number;
 
   payment_status: PaymentStatus;
-  payment_reference?: string;
 
   // 🔐 ADMIN FLOW
   status: BookingStatus;
-  approved_at?: string;
 
   special_requests?: string;
 
@@ -119,9 +117,9 @@ export async function fetchRetreatBySlug(slug: string): Promise<Retreat | null> 
 
 // ✅ CREATE BOOKING (with downpayment)
 export async function createBooking(
-  _booking?: Omit<Booking, "id" | "created_at" | "retreat" | "approved_at">
+  _booking?: Omit<Booking, "id" | "created_at" | "retreat">
 ): Promise<Booking | null> {
-  throw new Error("Direct client-side booking creation is disabled. Use /api/bookings/create.");
+  throw new Error("Direct client-side booking creation is disabled. Use /api/payments/checkout.");
 }
 
 // ✅ FETCH BOOKINGS (via Edge Functions with admin auth)
@@ -196,7 +194,6 @@ export async function updateBookingStatus(
         bookingId: id,
         updates: {
           status,
-          approved_at: status === "confirmed" ? new Date().toISOString() : null,
         },
       }),
     });
@@ -218,7 +215,6 @@ export async function updateBookingStatus(
 export async function updateBookingPayment(
   id: string,
   payment_status: PaymentStatus,
-  payment_reference?: string,
   paidAmount?: number
 ): Promise<boolean> {
   try {
@@ -230,7 +226,6 @@ export async function updateBookingPayment(
 
     const updates: Record<string, unknown> = {
       payment_status,
-      payment_reference,
     };
 
     // ✅ Send paid_amount to API for server-side calculation
@@ -433,7 +428,13 @@ export async function fetchAdminStats(): Promise<AdminStats | null> {
     }
 
     const data = await response.json();
-    return (data.stats as AdminStats) ?? null;
+    return {
+      totalRevenue: data.totalRevenue ?? 0,
+      confirmed: data.confirmedBookings ?? 0,
+      pending: data.pendingBookings ?? 0,
+      totalGuests: 0,
+      totalInquiries: data.totalInquiries ?? 0,
+    };
   } catch (error) {
     console.error("fetchAdminStats error:", error);
     return null;
@@ -620,41 +621,86 @@ export async function fetchDiscounts(): Promise<Discount[]> {
 }
 
 export async function createDiscount(payload: DiscountPayload): Promise<Discount | null> {
-  const { data, error } = await supabase
-    .from("discounts")
-    .insert(payload)
-    .select()
-    .single();
-  if (error) {
+  try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session?.access_token) {
+      console.error("createDiscount: No authenticated session");
+      return null;
+    }
+    const response = await fetch("/api/admin/discounts", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error("createDiscount:", errorData);
+      return null;
+    }
+    const data = await response.json();
+    return data.discount ?? null;
+  } catch (error) {
     console.error("createDiscount:", error);
     return null;
   }
-  return data;
 }
 
 export async function updateDiscount(
   id: string,
   payload: Partial<DiscountPayload>,
 ): Promise<boolean> {
-  const { error } = await supabase
-    .from("discounts")
-    .update(payload)
-    .eq("id", id);
-  if (error) {
+  try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session?.access_token) {
+      console.error("updateDiscount: No authenticated session");
+      return false;
+    }
+    const response = await fetch("/api/admin/discounts", {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id, ...payload }),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error("updateDiscount:", errorData);
+      return false;
+    }
+    return true;
+  } catch (error) {
     console.error("updateDiscount:", error);
     return false;
   }
-  return true;
 }
 
 export async function deleteDiscount(id: string): Promise<boolean> {
-  const { error } = await supabase
-    .from("discounts")
-    .delete()
-    .eq("id", id);
-  if (error) {
+  try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session?.access_token) {
+      console.error("deleteDiscount: No authenticated session");
+      return false;
+    }
+    const response = await fetch("/api/admin/discounts", {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id }),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error("deleteDiscount:", errorData);
+      return false;
+    }
+    return true;
+  } catch (error) {
     console.error("deleteDiscount:", error);
     return false;
   }
-  return true;
 }

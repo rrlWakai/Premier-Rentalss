@@ -5,7 +5,7 @@ grant all on schema public to postgres;
 
 create extension if not exists pgcrypto;
 
-create type booking_status_enum as enum ('half','confirmed','cancelled','completed');
+create type booking_status_enum as enum ('pending','confirmed','cancelled','completed');
 create type payment_status_enum as enum ('unpaid','partial','paid','failed','refunded');
 create type time_slot_enum as enum ('daytime','nighttime','overnight');
 create type booking_type_enum as enum ('day','night','overnight');
@@ -69,7 +69,7 @@ create table public.bookings (
   total_amount        numeric(10,2) not null default 0,
   downpayment_amount  numeric(10,2) not null default 0,
   remaining_balance   numeric(10,2) generated always as (total_amount - downpayment_amount) stored,
-  status              booking_status_enum not null default 'half',
+  status              booking_status_enum not null default 'pending',
   payment_status      payment_status_enum not null default 'unpaid',
   checkout_session_id text,
   rate_tier           text,
@@ -168,7 +168,7 @@ create table public.api_rate_limits (
 -- Prevent double booking same slot
 create unique index unique_booking_slot
   on public.bookings (property_id, booking_date, time_slot)
-  where status in ('half','confirmed');
+  where status in ('pending','confirmed');
 
 create index idx_booking_lookup
   on public.bookings (property_id, booking_date, time_slot);

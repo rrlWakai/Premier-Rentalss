@@ -307,10 +307,10 @@ export default function AdminCalendarView({
                       style={{ fontFamily: "Jost, sans-serif" }}
                     >
                       <span>
-                        {booking.preferred_time} · {booking.preferred_plan} ·{" "}
+                        {booking.time_slot} · {booking.rate_tier} ·{" "}
                         {booking.num_guests} pax
                       </span>
-                      <span>{booking.contact_number}</span>
+                      <span>{booking.phone}</span>
                       <span>{booking.mode_of_payment}</span>
                     </div>
                   </div>

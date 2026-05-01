@@ -17,8 +17,8 @@ export default async function handler(
   )
 
   const { error } = await supabase
-    .from('bookings')
-    .select('*')
+    .from('retreats')
+    .select('id')
     .limit(1)
 
   if (error) {

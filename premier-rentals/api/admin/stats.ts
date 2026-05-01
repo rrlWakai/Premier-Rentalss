@@ -29,7 +29,7 @@ export default async function handler(request: Request) {
 
   const { data: bookings, error: bookingsError } = await supabaseAdmin
     .from("bookings")
-    .select("status, payment_status, total_amount, guests");
+    .select("id, status, payment_status, total_amount, full_name, booking_date, time_slot, created_at");
 
   if (bookingsError) {
     console.error("fetchStats error:", bookingsError);
@@ -39,14 +39,17 @@ export default async function handler(request: Request) {
   const totalRevenue =
     role === "admin"
       ? (bookings
-          ?.filter((b) => b.status === "half" || b.status === "confirmed")
+          ?.filter((b) => b.status === "pending" || b.status === "confirmed")
           .reduce((sum, b) => sum + (b.total_amount || 0), 0) ?? 0)
       : 0;
 
-  const confirmed = bookings?.filter((b) => b.status === "confirmed").length ?? 0;
-  const pending = bookings?.filter((b) => b.status === "half").length ?? 0;
-  const totalGuests =
-    bookings?.reduce((sum, b) => sum + (b.guests || 0), 0) ?? 0;
+  const totalBookings = bookings?.length ?? 0;
+  const confirmedBookings = bookings?.filter((b) => b.status === "confirmed").length ?? 0;
+  const pendingBookings = bookings?.filter((b) => b.status === "pending").length ?? 0;
+  const recentBookings = (bookings ?? [])
+    .slice()
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 5);
 
   const { count: inquiryCount, error: inquiryError } = await supabaseAdmin
     .from("inquiries")
@@ -57,12 +60,11 @@ export default async function handler(request: Request) {
   }
 
   return json({
-    stats: {
-      totalRevenue,
-      confirmed,
-      pending,
-      totalGuests,
-      totalInquiries: inquiryCount ?? 0,
-    },
-  });
+    totalBookings,
+    confirmedBookings,
+    totalRevenue,
+    pendingBookings,
+    recentBookings,
+    totalInquiries: inquiryCount ?? 0,
+  }, { status: 200 });
 }

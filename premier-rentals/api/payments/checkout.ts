@@ -28,6 +28,12 @@ function getBaseUrl(request: Request) {
   return process.env.PUBLIC_SITE_URL || new URL(request.url).origin;
 }
 
+const SLOT_MAP: Record<string, string> = {
+  day: "daytime",
+  night: "nighttime",
+  overnight: "overnight",
+};
+
 /* =========================
    HELPERS
 ========================= */
@@ -115,6 +121,8 @@ export default async function handler(request: Request) {
     const time_slot = normalizeTimeSlot(
       typeof body?.time_slot === "string" ? body.time_slot : ""
     );
+    const rawSlot: string = time_slot ?? 'day';
+    const dbTimeSlot = SLOT_MAP[rawSlot] ?? rawSlot;
 
     // FIX 2: Read the field names the frontend actually sends — "guests" and "cars".
     // The old code read "num_guests"/"num_cars" here, which never matched the frontend
@@ -148,8 +156,8 @@ export default async function handler(request: Request) {
       .select("id")
       .eq("property_id", property_id)
       .eq("booking_date", booking_date)
-      .eq("time_slot", time_slot)
-      .in("status", ["half", "confirmed"])
+      .eq("time_slot", dbTimeSlot)
+      .in("status", ["pending", "confirmed"])
       .maybeSingle();
 
     if (checkError) {
@@ -240,7 +248,7 @@ export default async function handler(request: Request) {
       property_id,
       retreat_id: retreat.id,
       booking_date,
-      time_slot,
+      time_slot: dbTimeSlot,
 
       full_name: trimmedName,
       email: trimmedEmail,

@@ -1,6 +1,8 @@
 type CreateBookingPayload = {
   property_id: string;
   booking_date: string;
+  // time_slot sent as 'day'|'night'|'overnight' — normalized to
+  // 'daytime'|'nighttime'|'overnight' in api/payments/checkout.ts
   time_slot: "day" | "night" | "overnight";
   guests: number;
   cars: number;

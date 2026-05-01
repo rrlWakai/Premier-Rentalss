@@ -83,7 +83,7 @@ export default async function handler(request: Request) {
       .select("id")
       .eq("retreat_id", retreatId)
       .eq("date", date)
-      .single();
+      .maybeSingle();
 
     if (existingBlock) {
       return json({ error: "This date is already blocked" }, { status: 409 });
@@ -100,7 +100,7 @@ export default async function handler(request: Request) {
       return json({ error: "Internal server error" }, { status: 500 });
     }
 
-    return json(blockedDate, { status: 201 });
+    return json({ blockedDate }, { status: 200 });
   }
 
   // DELETE - Remove blocked date

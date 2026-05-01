@@ -279,7 +279,7 @@ export default function AdminDashboard() {
     const q = search.toLowerCase();
     const matchSearch =
       b.full_name.toLowerCase().includes(q) ||
-      (b.contact_number ?? "").includes(q);
+      (b.phone ?? "").includes(q);
     const matchStatus = statusFilter === "all" || b.status === statusFilter;
     return matchSearch && matchStatus;
   });
@@ -528,17 +528,17 @@ export default function AdminDashboard() {
                                   {b.full_name}
                                 </p>
                                 <p className="text-[#8a8a7a] text-[10px]">
-                                  {b.contact_number}
+                                  {b.phone}
                                 </p>
                               </td>
                               <td className="px-4 py-3 text-[#4a4a4a]">
                                 {b.retreat?.name ?? "—"}
                               </td>
                               <td className="px-4 py-3 text-[#4a4a4a]">
-                                {b.preferred_time} · {b.preferred_plan}
+                                {b.time_slot} · {b.rate_tier}
                               </td>
                               <td className="px-4 py-3 text-[#4a4a4a] max-w-[100px] truncate">
-                                {b.preferred_dates}
+                                {b.booking_date}
                               </td>
                               <td className="px-4 py-3 font-medium text-[#c9a96e]">
                                 {formatPHP(b.total_amount)}
@@ -603,7 +603,7 @@ export default function AdminDashboard() {
                         style={{ fontFamily: "Jost, sans-serif" }}
                       >
                         <option value="all">All Status</option>
-                        <option value="half">Half</option>
+                        <option value="pending">Pending</option>
                         <option value="confirmed">Confirmed</option>
                         <option value="cancelled">Cancelled</option>
                         <option value="completed">Completed</option>
@@ -659,7 +659,7 @@ export default function AdminDashboard() {
                                 </td>
                                 <td className="px-4 py-3">
                                   <p className="text-[#4a4a4a]">
-                                    {b.preferred_time} · {b.preferred_plan}
+                                    {b.time_slot} · {b.rate_tier}
                                   </p>
                                   <p className="text-[#8a8a7a] text-[10px]">
                                     {b.rate_tier
@@ -669,7 +669,7 @@ export default function AdminDashboard() {
                                   </p>
                                 </td>
                                 <td className="px-4 py-3 text-[#4a4a4a] max-w-[110px] truncate text-[10px]">
-                                  {b.preferred_dates}
+                                  {b.booking_date}
                                 </td>
                                 <td className="px-4 py-3 font-medium text-[#c9a96e]">
                                   {formatPHP(b.total_amount)}
@@ -761,7 +761,7 @@ export default function AdminDashboard() {
                                 [
                                   User,
                                   "Contact",
-                                  selectedBooking.contact_number,
+                                  selectedBooking.phone,
                                 ],
                                 [MapPin, "Address", selectedBooking.address],
                                 [
@@ -780,12 +780,12 @@ export default function AdminDashboard() {
                                 [
                                   null,
                                   "Session",
-                                  `${selectedBooking.preferred_time} · ${selectedBooking.preferred_plan}`,
+                                  `${selectedBooking.time_slot} · ${selectedBooking.rate_tier}`,
                                 ],
                                 [
                                   Calendar,
                                   "Date(s)",
-                                  selectedBooking.preferred_dates,
+                                  selectedBooking.booking_date,
                                 ],
                                 [
                                   Users,
@@ -853,7 +853,7 @@ export default function AdminDashboard() {
                             {(
                               [
                                 "confirmed",
-                                "half",
+                                "pending",
                                 "cancelled",
                                 "completed",
                               ] as BookingStatus[]

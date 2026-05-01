@@ -98,7 +98,7 @@ export default async function handler(request: Request) {
           created_at: newUser.user?.created_at,
         },
       },
-      { status: 201 },
+      { status: 200 },
     );
   }
 

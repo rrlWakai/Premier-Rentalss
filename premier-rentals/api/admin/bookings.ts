@@ -39,9 +39,9 @@ export default async function handler(request: Request) {
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
-    const { data: bookings, error, count } = await supabaseAdmin
+    const { data: bookings, error } = await supabaseAdmin
       .from("bookings")
-      .select("*", { count: "exact" })
+      .select("*")
       .order("created_at", { ascending: false })
       .range(from, to);
 
@@ -50,7 +50,7 @@ export default async function handler(request: Request) {
       return json({ error: "Internal server error" }, { status: 500 });
     }
 
-    return json({ bookings: bookings ?? [], total: count ?? 0, page, limit });
+    return json({ bookings: bookings ?? [] }, { status: 200 });
   }
 
   // PATCH - Update booking (status or payment)
@@ -89,7 +89,6 @@ export default async function handler(request: Request) {
         "status",
         "payment_status",
         "special_requests",
-        "approved_at",
         "mode_of_payment",
       ]);
     } else {
@@ -97,7 +96,6 @@ export default async function handler(request: Request) {
       ALLOWED_FIELDS = new Set([
         "status",
         "special_requests",
-        "approved_at",
       ]);
     }
 
@@ -120,17 +118,19 @@ export default async function handler(request: Request) {
       return json({ error: "No valid update fields provided" }, { status: 400 });
     }
 
-    const { error: updateError } = await supabaseAdmin
+    const { data, error: updateError } = await supabaseAdmin
       .from("bookings")
       .update(sanitized)
-      .eq("id", bookingId);
+      .eq("id", bookingId)
+      .select()
+      .single();
 
     if (updateError) {
       console.error("Update booking error:", updateError);
       return json({ error: "Internal server error" }, { status: 500 });
     }
 
-    return json({ success: true, bookingId });
+    return json({ booking: data }, { status: 200 });
   }
 
   // DELETE - Permanently remove a booking
