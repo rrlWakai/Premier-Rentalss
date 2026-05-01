@@ -317,7 +317,7 @@ function getFriendlyErrorMessage(message: string) {
   }
 
   if (normalized.includes("failed to save checkout details")) {
-    return "We couldn't prepare secure checkout right now. Please try again.";
+    return "This time slot was already booked. Please choose another date or session.";
   }
 
   return "We couldn't start secure checkout. Please try again.";
