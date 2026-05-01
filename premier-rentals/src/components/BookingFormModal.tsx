@@ -320,7 +320,7 @@ function getFriendlyErrorMessage(message: string) {
     return "This time slot was already booked. Please choose another date or session.";
   }
 
-  return "We couldn't start secure checkout. Please try again.";
+  return "This time slot was already booked. Please choose another date or session.";
 }
 
 export default function BookingFormModal({
