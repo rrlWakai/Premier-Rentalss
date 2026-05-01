@@ -1,6 +1,6 @@
 // Edge runtime-compatible environment variable declarations
-declare const _PAYMONGO_SECRET_KEY: string | undefined;
-declare const _PAYMONGO_WEBHOOK_SECRET: string | undefined;
+declare const _PAYMONGO_SECRET_KEY: string ;
+declare const _PAYMONGO_WEBHOOK_SECRET: string;
 
 const PAYMONGO_SECRET_KEY = (typeof _PAYMONGO_SECRET_KEY !== 'undefined' ? _PAYMONGO_SECRET_KEY : "") || "";
 const PAYMONGO_WEBHOOK_SECRET = (typeof _PAYMONGO_WEBHOOK_SECRET !== 'undefined' ? _PAYMONGO_WEBHOOK_SECRET : "") || "";
