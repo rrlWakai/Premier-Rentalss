@@ -42,28 +42,21 @@ export default async function handler(request: Request) {
     const { data: booking, error } = await supabaseAdmin
       .from("bookings")
       .select(
-        "id, status, payment_status, locked_until, total_amount, downpayment_amount, property_id, booking_date, time_slot, full_name",
+        "id, status, payment_status, full_name, booking_date, time_slot",
       )
       .eq("id", bookingId)
-      .single();
+      .maybeSingle();
 
-    if (error || !booking) {
-      return json({ error: "Booking not found" }, { status: 404 });
+    if (error) {
+      return new Response(JSON.stringify({ error: error.message }), { status: 500 });
     }
 
-    return json(
-      {
-        booking_id: booking.id,
-        status: booking.status,
-        payment_status: booking.payment_status,
-        locked_until: booking.locked_until,
-        total_amount: booking.total_amount,
-        downpayment_amount: booking.downpayment_amount ?? 0,
-        property_id: booking.property_id ?? null,
-        booking_date: booking.booking_date ?? null,
-        time_slot: booking.time_slot ?? null,
-        guest_name: booking.full_name,
-      },
+    if (!booking) {
+      return new Response(JSON.stringify({ status: "pending" }), { status: 202 });
+    }
+
+    return new Response(
+      JSON.stringify({ status: "confirmed", booking }),
       { status: 200 },
     );
   } catch (error) {

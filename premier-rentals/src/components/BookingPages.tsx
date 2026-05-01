@@ -265,12 +265,70 @@ function useResolvedBooking() {
 }
 
 export function BookingSuccess() {
-  const { booking, loading, error, refresh } = useResolvedBooking();
+  const [params] = useSearchParams();
+  const fallbackBooking = getPendingBooking();
+  const bookingId = params.get("booking_id") || fallbackBooking?.bookingId || "";
+  const [booking, setBooking] = useState<BookingStatusResponse | null>(null);
+  const [loading, setLoading] = useState(Boolean(bookingId));
+  const [message, setMessage] = useState("");
 
-  const viewState = useMemo(
-    () => deriveViewState(booking, "processing"),
-    [booking],
-  );
+  useEffect(() => {
+    if (!bookingId) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 10;
+    let pollTimeout: number | null = null;
+
+    const poll = async () => {
+      attempts++;
+      try {
+        const res = await fetch(`/api/bookings/status?booking_id=${bookingId}`);
+        const data = (await res.json()) as
+          | { status?: string; booking?: { id?: string; status?: string; payment_status?: string; full_name?: string; booking_date?: string; time_slot?: string } }
+          | undefined;
+
+        if (cancelled) return;
+
+        if (data?.status === "confirmed" && data.booking) {
+          setBooking({
+            booking_id: data.booking.id ?? bookingId,
+            status: data.booking.status ?? "confirmed",
+            payment_status: data.booking.payment_status ?? "paid",
+            locked_until: null,
+            total_amount: 0,
+            downpayment_amount: 0,
+            property_id: null,
+            booking_date: data.booking.booking_date ?? null,
+            time_slot: data.booking.time_slot ?? null,
+            guest_name: data.booking.full_name ?? null,
+          });
+          setLoading(false);
+          clearPendingBooking();
+          return;
+        }
+      } catch (_) {}
+
+      if (attempts < MAX_ATTEMPTS) {
+        pollTimeout = window.setTimeout(poll, 2000);
+      } else {
+        setLoading(false);
+        setMessage("Your booking is being confirmed. You'll receive an email shortly.");
+      }
+    };
+
+    void poll();
+
+    return () => {
+      cancelled = true;
+      if (pollTimeout) {
+        window.clearTimeout(pollTimeout);
+      }
+    };
+  }, [bookingId]);
 
   if (loading) {
     return (
@@ -283,27 +341,7 @@ export function BookingSuccess() {
     );
   }
 
-  if (error) {
-    return (
-      <BookingStatusCard
-        icon={<ShieldAlert size={36} color="#f59e0b" strokeWidth={1.5} />}
-        title="We Couldn't Verify It Yet"
-        description="Your payment return was received, but we couldn't load the booking status just now."
-        accent="#f59e0b"
-      >
-        <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <button onClick={() => void refresh()} className="btn-gold inline-flex items-center justify-center gap-2">
-            <RefreshCw size={14} /> Refresh Status
-          </button>
-          <Link to="/" className="btn-outline-gold inline-flex items-center justify-center gap-2">
-            <ArrowLeft size={14} /> Home
-          </Link>
-        </div>
-      </BookingStatusCard>
-    );
-  }
-
-  if (viewState === "confirmed") {
+  if (booking?.status === "confirmed" && booking?.payment_status === "paid") {
     return (
       <BookingStatusCard
         icon={<CheckCircle size={36} color="#22c55e" strokeWidth={1.5} />}
@@ -313,9 +351,6 @@ export function BookingSuccess() {
       >
         <BookingMeta booking={booking} />
         <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <button onClick={() => void refresh()} className="btn-outline-gold inline-flex items-center justify-center gap-2">
-            <RefreshCw size={14} /> Refresh Status
-          </button>
           <Link to="/" className="btn-gold inline-flex items-center gap-2 justify-center">
             <ArrowLeft size={14} /> Back to Home
           </Link>
@@ -328,20 +363,13 @@ export function BookingSuccess() {
     <BookingStatusCard
       icon={<Clock3 size={36} color="#c9a96e" strokeWidth={1.5} />}
       title="Payment Received, Confirming Booking"
-      description="Your return was successful, but we’re still waiting for the latest confirmation from the payment provider."
+      description={
+        message ||
+        "Your return was successful, but we’re still waiting for the latest confirmation from the payment provider."
+      }
       accent="#c9a96e"
     >
-      <BookingMeta booking={booking} />
-      <p
-        className="text-[#8a8a7a] text-xs mb-6"
-        style={{ fontFamily: "Jost, sans-serif" }}
-      >
-        Status: {booking?.payment_status} / {booking?.status}
-      </p>
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-        <button onClick={() => void refresh()} className="btn-gold inline-flex items-center justify-center gap-2">
-          <RefreshCw size={14} /> Refresh Status
-        </button>
         <Link to="/" className="btn-outline-gold inline-flex items-center justify-center gap-2">
           <ArrowLeft size={14} /> Home
         </Link>
