@@ -58,20 +58,6 @@ async function postJson<T>(url: string, payload: unknown): Promise<T> {
   return data;
 }
 
-async function getJson<T>(url: string): Promise<T> {
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-
-  const data = (await response.json().catch(() => ({}))) as T & JsonError;
-  if (!response.ok) {
-    throw new Error(data.error || "Request failed");
-  }
-  return data;
-}
 export async function initializeCheckout(payload: CreateBookingPayload) {
   return postJson<{ checkout_url: string }>(
     "/api/payments/checkout",
