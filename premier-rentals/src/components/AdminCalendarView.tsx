@@ -65,7 +65,7 @@ export default function AdminCalendarView({
   const selectedBlocked = selectedDay ? getDayBlocked(selectedDay) : undefined;
 
   return (
-    <div className="bg-white rounded-xl border border-[#ede8df] overflow-hidden">
+    <div className="bg-white rounded-xl border border-#ede8df overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-[#ede8df] px-4 py-4 sm:px-6">
         <button
