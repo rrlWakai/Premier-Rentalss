@@ -58,6 +58,7 @@ export interface Booking {
 
   // Supports both the legacy checkout flow and the request-style form flow.
   booking_date?: string;
+  time_slot?: "daytime" | "nighttime" | "overnight" | null;
   preferred_dates?: string;
   preferred_time?: PreferredTime;
   preferred_plan?: PreferredPlan;

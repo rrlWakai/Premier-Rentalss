@@ -49,7 +49,11 @@ import {
   type StaffUser,
   supabase,
 } from "../lib/supabase";
-import { STATUS_TAILWIND, PAYMENT_ACTIVE_CLS, PAYMENT_TEXT_CLS } from "../lib/constants";
+import {
+  STATUS_TAILWIND,
+  PAYMENT_ACTIVE_CLS,
+  PAYMENT_TEXT_CLS,
+} from "../lib/constants";
 import { formatPHP } from "../lib/propertyData";
 import AdminCalendarView from "./AdminCalendarView";
 import DiscountsTab from "./DiscountsTab";
@@ -70,13 +74,13 @@ const PAGE_SIZE = 50;
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { session, isOwner } = useAuth();
-  
+
   const [tab, setTab] = useState<Tab>("overview");
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
   const [retreats, setRetreats] = useState<Retreat[]>([]);
   const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
-  
+
   const [selectedRetreatId, setSelectedRetreatId] = useState("");
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -121,26 +125,26 @@ export default function AdminDashboard() {
   }, [page, isOwner]);
 
   useEffect(() => {
-  const channel = supabase
-    .channel("bookings-realtime")
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "bookings",
-      },
-      () => {
-        console.log("Realtime update triggered");
-        void refreshData(pageRef.current);
-      }
-    )
-    .subscribe();
+    const channel = supabase
+      .channel("bookings-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "bookings",
+        },
+        () => {
+          console.log("Realtime update triggered");
+          void refreshData(pageRef.current);
+        },
+      )
+      .subscribe();
 
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}, []);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   async function handleSignOut() {
     await adminSignOut();
@@ -182,7 +186,12 @@ export default function AdminDashboard() {
 
   async function handleStatusUpdate(id: string, status: BookingStatus) {
     if (status === "cancelled") {
-      if (!window.confirm("Are you sure you want to cancel this booking? This cannot be undone.")) return;
+      if (
+        !window.confirm(
+          "Are you sure you want to cancel this booking? This cannot be undone.",
+        )
+      )
+        return;
     }
     try {
       const ok = await updateBookingStatus(id, status);
@@ -223,7 +232,10 @@ export default function AdminDashboard() {
   }
 
   async function handleDeleteBooking(id: string) {
-    if (!window.confirm("Permanently delete this booking? This cannot be undone.")) return;
+    if (
+      !window.confirm("Permanently delete this booking? This cannot be undone.")
+    )
+      return;
     try {
       const ok = await deleteBooking(id);
       if (ok) {
@@ -240,7 +252,11 @@ export default function AdminDashboard() {
     }
   }
 
-  async function handleAddBlock(date: string, retreatId: string, reason?: string) {
+  async function handleAddBlock(
+    date: string,
+    retreatId: string,
+    reason?: string,
+  ) {
     if (!retreatId) {
       toast.error("Select a property first");
       return;
@@ -278,8 +294,7 @@ export default function AdminDashboard() {
   const filteredBookings = bookings.filter((b) => {
     const q = search.toLowerCase();
     const matchSearch =
-      b.full_name.toLowerCase().includes(q) ||
-      (b.phone ?? "").includes(q);
+      b.full_name.toLowerCase().includes(q) || (b.phone ?? "").includes(q);
     const matchStatus = statusFilter === "all" || b.status === statusFilter;
     return matchSearch && matchStatus;
   });
@@ -301,7 +316,12 @@ export default function AdminDashboard() {
       icon: CheckCircle,
       color: "#22c55e",
     },
-    { label: "Pending", value: adminStats?.pending ?? 0, icon: Clock, color: "#f59e0b" },
+    {
+      label: "Pending",
+      value: adminStats?.pending ?? 0,
+      icon: Clock,
+      color: "#f59e0b",
+    },
     {
       label: "Total Guests",
       value: adminStats?.totalGuests ?? 0,
@@ -314,7 +334,9 @@ export default function AdminDashboard() {
     { id: "overview", label: "Overview", icon: LayoutDashboard },
     { id: "bookings", label: "Bookings", icon: BookOpen },
     { id: "calendar", label: "Calendar", icon: CalendarDays },
-    ...(isOwner ? [{ id: "discounts" as Tab, label: "Discounts", icon: Tag }] : []),
+    ...(isOwner
+      ? [{ id: "discounts" as Tab, label: "Discounts", icon: Tag }]
+      : []),
     ...(isOwner ? [{ id: "staff" as Tab, label: "Staff", icon: UserCog }] : []),
   ];
 
@@ -535,7 +557,14 @@ export default function AdminDashboard() {
                                 {b.retreat?.name ?? "—"}
                               </td>
                               <td className="px-4 py-3 text-[#4a4a4a]">
-                                {b.time_slot} · {b.rate_tier}
+                                {b.time_slot === "daytime"
+                                  ? "Day"
+                                  : b.time_slot === "nighttime"
+                                    ? "Night"
+                                    : b.time_slot === "overnight"
+                                      ? "Overnight"
+                                      : "—"}{" "}
+                                · {b.rate_tier}
                               </td>
                               <td className="px-4 py-3 text-[#4a4a4a] max-w-[100px] truncate">
                                 {b.booking_date}
@@ -659,7 +688,14 @@ export default function AdminDashboard() {
                                 </td>
                                 <td className="px-4 py-3">
                                   <p className="text-[#4a4a4a]">
-                                    {b.time_slot} · {b.rate_tier}
+                                    {b.time_slot === "daytime"
+                                      ? "Day"
+                                      : b.time_slot === "nighttime"
+                                        ? "Night"
+                                        : b.time_slot === "overnight"
+                                          ? "Overnight"
+                                          : "—"}{" "}
+                                    · {b.rate_tier}
                                   </p>
                                   <p className="text-[#8a8a7a] text-[10px]">
                                     {b.rate_tier
@@ -712,7 +748,9 @@ export default function AdminDashboard() {
                           style={{ fontFamily: "Jost, sans-serif" }}
                         >
                           <span className="text-[11px] text-[#8a8a7a]">
-                            {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, totalBookings)} of {totalBookings}
+                            {(page - 1) * PAGE_SIZE + 1}–
+                            {Math.min(page * PAGE_SIZE, totalBookings)} of{" "}
+                            {totalBookings}
                           </span>
                           <div className="flex items-center gap-2">
                             <button
@@ -758,11 +796,7 @@ export default function AdminDashboard() {
                           >
                             {(
                               [
-                                [
-                                  User,
-                                  "Contact",
-                                  selectedBooking.phone,
-                                ],
+                                [User, "Contact", selectedBooking.phone],
                                 [MapPin, "Address", selectedBooking.address],
                                 [
                                   Package,
@@ -780,7 +814,7 @@ export default function AdminDashboard() {
                                 [
                                   null,
                                   "Session",
-                                  `${selectedBooking.time_slot} · ${selectedBooking.rate_tier}`,
+                                  `${selectedBooking.time_slot === "daytime" ? "Day" : selectedBooking.time_slot === "nighttime" ? "Night" : selectedBooking.time_slot === "overnight" ? "Overnight" : "—"} · ${selectedBooking.rate_tier}`,
                                 ],
                                 [
                                   Calendar,
@@ -821,7 +855,12 @@ export default function AdminDashboard() {
                                     className="shrink-0"
                                   />
                                 ) : (
-                                  <Clock size={12} color="#c9a96e" strokeWidth={1.5} className="shrink-0" />
+                                  <Clock
+                                    size={12}
+                                    color="#c9a96e"
+                                    strokeWidth={1.5}
+                                    className="shrink-0"
+                                  />
                                 )}
                                 <span className="w-16 shrink-0 text-[10px] text-[#8a8a7a]">
                                   {label}
@@ -894,9 +933,11 @@ export default function AdminDashboard() {
                                       handlePaymentUpdate(selectedBooking.id, s)
                                     }
                                     className={`text-[10px] py-2 px-3 rounded border capitalize transition-all font-medium
-                                      ${selectedBooking.payment_status === s
-                                        ? (PAYMENT_ACTIVE_CLS[s] ?? "border-[#ede8df] text-[#8a8a7a]")
-                                        : "border-[#ede8df] text-[#8a8a7a] hover:border-[#c9a96e] hover:text-[#c9a96e]"
+                                      ${
+                                        selectedBooking.payment_status === s
+                                          ? (PAYMENT_ACTIVE_CLS[s] ??
+                                            "border-[#ede8df] text-[#8a8a7a]")
+                                          : "border-[#ede8df] text-[#8a8a7a] hover:border-[#c9a96e] hover:text-[#c9a96e]"
                                       }`}
                                     style={{ fontFamily: "Jost, sans-serif" }}
                                   >
@@ -906,7 +947,9 @@ export default function AdminDashboard() {
                               </div>
                               <div className="mt-5 pt-4 border-t border-[#ede8df]">
                                 <button
-                                  onClick={() => handleDeleteBooking(selectedBooking.id)}
+                                  onClick={() =>
+                                    handleDeleteBooking(selectedBooking.id)
+                                  }
                                   className="flex items-center justify-center gap-2 w-full py-2 px-3 rounded border border-red-200 text-red-500 hover:bg-red-50 hover:border-red-400 transition-all text-[10px] font-medium"
                                   style={{ fontFamily: "Jost, sans-serif" }}
                                 >
@@ -961,9 +1004,7 @@ export default function AdminDashboard() {
               )}
 
               {/* DISCOUNTS */}
-              {tab === "discounts" && isOwner && (
-                <DiscountsTab />
-              )}
+              {tab === "discounts" && isOwner && <DiscountsTab />}
 
               {/* STAFF MANAGEMENT */}
               {tab === "staff" && isOwner && (
@@ -973,53 +1014,107 @@ export default function AdminDashboard() {
                   className="flex flex-col gap-5"
                 >
                   <div className="bg-white rounded-xl border border-[#ede8df] overflow-hidden p-5">
-                    <h3 className="font-medium text-[#1a1a1a] mb-4" style={{ fontFamily: "Jost, sans-serif" }}>Invite New Staff</h3>
-                    <form onSubmit={async (e) => {
-                      e.preventDefault();
-                      const form = e.target as HTMLFormElement;
-                      const emailInput = form.elements.namedItem('email') as HTMLInputElement;
-                      const passInput = form.elements.namedItem('password') as HTMLInputElement;
-                      const email = emailInput.value;
-                      const password = passInput.value;
-                      
-                      const t = toast.loading('Inviting staff...');
-                      const { user, error } = await inviteStaff(email, password);
-                      if(error) {
-                        toast.error(error, { id: t });
-                      } else if(user) {
-                        toast.success('Staff invited!', { id: t });
-                        setStaffUsers(prev => [...prev, user]);
-                        form.reset();
-                      }
-                    }} className="flex flex-col sm:flex-row gap-3">
-                      <input type="email" name="email" required placeholder="staff@example.com" className="flex-1 px-3 py-2 text-sm border border-[#ede8df] rounded outline-none focus:border-[#c9a96e]" />
-                      <input type="password" name="password" required placeholder="Password (min 8 char)" minLength={8} className="flex-1 px-3 py-2 text-sm border border-[#ede8df] rounded outline-none focus:border-[#c9a96e]" />
-                      <button type="submit" className="px-4 py-2 bg-[#c9a96e] text-white rounded text-sm hover:bg-[#b09460] transition-colors">Invite Staff</button>
+                    <h3
+                      className="font-medium text-[#1a1a1a] mb-4"
+                      style={{ fontFamily: "Jost, sans-serif" }}
+                    >
+                      Invite New Staff
+                    </h3>
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        const form = e.target as HTMLFormElement;
+                        const emailInput = form.elements.namedItem(
+                          "email",
+                        ) as HTMLInputElement;
+                        const passInput = form.elements.namedItem(
+                          "password",
+                        ) as HTMLInputElement;
+                        const email = emailInput.value;
+                        const password = passInput.value;
+
+                        const t = toast.loading("Inviting staff...");
+                        const { user, error } = await inviteStaff(
+                          email,
+                          password,
+                        );
+                        if (error) {
+                          toast.error(error, { id: t });
+                        } else if (user) {
+                          toast.success("Staff invited!", { id: t });
+                          setStaffUsers((prev) => [...prev, user]);
+                          form.reset();
+                        }
+                      }}
+                      className="flex flex-col sm:flex-row gap-3"
+                    >
+                      <input
+                        type="email"
+                        name="email"
+                        required
+                        placeholder="staff@example.com"
+                        className="flex-1 px-3 py-2 text-sm border border-[#ede8df] rounded outline-none focus:border-[#c9a96e]"
+                      />
+                      <input
+                        type="password"
+                        name="password"
+                        required
+                        placeholder="Password (min 8 char)"
+                        minLength={8}
+                        className="flex-1 px-3 py-2 text-sm border border-[#ede8df] rounded outline-none focus:border-[#c9a96e]"
+                      />
+                      <button
+                        type="submit"
+                        className="px-4 py-2 bg-[#c9a96e] text-white rounded text-sm hover:bg-[#b09460] transition-colors"
+                      >
+                        Invite Staff
+                      </button>
                     </form>
                   </div>
 
                   <InviteUserForm isAdmin={isOwner} />
 
                   <div className="bg-white rounded-xl border border-[#ede8df] overflow-hidden">
-                    <table className="w-full text-xs" style={{ fontFamily: "Jost, sans-serif" }}>
+                    <table
+                      className="w-full text-xs"
+                      style={{ fontFamily: "Jost, sans-serif" }}
+                    >
                       <thead>
                         <tr className="bg-[#faf8f5] border-b border-[#ede8df]">
-                          <th className="px-4 py-3 text-left text-[10px] tracking-widest uppercase text-[#8a8a7a]">Email</th>
-                          <th className="px-4 py-3 text-left text-[10px] tracking-widest uppercase text-[#8a8a7a]">Created At</th>
+                          <th className="px-4 py-3 text-left text-[10px] tracking-widest uppercase text-[#8a8a7a]">
+                            Email
+                          </th>
+                          <th className="px-4 py-3 text-left text-[10px] tracking-widest uppercase text-[#8a8a7a]">
+                            Created At
+                          </th>
                           <th className="px-4 py-3 text-right"></th>
                         </tr>
                       </thead>
                       <tbody>
                         {staffUsers.map((su) => (
-                          <tr key={su.id} className="border-b border-[#ede8df] hover:bg-[#faf8f5]">
-                            <td className="px-4 py-3 font-medium text-[#1a1a1a]">{su.email}</td>
-                            <td className="px-4 py-3 text-[#4a4a4a]">{new Date(su.created_at).toLocaleDateString()}</td>
+                          <tr
+                            key={su.id}
+                            className="border-b border-[#ede8df] hover:bg-[#faf8f5]"
+                          >
+                            <td className="px-4 py-3 font-medium text-[#1a1a1a]">
+                              {su.email}
+                            </td>
+                            <td className="px-4 py-3 text-[#4a4a4a]">
+                              {new Date(su.created_at).toLocaleDateString()}
+                            </td>
                             <td className="px-4 py-3 text-right">
                               <button
                                 onClick={async () => {
-                                  if(window.confirm(`Revoke access for ${su.email}?`)) {
+                                  if (
+                                    window.confirm(
+                                      `Revoke access for ${su.email}?`,
+                                    )
+                                  ) {
                                     const ok = await removeStaff(su.id);
-                                    if(ok) setStaffUsers(p => p.filter(u => u.id !== su.id));
+                                    if (ok)
+                                      setStaffUsers((p) =>
+                                        p.filter((u) => u.id !== su.id),
+                                      );
                                   }
                                 }}
                                 className="text-red-400 hover:text-red-500 transition-colors px-2 py-1 border border-red-200 rounded text-[10px]"
@@ -1030,7 +1125,14 @@ export default function AdminDashboard() {
                           </tr>
                         ))}
                         {staffUsers.length === 0 && (
-                          <tr><td colSpan={3} className="text-center py-12 text-[#8a8a7a]">No staff members found</td></tr>
+                          <tr>
+                            <td
+                              colSpan={3}
+                              className="text-center py-12 text-[#8a8a7a]"
+                            >
+                              No staff members found
+                            </td>
+                          </tr>
                         )}
                       </tbody>
                     </table>

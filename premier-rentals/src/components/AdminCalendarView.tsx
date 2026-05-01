@@ -232,12 +232,19 @@ export default function AdminCalendarView({
                     {format(selectedDay, "EEEE, MMM d")}
                   </p>
                 </div>
-                {isOwner && (
-                  !selectedBlocked ? (
+                {isOwner &&
+                  (!selectedBlocked ? (
                     <button
                       onClick={() => {
-                        const reason = window.prompt("Reason for blocking this date (optional):") ?? undefined;
-                        onAddBlock(format(selectedDay, "yyyy-MM-dd"), selectedRetreatId, reason);
+                        const reason =
+                          window.prompt(
+                            "Reason for blocking this date (optional):",
+                          ) ?? undefined;
+                        onAddBlock(
+                          format(selectedDay, "yyyy-MM-dd"),
+                          selectedRetreatId,
+                          reason,
+                        );
                       }}
                       className="flex items-center gap-1.5 text-[10px] text-red-400 hover:text-red-600 border border-red-200 hover:border-red-400 px-2 py-1.5 rounded transition-colors"
                       style={{ fontFamily: "Jost, sans-serif" }}
@@ -252,8 +259,7 @@ export default function AdminCalendarView({
                     >
                       <X size={11} /> Unblock
                     </button>
-                  )
-                )}
+                  ))}
               </div>
 
               {selectedBlocked && (
@@ -272,7 +278,7 @@ export default function AdminCalendarView({
 
               {selectedBookings.length === 0 && !selectedBlocked && (
                 <p
-                  className="text-xs text-[#8a8a7a] text-center py-8"
+                  className="text-xs text-#8a8a7a text-center py-8"
                   style={{ fontFamily: "Jost, sans-serif" }}
                 >
                   No bookings on this date
@@ -283,11 +289,11 @@ export default function AdminCalendarView({
                 {selectedBookings.map((booking) => (
                   <div
                     key={booking.id}
-                    className="p-3 bg-[#faf8f5] rounded border border-[#ede8df]"
+                    className="p-3 bg-[#faf8f5] rounded border border-#ede8df"
                   >
                     <div className="flex items-center justify-between mb-1.5">
                       <span
-                        className="text-xs font-medium text-[#1a1a1a]"
+                        className="text-xs font-medium text-#1a1a1a"
                         style={{ fontFamily: "Jost, sans-serif" }}
                       >
                         {booking.full_name}
@@ -303,12 +309,18 @@ export default function AdminCalendarView({
                       </span>
                     </div>
                     <div
-                      className="text-[10px] text-[#8a8a7a] flex flex-col gap-0.5"
+                      className="text-[10px] text-#8a8a7a flex flex-col gap-0.5"
                       style={{ fontFamily: "Jost, sans-serif" }}
                     >
                       <span>
-                        {booking.time_slot} · {booking.rate_tier} ·{" "}
-                        {booking.num_guests} pax
+                        {booking.time_slot === "daytime"
+                          ? "Day"
+                          : booking.time_slot === "nighttime"
+                            ? "Night"
+                            : booking.time_slot === "overnight"
+                              ? "Overnight"
+                              : "—"}{" "}
+                        · {booking.rate_tier} · {booking.num_guests} pax
                       </span>
                       <span>{booking.phone}</span>
                       <span>{booking.mode_of_payment}</span>
