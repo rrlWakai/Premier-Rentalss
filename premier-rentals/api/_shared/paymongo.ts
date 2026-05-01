@@ -1,10 +1,11 @@
 // Edge runtime-compatible environment variable declarations
 declare const _PAYMONGO_SECRET_KEY: string ;
 declare const _PAYMONGO_WEBHOOK_SECRET: string;
+// api/_shared/paymongo.ts — replace the top 6 lines with this
 
-const PAYMONGO_SECRET_KEY = (typeof _PAYMONGO_SECRET_KEY !== 'undefined' ? _PAYMONGO_SECRET_KEY : "") || "";
-const PAYMONGO_WEBHOOK_SECRET = (typeof _PAYMONGO_WEBHOOK_SECRET !== 'undefined' ? _PAYMONGO_WEBHOOK_SECRET : "") || "";
-const PAYMONGO_BASE_URL = "https://api.paymongo.com/v1";  
+const PAYMONGO_SECRET_KEY = (process as any).env.PAYMONGO_SECRET_KEY ?? "";
+const PAYMONGO_WEBHOOK_SECRET = (process as any).env.PAYMONGO_WEBHOOK_SECRET ?? "";
+const PAYMONGO_BASE_URL = "https://api.paymongo.com/v1";
 
 if (!PAYMONGO_SECRET_KEY) {
   throw new Error("Missing PAYMONGO_SECRET_KEY");
