@@ -154,10 +154,6 @@ export default async function handler(request: Request) {
         return json({ received: true, error: "session_not_found" }, { status: 200 });
       }
 
-      if (session.consumed) {
-        return json({ received: true, ignored: "session_already_consumed" }, { status: 200 });
-      }
-
       const payload = session.booking_payload as Record<string, any>;
 
       const insertData = {
@@ -174,50 +170,41 @@ export default async function handler(request: Request) {
         num_cars: payload.num_cars ?? payload.cars ?? 0,
         total_amount: payload.total_amount,
         downpayment_amount: payload.downpayment_amount,
-        status: "confirmed",
-        payment_status: "paid",
-        checkout_session_id: paymongoCheckoutSessionId || session.checkout_session_id,
         booking_type: payload.booking_type ?? resolveBookingType(payload.time_slot),
         special_requests: payload.special_requests ?? null,
         rate_tier: payload.rate_tier ?? null,
         mode_of_payment: payload.mode_of_payment ?? null,
       };
 
-      const { data: insertedBooking, error: insertError } = await supabaseAdmin
-        .from("bookings")
-        .insert(insertData)
-        .select("id")
-        .single();
+      const { data: rpcResult, error: rpcError } = await supabaseAdmin
+        .rpc("atomic_webhook_booking", {
+          p_session_id: session.id,
+          p_insert_data: insertData,
+          p_paymongo_cs_id: paymongoCheckoutSessionId || session.checkout_session_id,
+          p_event_id: eventId,
+        });
 
-      if (insertError) {
-        console.error("[CRITICAL] Booking insert failed:", insertError);
+      if (rpcError) {
+        console.error("[CRITICAL] atomic_webhook_booking RPC failed:", rpcError);
         await supabaseAdmin.from("failed_bookings").insert({
           checkout_session_id: paymongoCheckoutSessionId || session.checkout_session_id || eventId,
           booking_payload: session.booking_payload,
           amount: paymentAmount,
           user_email: payload.email ?? null,
-          reason: "insert_failed_or_duplicate",
+          reason: "rpc_failed",
           created_at: new Date().toISOString(),
         });
-        return json({ received: true, error: "booking_insert_failed" }, { status: 200 });
+        return json({ received: true, error: "booking_rpc_failed" }, { status: 200 });
       }
 
-      await supabaseAdmin
-        .from("checkout_sessions")
-        .update({
-          consumed: true,
-          consumed_at: new Date().toISOString(),
-        })
-        .eq("id", session.id);
+      const result = rpcResult as { status: string; booking_id?: string };
 
-      if (insertedBooking?.id) {
-        await supabaseAdmin
-          .from("payment_webhook_events")
-          .update({ booking_id: insertedBooking.id })
-          .eq("event_id", eventId);
+      if (result.status === "already_consumed") {
+        console.log("[WEBHOOK] Session already consumed — idempotent skip.");
+        return json({ received: true, ignored: "session_already_consumed" }, { status: 200 });
       }
 
-      console.log("[WEBHOOK] booking_id:", insertedBooking?.id);
+      console.log("[WEBHOOK] booking_id:", result.booking_id);
       console.log("[WEBHOOK] payload:", payload);
       console.log("[WEBHOOK] insertData:", insertData);
     }
