@@ -12,8 +12,15 @@ interface AvailabilityRequest {
   rate_tier: string;
 }
 
+// Frontend sends "day"/"night"/"overnight"
+// DB enum expects "daytime"/"nighttime"/"overnight"
+function toDbTimeSlot(slot: string): string {
+  if (slot === "day") return "daytime";
+  if (slot === "night") return "nighttime";
+  return "overnight";
+}
+
 export default async function handler(request: Request) {
-  // Handle CORS preflight
   if (request.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
@@ -25,27 +32,19 @@ export default async function handler(request: Request) {
     });
   }
 
-  // Only allow POST
   if (request.method !== "POST") {
     return json({ error: "Method not allowed" }, { status: 405 });
   }
 
   let body: AvailabilityRequest;
   try {
-    const parsed = await request.json();
-    body = {
-      property_id: parsed.property_id,
-      booking_date: parsed.booking_date,
-      time_slot: parsed.time_slot,
-      rate_tier: parsed.rate_tier,
-    };
+    body = await request.json();
   } catch {
     return json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
   const { property_id, booking_date, time_slot, rate_tier } = body;
 
-  // Validate required fields
   if (!property_id || !booking_date || !time_slot || !rate_tier) {
     return json(
       { error: "Missing required fields: property_id, booking_date, time_slot, rate_tier" },
@@ -54,36 +53,34 @@ export default async function handler(request: Request) {
   }
 
   try {
-    // Check for existing confirmed bookings on this date/time_slot
-    const { data: existingBookings, error: queryError } = await supabaseAdmin
+    const dbSlot = toDbTimeSlot(time_slot);
+
+    const { data, error } = await supabaseAdmin
       .from("bookings")
       .select("id, status, time_slot, rate_tier")
-      .eq("retreat_id", property_id)
+      .eq("property_id", property_id)          // ← text column, slug works directly
       .eq("booking_date", booking_date)
-      .eq("time_slot", time_slot)
-      .eq("rate_tier", rate_tier)
-      .in("status", ["pending", "confirmed"]);
+      .eq("time_slot", dbSlot)                  // ← mapped to "daytime"/"nighttime"/"overnight"
+      .in("status", ["pending", "confirmed"]);   // ← both enum values now exist
 
-    if (queryError) {
-      console.error("Availability check error:", queryError);
-      return json({ error: "Already Booked" }, { status: 500 });
+    if (error) {
+      console.error("Availability check error:", error);
+      return json({ error: "Internal server error", detail: error.message }, { status: 500 });
     }
 
-    // If there are existing pending or confirmed bookings, slot is unavailable
-    if (existingBookings && existingBookings.length > 0) {
+    if (data && data.length > 0) {
       return json(
         {
           available: false,
-          reason: `This slot already has ${existingBookings.length} booking(s). Please choose a different date or session.`,
+          reason: "This date and session is already booked. Please choose a different date or session.",
         },
         { status: 200 }
       );
     }
 
-    // Slot is available
     return json({ available: true }, { status: 200 });
   } catch (err) {
     console.error("Availability check exception:", err);
-    return json({ error: "Internal server error" }, { status: 500 });
+    return json({ error: "Internal server error", detail: String(err) }, { status: 500 });
   }
 }
