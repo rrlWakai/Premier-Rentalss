@@ -1,6 +1,14 @@
 const PAYMONGO_SECRET_KEY = process.env.PAYMONGO_SECRET_KEY || "";
 const PAYMONGO_WEBHOOK_SECRET = process.env.PAYMONGO_WEBHOOK_SECRET || "";
-const PAYMONGO_BASE_URL = "https://api.paymongo.com/v1";
+const PAYMONGO_BASE_URL = "https://api.paymongo.com/v1";  
+
+if (!PAYMONGO_SECRET_KEY) {
+  throw new Error("Missing PAYMONGO_SECRET_KEY");
+}
+
+if (!PAYMONGO_WEBHOOK_SECRET) {
+  throw new Error("Missing PAYMONGO_WEBHOOK_SECRET");
+}
 
 /**
  * Check if PayMongo is properly configured

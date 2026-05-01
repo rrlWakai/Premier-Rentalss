@@ -86,9 +86,63 @@ export async function createPayMongoCheckout(bookingId: string) {
 
 export async function fetchBookingStatus(bookingId: string) {
   const encodedBookingId = encodeURIComponent(bookingId);
-  return getJson<BookingStatusResponse>(
-    `/api/bookings/status?booking_id=${encodedBookingId}`,
-  );
+  const response = await fetch(`/api/bookings/status?booking_id=${encodedBookingId}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  const data = (await response.json().catch(() => ({}))) as
+    | {
+        status?: string;
+        booking?: {
+          id?: string;
+          status?: string;
+          payment_status?: string;
+          full_name?: string;
+          booking_date?: string;
+          time_slot?: string;
+        };
+        error?: string;
+      }
+    | undefined;
+
+  if (response.status === 202 || data?.status === "pending") {
+    return {
+      booking_id: bookingId,
+      status: "pending",
+      payment_status: "unpaid",
+      locked_until: null,
+      total_amount: 0,
+      downpayment_amount: 0,
+      property_id: null,
+      booking_date: null,
+      time_slot: null,
+      guest_name: null,
+    } satisfies BookingStatusResponse;
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.error || "Request failed");
+  }
+
+  if (data?.status === "confirmed" && data.booking) {
+    return {
+      booking_id: data.booking.id ?? bookingId,
+      status: data.booking.status ?? "confirmed",
+      payment_status: data.booking.payment_status ?? "paid",
+      locked_until: null,
+      total_amount: 0,
+      downpayment_amount: 0,
+      property_id: null,
+      booking_date: data.booking.booking_date ?? null,
+      time_slot: data.booking.time_slot ?? null,
+      guest_name: data.booking.full_name ?? null,
+    } satisfies BookingStatusResponse;
+  }
+
+  throw new Error("Invalid booking status response");
 }
 
 export function savePendingBooking(state: PendingBookingState) {

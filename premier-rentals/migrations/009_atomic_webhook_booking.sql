@@ -31,7 +31,7 @@ BEGIN
     booking_type, special_requests, rate_tier, mode_of_payment
   )
   VALUES (
-    NULLIF(p_insert_data->>'property_id','')::uuid,
+    NULLIF(p_insert_data->>'property_id',''),
     NULLIF(p_insert_data->>'retreat_id','')::uuid,
     (p_insert_data->>'booking_date')::date,
     p_insert_data->>'time_slot',
