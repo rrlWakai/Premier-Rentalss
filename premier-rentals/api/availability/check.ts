@@ -66,7 +66,7 @@ export default async function handler(request: Request) {
 
     if (queryError) {
       console.error("Availability check error:", queryError);
-      return json({ error: "Internal server error" }, { status: 500 });
+      return json({ error: "Already Booked" }, { status: 500 });
     }
 
     // If there are existing pending or confirmed bookings, slot is unavailable
