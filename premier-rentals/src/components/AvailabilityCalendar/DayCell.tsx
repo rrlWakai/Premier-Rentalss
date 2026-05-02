@@ -12,9 +12,9 @@ export default function DayCell({ day }: DayCellProps) {
   const unavailable = day.status === "unavailable";
   const pending = day.status === "pending";
 
-  const numberColor = unavailable ? "#c0b9ae" : "#1a1612";
+  const numberColor = unavailable ? "#d4a853" : "#1a1612";
   const numberColorToday = isCurrentDay ? "#d4a853" : numberColor;
-  const dotColor = unavailable ? "#e5e2dc" : pending ? "#d4a853" : "#8a8a7a";
+  const dotColor = unavailable ? "#d4a853" : pending ? "#d4a853" : "#8a8a7a";
   const borderStyle = isCurrentDay
     ? "1px solid #d4a85366"
     : "1px solid transparent";
@@ -26,13 +26,13 @@ export default function DayCell({ day }: DayCellProps) {
         border: borderStyle,
         borderRadius: "4px",
         backgroundColor: "#ffffff",
-        padding: "8px",
+        padding: "6px 4px",
         textAlign: "center",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        gap: "4px",
+        gap: "2px",
       }}
     >
       <span
@@ -46,7 +46,21 @@ export default function DayCell({ day }: DayCellProps) {
       >
         {dayNumber}
       </span>
-      {day.status !== "available" && (
+      {unavailable && (
+        <span
+          style={{
+            fontFamily: "Jost, sans-serif",
+            fontSize: "7px",
+            color: "#d4a853",
+            fontWeight: "600",
+            letterSpacing: "0.05em",
+            lineHeight: "1",
+          }}
+        >
+          RESERVED
+        </span>
+      )}
+      {!unavailable && day.status !== "available" && (
         <span
           style={{
             display: "inline-block",
