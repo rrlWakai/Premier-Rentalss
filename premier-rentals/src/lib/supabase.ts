@@ -91,6 +91,15 @@ export interface BlockedDate {
   reason?: string;
 }
 
+export type AvailabilityStatus = "available" | "pending" | "unavailable";
+
+export interface AvailabilitySlot {
+  property_id: string;
+  start_date: string;
+  end_date: string;
+  status: AvailabilityStatus;
+}
+
 // ── RETREATS ──────────────────────────────────────────────────────────
 
 export async function fetchRetreats(): Promise<Retreat[]> {
@@ -112,6 +121,40 @@ export async function fetchRetreatBySlug(slug: string): Promise<Retreat | null> 
 
   if (error) console.error("fetchRetreatBySlug:", error);
   return data ?? null;
+}
+
+// ── AVAILABILITY ──────────────────────────────────────────────────────
+
+// ✅ FETCH AVAILABILITY (public view for client calendar)
+export async function fetchAvailability(
+  propertyId?: string,
+  startDate?: string,
+  endDate?: string
+): Promise<AvailabilitySlot[]> {
+  let query = supabase
+    .from("availability_public")
+    .select("property_id, start_date, end_date, status");
+
+  if (propertyId) {
+    query = query.eq("property_id", propertyId);
+  }
+
+  if (startDate) {
+    query = query.gte("start_date", startDate);
+  }
+
+  if (endDate) {
+    query = query.lte("end_date", endDate);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error("fetchAvailability:", error);
+    return [];
+  }
+
+  return (data as AvailabilitySlot[]) ?? [];
 }
 
 // ── BOOKINGS ──────────────────────────────────────────────────────────

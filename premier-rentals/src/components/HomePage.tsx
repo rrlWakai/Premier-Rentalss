@@ -6,6 +6,7 @@ import Stats from "./Stats";
 import Retreats from "./Retreats";
 import MoreThanStay from "./MoreThanStay";
 import Amenities from "./Amenities";
+import AvailabilitySection from "./AvailabilitySection";
 import TestimonialBanner from "./TestimonialBanner";
 import Gallery from "./Gallery";
 import Contact from "./Contact";
@@ -32,6 +33,7 @@ export default function HomePage() {
       <Hero />
       <Stats />
       <Retreats />
+      <AvailabilitySection />
       <MoreThanStay />
       <Amenities />
       <Gallery />
