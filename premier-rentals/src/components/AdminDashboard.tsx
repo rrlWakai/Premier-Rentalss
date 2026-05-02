@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -83,6 +83,8 @@ export default function AdminDashboard() {
 
   const [selectedRetreatId, setSelectedRetreatId] = useState("");
   const [loading, setLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [realtimeStatus, setRealtimeStatus] = useState<"connecting" | "connected" | "error">("connecting");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -90,6 +92,7 @@ export default function AdminDashboard() {
   const [page, setPage] = useState(1);
   const [totalBookings, setTotalBookings] = useState(0);
   const pageRef = useRef(page);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     pageRef.current = page;
@@ -125,8 +128,15 @@ export default function AdminDashboard() {
   }, [page, isOwner]);
 
   useEffect(() => {
+    const handleRealtimeChange = useCallback(() => {
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = setTimeout(() => {
+        void refreshData(pageRef.current);
+      }, 300);
+    }, []);
+
     const channel = supabase
-      .channel("bookings-realtime")
+      .channel("admin-realtime")
       .on(
         "postgres_changes",
         {
@@ -134,17 +144,42 @@ export default function AdminDashboard() {
           schema: "public",
           table: "bookings",
         },
-        () => {
-          console.log("Realtime update triggered");
-          void refreshData(pageRef.current);
-        },
+        handleRealtimeChange,
       )
-      .subscribe();
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "blocked_dates",
+        },
+        handleRealtimeChange,
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "discounts",
+        },
+        handleRealtimeChange,
+      )
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          console.log("Realtime subscribed");
+          setRealtimeStatus("connected");
+        }
+        if (status === "CHANNEL_ERROR") setRealtimeStatus("error");
+        if (status === "TIMED_OUT") setRealtimeStatus("error");
+        if (status === "CLOSED") setRealtimeStatus("error");
+      });
 
     return () => {
       supabase.removeChannel(channel);
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
     };
   }, []);
+
 
   async function handleSignOut() {
     await adminSignOut();
@@ -153,7 +188,7 @@ export default function AdminDashboard() {
   }
 
   async function refreshData(targetPage = page) {
-    setLoading(true);
+    setIsSyncing(true);
     try {
       const basePromise = Promise.all([
         fetchBookings(targetPage, PAGE_SIZE),
@@ -175,12 +210,20 @@ export default function AdminDashboard() {
       setRetreats(r);
       if (isOwner) setStaffUsers(staffList);
       setAdminStats(stats);
-      toast.success("Data refreshed");
+
+      // Update selected booking if it exists
+      if (selectedBooking) {
+        const updated = b.find((booking) => booking.id === selectedBooking.id);
+        if (updated) {
+          setSelectedBooking(updated);
+        } else {
+          setSelectedBooking(null); // booking was deleted, clear ghost UI
+        }
+      }
     } catch (error) {
       console.error("Failed to refresh data:", error);
-      toast.error("Failed to refresh data");
     } finally {
-      setLoading(false);
+      setIsSyncing(false);
     }
   }
 
@@ -409,16 +452,37 @@ export default function AdminDashboard() {
             {NAV.find((n) => n.id === tab)?.label}
           </h1>
           <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 text-[10px] text-[#8a8a7a]"
+              style={{ fontFamily: "Jost, sans-serif" }}>
+              <span className={`h-2 w-2 rounded-full transition-colors ${
+                isSyncing
+                  ? "bg-yellow-400 animate-pulse"
+                  : realtimeStatus === "connected"
+                  ? "bg-green-500"
+                  : realtimeStatus === "error"
+                  ? "bg-red-400"
+                  : "bg-gray-300 animate-pulse"
+              }`} />
+              <span className="hidden sm:inline">
+                {isSyncing
+                  ? "Syncing..."
+                  : realtimeStatus === "connected"
+                  ? "Live"
+                  : realtimeStatus === "error"
+                  ? "Reconnecting..."
+                  : "Connecting..."}
+              </span>
+            </div>
             <button
               onClick={() => void refreshData()}
-              disabled={loading}
+              disabled={isSyncing}
               className="p-2 text-[#8a8a7a] hover:text-[#c9a96e] transition-colors disabled:opacity-50"
               title="Refresh data"
             >
               <RefreshCw
                 size={18}
                 strokeWidth={1.5}
-                className={loading ? "animate-spin" : ""}
+                className={isSyncing ? "animate-spin" : ""}
               />
             </button>
             <div className="flex lg:hidden items-center gap-1">
