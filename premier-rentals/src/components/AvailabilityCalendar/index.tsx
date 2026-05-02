@@ -1,16 +1,9 @@
 import { useState } from "react";
 import { addMonths, subMonths, format } from "date-fns";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Building2,
-  CalendarDays,
-} from "lucide-react";
-import { motion } from "framer-motion";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useAvailability } from "../../lib/useAvailability";
 import type { PropertySlug } from "../../types/availability";
 import CalendarGrid from "./CalendarGrid";
-import LiveIndicator from "./LiveIndicator";
 import StatusLegend from "./StatusLegend";
 
 const PROPERTIES: { slug: PropertySlug; name: string }[] = [
@@ -36,82 +29,127 @@ export default function AvailabilityCalendar() {
   const nextMonth = () => setCurrentDate(addMonths(currentDate, 1));
 
   return (
-    <section id="availability" className="py-16 bg-premier-cream">
+    <section
+      id="availability"
+      className="py-16"
+      style={{ backgroundColor: "#faf8f4" }}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <CalendarDays size={20} color="#d4a853" />
-              <h2
-                className="text-2xl font-semibold"
-                style={{ fontFamily: "var(--font-display)" }}
-              >
-                Reserved Dates
-              </h2>
-            </div>
+        <div
+          className="overflow-hidden"
+          style={{
+            backgroundColor: "#ffffff",
+            border: "1px solid #e2ddd4",
+            borderRadius: "12px",
+          }}
+        >
+          <div
+            className="flex items-center justify-between border-b px-4 py-4 sm:px-6"
+            style={{ borderColor: "#e2ddd4" }}
+          >
             <div
-              className="text-sm text-premier-muted uppercase tracking-[0.18em]"
-              style={{ fontFamily: "var(--font-ui)" }}
+              className="rounded-full px-3 py-2 text-[10px] uppercase tracking-[0.18em]"
+              style={{
+                fontFamily: "Jost, sans-serif",
+                border: "1px solid #d4a853",
+                backgroundColor: "#faf8f4",
+                color: "#1a1612",
+              }}
             >
-              Minimal reserved calendar, realtime updates only
+              <select
+                value={selectedProperty}
+                onChange={(e) =>
+                  setSelectedProperty(e.target.value as PropertySlug)
+                }
+                className="bg-transparent outline-none"
+                style={{
+                  fontFamily: "Jost, sans-serif",
+                  color: "#1a1612",
+                }}
+              >
+                {PROPERTIES.map((prop) => (
+                  <option key={prop.slug} value={prop.slug}>
+                    {prop.name}
+                  </option>
+                ))}
+              </select>
             </div>
-          </div>
-        </div>
 
-        <div className="bg-white rounded-xl border border-premier-border overflow-hidden">
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-premier-border px-4 py-4 sm:px-6">
-            <motion.button
-              onClick={prevMonth}
-              className="p-2 hover:bg-premier-gold-lt rounded-lg transition-colors"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.92 }}
-            >
-              <ChevronLeft size={16} color="#8a7f6e" />
-            </motion.button>
-
-            <div className="flex flex-col items-center gap-2">
-              <h3
-                className="text-xl"
-                style={{ fontFamily: "var(--font-display)" }}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={prevMonth}
+                style={{
+                  width: "26px",
+                  height: "26px",
+                  border: "0.5px solid #e2ddd4",
+                  borderRadius: "4px",
+                  backgroundColor: "#ffffff",
+                  color: "#1a1612",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <ChevronLeft size={14} />
+              </button>
+              <p
+                className="text-[13px] uppercase tracking-[0.16em]"
+                style={{
+                  fontFamily: "Cormorant Garamond, serif",
+                  color: "#1a1612",
+                  minWidth: "140px",
+                  textAlign: "center",
+                }}
               >
                 {format(currentDate, "MMMM yyyy")}
-              </h3>
-              <div className="flex items-center gap-2">
-                <Building2 size={14} color="#d4a853" />
-                <select
-                  value={selectedProperty}
-                  onChange={(e) =>
-                    setSelectedProperty(e.target.value as PropertySlug)
-                  }
-                  className="rounded-full border border-premier-border bg-premier-gold-lt px-3 py-1 text-sm uppercase tracking-[0.16em] text-premier-dark outline-none focus:border-premier-gold"
-                  style={{ fontFamily: "var(--font-ui)" }}
-                >
-                  {PROPERTIES.map((prop) => (
-                    <option key={prop.slug} value={prop.slug}>
-                      {prop.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              </p>
+              <button
+                onClick={nextMonth}
+                style={{
+                  width: "26px",
+                  height: "26px",
+                  border: "0.5px solid #e2ddd4",
+                  borderRadius: "4px",
+                  backgroundColor: "#ffffff",
+                  color: "#1a1612",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <ChevronRight size={14} />
+              </button>
             </div>
-
-            <motion.button
-              onClick={nextMonth}
-              className="p-2 hover:bg-premier-gold-lt rounded-lg transition-colors"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.92 }}
-            >
-              <ChevronRight size={16} color="#8a7f6e" />
-            </motion.button>
           </div>
 
-          {/* Status bar */}
-          <div className="px-4 py-2 border-b border-premier-border bg-premier-cream">
-            <LiveIndicator live={live} />
+          <div
+            className="px-4 py-2 sm:px-6"
+            style={{ borderBottom: "1px solid #e2ddd4" }}
+          >
+            <div className="flex items-center gap-2">
+              <span
+                className="inline-block rounded-full"
+                style={{
+                  width: "6px",
+                  height: "6px",
+                  backgroundColor: live ? "#d4a853" : "#c0b9ae",
+                  animation: live ? "pulse 2s infinite" : "none",
+                }}
+              />
+              <span
+                className="text-[10px] uppercase tracking-[0.2em]"
+                style={{
+                  fontFamily: "Jost, sans-serif",
+                  color: "#8a7f6e",
+                }}
+              >
+                {live ? "Live" : "Offline"}
+              </span>
+            </div>
           </div>
 
-          {/* Calendar */}
           <CalendarGrid
             days={days}
             loading={loading}
@@ -119,9 +157,19 @@ export default function AvailabilityCalendar() {
             month={month}
           />
 
-          {/* Legend */}
           <StatusLegend />
         </div>
+
+        <style>{`
+          @keyframes pulse {
+            0%, 100% {
+              opacity: 1;
+            }
+            50% {
+              opacity: 0.4;
+            }
+          }
+        `}</style>
       </div>
     </section>
   );

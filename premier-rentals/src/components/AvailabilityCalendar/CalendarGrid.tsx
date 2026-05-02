@@ -1,4 +1,3 @@
-import { AnimatePresence, motion } from "framer-motion";
 import { startOfMonth, getDay } from "date-fns";
 import DayCell from "./DayCell";
 import type { CalendarDay } from "../../types/availability";
@@ -17,53 +16,81 @@ export default function CalendarGrid({
   month,
 }: CalendarGridProps) {
   const startDate = startOfMonth(new Date(year, month - 1));
-  const startDay = getDay(startDate); // 0 = Sunday
-
+  const startDay = getDay(startDate);
   const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   return (
-    <div className="p-4 sm:p-6">
-      {/* Weekday headers */}
-      <div className="grid grid-cols-7 gap-1 mb-2">
+    <div style={{ padding: "12px 16px", fontSize: "14px" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(7, 1fr)",
+          gap: "2px",
+          marginBottom: "8px",
+        }}
+      >
         {weekDays.map((day) => (
           <div
             key={day}
-            className="text-center text-sm font-medium text-premier-muted uppercase tracking-[0.16em]"
-            style={{ fontFamily: "var(--font-ui)" }}
+            style={{
+              textAlign: "center",
+              fontSize: "9px",
+              fontFamily: "Jost, sans-serif",
+              color: "#8a7f6e",
+              fontWeight: "400",
+              letterSpacing: "0.08em",
+              paddingBottom: "4px",
+            }}
           >
             {day}
           </div>
         ))}
       </div>
 
-      {/* Calendar grid */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={`${year}-${month}`}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.3 }}
-          className="grid grid-cols-7 gap-1"
-        >
-          {/* Empty cells for days before start of month */}
-          {Array.from({ length: startDay }, (_, i) => (
-            <div key={`empty-${i}`} className="aspect-square" />
-          ))}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(7, 1fr)",
+          gap: "2px",
+        }}
+      >
+        {Array.from({ length: startDay }, (_, i) => (
+          <div key={`empty-${i}`} style={{ aspectRatio: "1" }} />
+        ))}
+        {days.map((day) => (
+          <DayCell key={day.date} day={day} />
+        ))}
+      </div>
 
-          {/* Day cells */}
-          {days.map((day) => (
-            <DayCell key={day.date} day={day} />
-          ))}
-        </motion.div>
-      </AnimatePresence>
-
-      {/* Loading state */}
       {loading && (
-        <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-premier-gold"></div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "32px 0",
+          }}
+        >
+          <div
+            style={{
+              animation: "spin 1s linear infinite",
+              width: "32px",
+              height: "32px",
+              border: "2px solid #d4a853",
+              borderTop: "2px solid transparent",
+              borderRadius: "50%",
+            }}
+          />
         </div>
       )}
+
+      <style>{`
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
     </div>
   );
 }

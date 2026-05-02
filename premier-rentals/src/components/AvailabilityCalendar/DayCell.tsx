@@ -1,5 +1,4 @@
-import { motion } from "framer-motion";
-import { format, parseISO } from "date-fns";
+import { parseISO, isToday as dateIsToday } from "date-fns";
 import type { CalendarDay } from "../../types/availability";
 
 interface DayCellProps {
@@ -8,27 +7,56 @@ interface DayCellProps {
 
 export default function DayCell({ day }: DayCellProps) {
   const date = parseISO(day.date);
-  const dayNumber = format(date, "d");
-  const reserved = day.status !== "available";
+  const dayNumber = parseInt(day.date.split("-")[2]);
+  const isCurrentDay = dateIsToday(date);
+  const unavailable = day.status === "unavailable";
+  const pending = day.status === "pending";
+
+  const numberColor = unavailable ? "#c0b9ae" : "#1a1612";
+  const numberColorToday = isCurrentDay ? "#d4a853" : numberColor;
+  const dotColor = unavailable ? "#e5e2dc" : pending ? "#d4a853" : "#8a8a7a";
+  const borderStyle = isCurrentDay
+    ? "1px solid #d4a85366"
+    : "1px solid transparent";
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.92 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.18 }}
-      className={`
-        aspect-square border rounded-lg flex flex-col items-center justify-center
-        text-sm font-medium transition-all duration-150
-        ${reserved ? "bg-premier-gold text-white border-premier-gold" : "bg-white text-premier-muted border-premier-border"}
-      `}
-      style={{ fontFamily: "var(--font-ui)" }}
+    <div
+      style={{
+        aspectRatio: "1",
+        border: borderStyle,
+        borderRadius: "4px",
+        backgroundColor: "#ffffff",
+        padding: "8px",
+        textAlign: "center",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "4px",
+      }}
     >
-      <span>{dayNumber}</span>
-      {reserved && (
-        <span className="mt-1 text-[10px] uppercase tracking-[0.2em]">
-          Reserved
-        </span>
+      <span
+        style={{
+          fontFamily: "Jost, sans-serif",
+          fontSize: "13px",
+          color: numberColorToday,
+          fontWeight: "500",
+          lineHeight: "1",
+        }}
+      >
+        {dayNumber}
+      </span>
+      {day.status !== "available" && (
+        <span
+          style={{
+            display: "inline-block",
+            width: "4px",
+            height: "4px",
+            borderRadius: "50%",
+            backgroundColor: dotColor,
+          }}
+        />
       )}
-    </motion.div>
+    </div>
   );
 }

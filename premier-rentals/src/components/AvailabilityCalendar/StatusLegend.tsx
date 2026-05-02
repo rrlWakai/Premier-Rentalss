@@ -1,15 +1,52 @@
 export default function StatusLegend() {
+  const statuses = [
+    { color: "#d4a853", label: "Available" },
+    { color: "#d4a853", label: "Pending" },
+    { color: "#e5e2dc", label: "Unavailable" },
+  ];
+
   return (
-    <div className="px-4 py-4 border-t border-premier-border bg-premier-cream">
-      <div className="flex items-center justify-center gap-2">
-        <div className="w-3 h-3 rounded-sm bg-premier-gold border border-premier-gold" />
-        <span
-          className="text-sm text-premier-dark uppercase tracking-[0.16em]"
-          style={{ fontFamily: "var(--font-ui)" }}
+    <div
+      style={{
+        padding: "12px 16px",
+        borderTop: "1px solid #e2ddd4",
+        backgroundColor: "#faf8f4",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "24px",
+      }}
+    >
+      {statuses.map((status, idx) => (
+        <div
+          key={idx}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+          }}
         >
-          Reserved dates only
-        </span>
-      </div>
+          <span
+            style={{
+              display: "inline-block",
+              width: "6px",
+              height: "6px",
+              borderRadius: "50%",
+              backgroundColor: status.color,
+            }}
+          />
+          <span
+            style={{
+              fontFamily: "Jost, sans-serif",
+              fontSize: "10px",
+              color: "#6a6050",
+              textTransform: "capitalize",
+            }}
+          >
+            {status.label}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }
