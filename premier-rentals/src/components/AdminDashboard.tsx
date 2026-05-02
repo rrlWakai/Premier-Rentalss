@@ -921,7 +921,6 @@ export default function AdminDashboard() {
                             {(
                               [
                                 "confirmed",
-                                "half",
                                 "pending",
                                 "cancelled",
                                 "completed",

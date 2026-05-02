@@ -141,7 +141,7 @@ export default async function handler(request: Request) {
       .eq("property_id", propertyId)
       .eq("booking_date", reservationDate)
       .eq("time_slot", timeSlot)
-      .in("status", ["half", "confirmed"])
+      .in("status", ["confirmed"])
       .maybeSingle();
 
     if (checkError) {
