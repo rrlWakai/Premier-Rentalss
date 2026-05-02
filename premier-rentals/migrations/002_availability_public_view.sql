@@ -1,35 +1,33 @@
--- Create availability_public view for client-side calendar
--- Only exposes property_id, start_date, end_date, status
--- Maps booking statuses to availability: confirmed/blocked/completed → unavailable, pending → pending, else → available
+-- Drop and recreate clean view
+drop view if exists public.availability_public;
 
-create or replace view public.availability_public as
+create or replace view public.availability_public
+with (security_invoker = false) as
+
+-- bookings: property_id is already a text slug
 select
   b.property_id,
-  b.booking_date as start_date,
-  b.booking_date as end_date,
+  b.booking_date   as date,
   case
     when b.status in ('confirmed', 'completed') then 'unavailable'
-    when b.status = 'pending' then 'pending'
-    else 'available'
+    when b.status = 'pending'                     then 'pending'
   end as status
-from public.bookings b
-where b.status not in ('cancelled') -- exclude cancelled bookings
+from  public.bookings b
+where b.status not in ('cancelled')
 
 union all
 
--- Include blocked dates as unavailable
+-- blocked_dates: join retreats to get text slug (fixes uuid/text mismatch)
 select
-  bd.retreat_id as property_id,
-  bd.date as start_date,
-  bd.date as end_date,
-  'unavailable' as status
-from public.blocked_dates bd;
+  r.slug           as property_id,
+  bd.date          as date,
+  'unavailable'    as status
+from  public.blocked_dates bd
+join  public.retreats r on r.id = bd.retreat_id;
 
--- Grant SELECT on availability_public to anon role only
+-- Grant to anon only (re-run after every view recreate)
 grant select on public.availability_public to anon;
-
--- Enable RLS on bookings table (already enabled in migration, but ensuring)
-alter table public.bookings enable row level security;
+grant select on public.availability_public to authenticated;
 
 -- Create policy for anon to read availability_public (views inherit policies from underlying tables)
 -- Since we're using a view, we need to ensure the underlying tables allow anon access for this specific use case
