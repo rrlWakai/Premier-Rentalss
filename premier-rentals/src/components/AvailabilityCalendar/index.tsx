@@ -38,23 +38,24 @@ export default function AvailabilityCalendar() {
   return (
     <section id="availability" className="py-16 bg-premier-cream">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <CalendarDays size={20} color="#d4a853" />
-            <h2
-              className="text-3xl sm:text-4xl"
-              style={{ fontFamily: "var(--font-display)" }}
+        <div className="mb-8">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <CalendarDays size={20} color="#d4a853" />
+              <h2
+                className="text-2xl font-semibold"
+                style={{ fontFamily: "var(--font-display)" }}
+              >
+                Reserved Dates
+              </h2>
+            </div>
+            <div
+              className="text-sm text-premier-muted uppercase tracking-[0.18em]"
+              style={{ fontFamily: "var(--font-ui)" }}
             >
-              Check Availability
-            </h2>
+              Minimal reserved calendar, realtime updates only
+            </div>
           </div>
-          <p
-            className="text-lg text-premier-muted max-w-2xl mx-auto"
-            style={{ fontFamily: "var(--font-ui)" }}
-          >
-            View real-time availability for our premier properties. Select a
-            property and date to check availability.
-          </p>
         </div>
 
         <div className="bg-white rounded-xl border border-premier-border overflow-hidden">
