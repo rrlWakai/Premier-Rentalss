@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -89,11 +89,21 @@ export default function AdminDashboard() {
   const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
   const [page, setPage] = useState(1);
   const [totalBookings, setTotalBookings] = useState(0);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [realtimeStatus, setRealtimeStatus] = useState<"connecting" | "connected" | "error">("connecting");
   const pageRef = useRef(page);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     pageRef.current = page;
   }, [page]);
+
+  const handleRealtimeChange = useCallback(() => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = setTimeout(() => {
+      void refreshData(pageRef.current);
+    }, 300);
+  }, []);
 
   useEffect(() => {
     const basePromise = Promise.all([
@@ -125,9 +135,9 @@ export default function AdminDashboard() {
   }, [page, isOwner]);
 
   useEffect(() => {
-    // Subscribe to bookings changes
-    const bookingsChannel = supabase
-      .channel("bookings-realtime")
+    // Consolidated realtime channel for all tables
+    const channel = supabase
+      .channel("admin-realtime")
       .on(
         "postgres_changes",
         {
@@ -135,20 +145,11 @@ export default function AdminDashboard() {
           schema: "public",
           table: "bookings",
         },
-        (payload) => {
-          console.log("Bookings realtime update:", payload);
-          void refreshData(pageRef.current);
+        () => {
+          console.log("Bookings realtime update");
+          handleRealtimeChange();
         },
       )
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          console.log("Bookings realtime subscribed");
-        }
-      });
-
-    // Subscribe to blocked dates changes
-    const blockedDatesChannel = supabase
-      .channel("blocked-dates-realtime")
       .on(
         "postgres_changes",
         {
@@ -156,17 +157,11 @@ export default function AdminDashboard() {
           schema: "public",
           table: "blocked_dates",
         },
-        async () => {
+        () => {
           console.log("Blocked dates realtime update");
-          const bd = await fetchBlockedDates();
-          setBlockedDates(bd);
+          handleRealtimeChange();
         },
       )
-      .subscribe();
-
-    // Subscribe to discounts changes
-    const discountsChannel = supabase
-      .channel("discounts-realtime")
       .on(
         "postgres_changes",
         {
@@ -174,19 +169,26 @@ export default function AdminDashboard() {
           schema: "public",
           table: "discounts",
         },
-        async () => {
+        () => {
           console.log("Discounts realtime update");
-          void refreshData(pageRef.current);
+          handleRealtimeChange();
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          console.log("Admin realtime subscribed");
+          setRealtimeStatus("connected");
+        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          console.log("Admin realtime error:", status);
+          setRealtimeStatus("error");
+        }
+      });
 
     return () => {
-      supabase.removeChannel(bookingsChannel);
-      supabase.removeChannel(blockedDatesChannel);
-      supabase.removeChannel(discountsChannel);
+      supabase.removeChannel(channel);
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
     };
-  }, []);
+  }, [handleRealtimeChange]);
 
   async function handleSignOut() {
     await adminSignOut();
@@ -195,7 +197,7 @@ export default function AdminDashboard() {
   }
 
   async function refreshData(targetPage = page) {
-    setLoading(true);
+    setIsSyncing(true);
     try {
       const basePromise = Promise.all([
         fetchBookings(targetPage, PAGE_SIZE),
@@ -223,12 +225,14 @@ export default function AdminDashboard() {
         const updated = b.find((booking) => booking.id === selectedBooking.id);
         if (updated) {
           setSelectedBooking(updated);
+        } else {
+          setSelectedBooking(null); // booking was deleted, clear ghost UI
         }
       }
     } catch (error) {
       console.error("Failed to refresh data:", error);
     } finally {
-      setLoading(false);
+      setIsSyncing(false);
     }
   }
 
@@ -457,16 +461,36 @@ export default function AdminDashboard() {
             {NAV.find((n) => n.id === tab)?.label}
           </h1>
           <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 text-[10px] text-[#8a8a7a]" style={{ fontFamily: "Jost, sans-serif" }}>
+              <span className={`h-2 w-2 rounded-full transition-colors ${
+                isSyncing
+                  ? "bg-yellow-400 animate-pulse"
+                  : realtimeStatus === "connected"
+                  ? "bg-green-500"
+                  : realtimeStatus === "error"
+                  ? "bg-red-400"
+                  : "bg-gray-300 animate-pulse"
+              }`} />
+              <span className="hidden sm:inline">
+                {isSyncing
+                  ? "Syncing..."
+                  : realtimeStatus === "connected"
+                  ? "Live"
+                  : realtimeStatus === "error"
+                  ? "Reconnecting..."
+                  : "Connecting..."}
+              </span>
+            </div>
             <button
               onClick={() => void refreshData()}
-              disabled={loading}
+              disabled={isSyncing}
               className="p-2 text-[#8a8a7a] hover:text-[#c9a96e] transition-colors disabled:opacity-50"
               title="Refresh data"
             >
               <RefreshCw
                 size={18}
                 strokeWidth={1.5}
-                className={loading ? "animate-spin" : ""}
+                className={isSyncing ? "animate-spin" : ""}
               />
             </button>
             <div className="flex lg:hidden items-center gap-1">
