@@ -633,7 +633,6 @@ export default function AdminDashboard() {
                       >
                         <option value="all">All Status</option>
                         <option value="pending">Pending</option>
-                        <option value="half">Half</option>
                         <option value="confirmed">Confirmed</option>
                         <option value="cancelled">Cancelled</option>
                         <option value="completed">Completed</option>
@@ -718,7 +717,9 @@ export default function AdminDashboard() {
                                   <span
                                     className={`capitalize text-[10px] font-medium ${PAYMENT_TEXT_CLS[b.payment_status]}`}
                                   >
-                                    {b.payment_status}
+                                    {b.payment_status === "partial"
+                                      ? "Half"
+                                      : b.payment_status}
                                   </span>
                                 </td>
                                 <td className="px-4 py-3">
@@ -951,6 +952,7 @@ export default function AdminDashboard() {
                                 {(
                                   [
                                     "unpaid",
+                                    "partial",
                                     "paid",
                                     "refunded",
                                     "failed",
@@ -970,7 +972,7 @@ export default function AdminDashboard() {
                                       }`}
                                     style={{ fontFamily: "Jost, sans-serif" }}
                                   >
-                                    {s}
+                                    {s === "partial" ? "Half" : s}
                                   </button>
                                 ))}
                               </div>

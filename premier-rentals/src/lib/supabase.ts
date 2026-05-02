@@ -37,7 +37,6 @@ export interface Retreat {
 
 export type BookingStatus =
   | "pending"
-  | "half"
   | "confirmed"
   | "cancelled"
   | "completed";
