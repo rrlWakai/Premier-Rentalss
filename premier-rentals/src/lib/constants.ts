@@ -1,5 +1,6 @@
 export const STATUS_TAILWIND: Record<string, string> = {
   confirmed: "text-green-600 bg-green-50 border-green-200",
+  half:      "text-orange-600 bg-orange-50 border-orange-200",
   pending:   "text-amber-600 bg-amber-50 border-amber-200",
   cancelled: "text-red-500 bg-red-50 border-red-200",
   completed: "text-purple-600 bg-purple-50 border-purple-200",
@@ -7,6 +8,7 @@ export const STATUS_TAILWIND: Record<string, string> = {
 
 export const STATUS_HEX: Record<string, string> = {
   confirmed: "#22c55e",
+  half:      "#f97316",
   pending:   "#f59e0b",
   cancelled: "#ef4444",
   completed: "#8b5cf6",

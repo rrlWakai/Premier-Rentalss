@@ -633,6 +633,7 @@ export default function AdminDashboard() {
                       >
                         <option value="all">All Status</option>
                         <option value="pending">Pending</option>
+                        <option value="half">Half</option>
                         <option value="confirmed">Confirmed</option>
                         <option value="cancelled">Cancelled</option>
                         <option value="completed">Completed</option>
@@ -708,7 +709,10 @@ export default function AdminDashboard() {
                                   {b.booking_date}
                                 </td>
                                 <td className="px-4 py-3 font-medium text-[#c9a96e]">
-                                  {formatPHP(b.total_amount)}
+                                  {b.payment_status === "partial" &&
+                                  b.downpayment_amount !== undefined
+                                    ? `${formatPHP(b.downpayment_amount)} / ${formatPHP(b.total_amount)}`
+                                    : formatPHP(b.total_amount)}
                                 </td>
                                 <td className="px-4 py-3">
                                   <span
@@ -841,6 +845,30 @@ export default function AdminDashboard() {
                                   "Amount",
                                   formatPHP(selectedBooking.total_amount),
                                 ],
+                                ...(selectedBooking.payment_status === "partial"
+                                  ? [
+                                      [
+                                        AlertCircle,
+                                        "Half Payment",
+                                        formatPHP(
+                                          selectedBooking.downpayment_amount ??
+                                            0,
+                                        ),
+                                      ],
+                                      [
+                                        AlertCircle,
+                                        "Remaining",
+                                        formatPHP(
+                                          Math.max(
+                                            0,
+                                            selectedBooking.total_amount -
+                                              (selectedBooking.downpayment_amount ??
+                                                0),
+                                          ),
+                                        ),
+                                      ],
+                                    ]
+                                  : []),
                               ] as [typeof User | null, string, string][]
                             ).map(([Icon, label, value]) => (
                               <div
@@ -892,6 +920,7 @@ export default function AdminDashboard() {
                             {(
                               [
                                 "confirmed",
+                                "half",
                                 "pending",
                                 "cancelled",
                                 "completed",
