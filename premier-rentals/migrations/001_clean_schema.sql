@@ -404,7 +404,7 @@ begin
     (p_insert_data->>'total_amount')::numeric,
     (p_insert_data->>'downpayment_amount')::numeric,
     'confirmed',
-    'paid',
+    CASE WHEN (p_insert_data->>'downpayment_amount')::numeric >= (p_insert_data->>'total_amount')::numeric THEN 'paid'::payment_status_enum ELSE 'partial'::payment_status_enum END,
     p_paymongo_cs_id,
     coalesce(
       (p_insert_data->>'booking_type')::booking_type_enum,
