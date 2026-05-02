@@ -12,9 +12,10 @@ export default function StatusLegend() {
         borderTop: "1px solid #e2ddd4",
         backgroundColor: "#faf8f4",
         display: "flex",
+        flexWrap: "wrap",
         alignItems: "center",
         justifyContent: "center",
-        gap: "24px",
+        gap: "16px",
       }}
     >
       {statuses.map((status, idx) => (

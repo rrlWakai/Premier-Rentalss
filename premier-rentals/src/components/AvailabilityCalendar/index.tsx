@@ -44,38 +44,56 @@ export default function AvailabilityCalendar() {
           }}
         >
           <div
-            className="flex items-center justify-between border-b px-4 py-4 sm:px-6"
+            className="flex flex-col gap-4 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6"
             style={{ borderColor: "#e2ddd4" }}
           >
-            <div
-              className="rounded-full px-3 py-2 text-[10px] uppercase tracking-[0.18em]"
-              style={{
-                fontFamily: "Jost, sans-serif",
-                border: "1px solid #d4a853",
-                backgroundColor: "#faf8f4",
-                color: "#1a1612",
-              }}
-            >
-              <select
-                value={selectedProperty}
-                onChange={(e) =>
-                  setSelectedProperty(e.target.value as PropertySlug)
-                }
-                className="bg-transparent outline-none"
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 w-full sm:w-auto">
+              <div
+                className="rounded-full px-3 py-2 text-[10px] uppercase tracking-[0.18em] w-full sm:w-auto"
                 style={{
                   fontFamily: "Jost, sans-serif",
+                  border: "1px solid #d4a853",
+                  backgroundColor: "#faf8f4",
                   color: "#1a1612",
                 }}
               >
-                {PROPERTIES.map((prop) => (
-                  <option key={prop.slug} value={prop.slug}>
-                    {prop.name}
-                  </option>
-                ))}
-              </select>
+                <select
+                  value={selectedProperty}
+                  onChange={(e) =>
+                    setSelectedProperty(e.target.value as PropertySlug)
+                  }
+                  className="w-full bg-transparent outline-none"
+                  style={{
+                    fontFamily: "Jost, sans-serif",
+                    color: "#1a1612",
+                  }}
+                >
+                  {PROPERTIES.map((prop) => (
+                    <option key={prop.slug} value={prop.slug}>
+                      {prop.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div
+                className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em]"
+                style={{ fontFamily: "Jost, sans-serif", color: "#8a7f6e" }}
+              >
+                <span
+                  className="inline-block rounded-full"
+                  style={{
+                    width: "6px",
+                    height: "6px",
+                    backgroundColor: live ? "#d4a853" : "#c0b9ae",
+                    animation: live ? "pulse 2s infinite" : "none",
+                  }}
+                />
+                {live ? "Live" : "Offline"}
+              </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-2 w-full sm:w-auto">
               <button
                 onClick={prevMonth}
                 style={{
@@ -94,11 +112,10 @@ export default function AvailabilityCalendar() {
                 <ChevronLeft size={14} />
               </button>
               <p
-                className="text-[13px] uppercase tracking-[0.16em]"
+                className="text-[13px] uppercase tracking-[0.16em] truncate"
                 style={{
                   fontFamily: "Cormorant Garamond, serif",
                   color: "#1a1612",
-                  minWidth: "140px",
                   textAlign: "center",
                 }}
               >

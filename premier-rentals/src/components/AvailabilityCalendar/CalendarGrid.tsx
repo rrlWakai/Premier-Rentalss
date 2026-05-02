@@ -24,7 +24,7 @@ export default function CalendarGrid({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(7, 1fr)",
+          gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
           gap: "2px",
           marginBottom: "8px",
         }}
@@ -40,6 +40,7 @@ export default function CalendarGrid({
               fontWeight: "400",
               letterSpacing: "0.08em",
               paddingBottom: "4px",
+              whiteSpace: "nowrap",
             }}
           >
             {day}
@@ -49,17 +50,25 @@ export default function CalendarGrid({
 
       <div
         style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(7, 1fr)",
-          gap: "2px",
+          overflowX: "auto",
+          WebkitOverflowScrolling: "touch",
         }}
       >
-        {Array.from({ length: startDay }, (_, i) => (
-          <div key={`empty-${i}`} style={{ aspectRatio: "1" }} />
-        ))}
-        {days.map((day) => (
-          <DayCell key={day.date} day={day} />
-        ))}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+            gap: "2px",
+            minWidth: "420px",
+          }}
+        >
+          {Array.from({ length: startDay }, (_, i) => (
+            <div key={`empty-${i}`} style={{ aspectRatio: "1" }} />
+          ))}
+          {days.map((day) => (
+            <DayCell key={day.date} day={day} />
+          ))}
+        </div>
       </div>
 
       {loading && (
