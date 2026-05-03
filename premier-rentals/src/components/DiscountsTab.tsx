@@ -26,7 +26,7 @@ import {
 
 const PROPERTIES = [
   { slug: "premier-pool-house", name: "Premier Pool House" },
-  { slug: "premier-patio",      name: "Premier Patio" },
+  { slug: "premier-patio", name: "Premier Patio" },
 ] as const;
 
 const RATE_LABELS_BY_PROPERTY: Record<string, string[]> = {
@@ -40,11 +40,7 @@ const RATE_LABELS_BY_PROPERTY: Record<string, string[]> = {
     "Night Time",
     "Overnight",
   ],
-  "premier-patio": [
-    "Day Premium",
-    "Night Premium",
-    "Overnight Platinum",
-  ],
+  "premier-patio": ["Day Premium", "Night Premium", "Overnight Platinum"],
 };
 
 // Labels that appear under more than one property slug
@@ -74,10 +70,22 @@ function getStatus(d: Discount): DiscountStatus {
 }
 
 const STATUS_CONFIG: Record<DiscountStatus, { label: string; cls: string }> = {
-  active:   { label: "Active",   cls: "bg-green-50 text-green-700 border-green-200" },
-  upcoming: { label: "Upcoming", cls: "bg-blue-50 text-blue-700 border-blue-200" },
-  inactive: { label: "Inactive", cls: "bg-amber-50 text-amber-700 border-amber-200" },
-  expired:  { label: "Expired",  cls: "bg-[#f5f0e8] text-[#8a8a7a] border-[#e0d8ce]" },
+  active: {
+    label: "Active",
+    cls: "bg-green-50 text-green-700 border-green-200",
+  },
+  upcoming: {
+    label: "Upcoming",
+    cls: "bg-blue-50 text-blue-700 border-blue-200",
+  },
+  inactive: {
+    label: "Inactive",
+    cls: "bg-amber-50 text-amber-700 border-amber-200",
+  },
+  expired: {
+    label: "Expired",
+    cls: "bg-[#f5f0e8] text-[#8a8a7a] border-[#e0d8ce]",
+  },
 };
 
 // ─── Display helpers ──────────────────────────────────────────────────────────
@@ -150,9 +158,9 @@ function formToPayload(form: FormState): DiscountPayload {
     percentage: Number(form.percentage),
     applies_to: form.applies_to,
     property_ids: form.applies_to === "property" ? form.property_ids : null,
-    rate_labels:  form.applies_to === "rate"     ? form.rate_labels  : null,
+    rate_labels: form.applies_to === "rate" ? form.rate_labels : null,
     start_date: form.start_date,
-    end_date:   form.end_date,
+    end_date: form.end_date,
     active: form.active,
   };
 }
@@ -341,7 +349,9 @@ function DiscountFormModal({
     editing ? discountToForm(editing) : emptyForm(),
   );
   const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof FormState, string>>
+  >({});
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((p) => ({ ...p, [key]: value }));
@@ -460,7 +470,9 @@ function DiscountFormModal({
               </span>
             </div>
             {errors.percentage && (
-              <p className="mt-1 text-[11px] text-red-500">{errors.percentage}</p>
+              <p className="mt-1 text-[11px] text-red-500">
+                {errors.percentage}
+              </p>
             )}
           </div>
 
@@ -505,7 +517,9 @@ function DiscountFormModal({
                 />
               </div>
               {errors.property_ids && (
-                <p className="mt-1 text-[11px] text-red-500">{errors.property_ids}</p>
+                <p className="mt-1 text-[11px] text-red-500">
+                  {errors.property_ids}
+                </p>
               )}
             </div>
           )}
@@ -521,7 +535,9 @@ function DiscountFormModal({
                 />
               </div>
               {errors.rate_labels && (
-                <p className="mt-1 text-[11px] text-red-500">{errors.rate_labels}</p>
+                <p className="mt-1 text-[11px] text-red-500">
+                  {errors.rate_labels}
+                </p>
               )}
             </div>
           )}
@@ -538,7 +554,9 @@ function DiscountFormModal({
                 style={{ fontFamily: "Jost, sans-serif" }}
               />
               {errors.start_date && (
-                <p className="mt-1 text-[11px] text-red-500">{errors.start_date}</p>
+                <p className="mt-1 text-[11px] text-red-500">
+                  {errors.start_date}
+                </p>
               )}
             </div>
             <div>
@@ -552,7 +570,9 @@ function DiscountFormModal({
                 style={{ fontFamily: "Jost, sans-serif" }}
               />
               {errors.end_date && (
-                <p className="mt-1 text-[11px] text-red-500">{errors.end_date}</p>
+                <p className="mt-1 text-[11px] text-red-500">
+                  {errors.end_date}
+                </p>
               )}
             </div>
           </div>
@@ -570,7 +590,8 @@ function DiscountFormModal({
                 style={{ fontFamily: "Jost, sans-serif" }}
               >
                 Another "All bookings" discount overlaps this date range. Both
-                will be evaluated — the one with the higher percentage will apply.
+                will be evaluated — the one with the higher percentage will
+                apply.
               </p>
             </div>
           )}
@@ -592,6 +613,7 @@ function DiscountFormModal({
               </p>
             </div>
             <button
+              title="sa"
               type="button"
               role="switch"
               aria-checked={form.active}
@@ -663,7 +685,12 @@ function DiscountRow({
     >
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
-          <Tag size={12} color="#c9a96e" strokeWidth={1.5} className="shrink-0" />
+          <Tag
+            size={12}
+            color="#c9a96e"
+            strokeWidth={1.5}
+            className="shrink-0"
+          />
           <span
             className="font-medium text-[#1a1a1a] leading-snug"
             style={{ fontFamily: "Jost, sans-serif" }}
@@ -748,7 +775,9 @@ export default function DiscountsTab() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Discount | null>(null);
-  const [statusFilter, setStatusFilter] = useState<"all" | DiscountStatus>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | DiscountStatus>(
+    "all",
+  );
   const [showExpired, setShowExpired] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
@@ -839,7 +868,14 @@ export default function DiscountsTab() {
     return live.filter((d) => getStatus(d) === statusFilter);
   }, [live, statusFilter]);
 
-  const TABLE_HEADERS = ["Name", "Discount", "Applies To", "Date Range", "Status", ""];
+  const TABLE_HEADERS = [
+    "Name",
+    "Discount",
+    "Applies To",
+    "Date Range",
+    "Status",
+    "",
+  ];
 
   return (
     <motion.div

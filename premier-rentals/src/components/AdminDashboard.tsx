@@ -90,7 +90,9 @@ export default function AdminDashboard() {
   const [page, setPage] = useState(1);
   const [totalBookings, setTotalBookings] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [realtimeStatus, setRealtimeStatus] = useState<"connecting" | "connected" | "error">("connecting");
+  const [realtimeStatus, setRealtimeStatus] = useState<
+    "connecting" | "connected" | "error"
+  >("connecting");
   const pageRef = useRef(page);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -145,8 +147,13 @@ export default function AdminDashboard() {
           schema: "public",
           table: "bookings",
         },
-        () => {
-          console.log("Bookings realtime update");
+        (payload) => {
+          console.log("Bookings realtime update", payload.eventType);
+
+          if (payload.eventType === "INSERT" && payload.new) {
+            showNewBookingNotification(payload.new as Booking);
+          }
+
           handleRealtimeChange();
         },
       )
@@ -178,7 +185,11 @@ export default function AdminDashboard() {
         if (status === "SUBSCRIBED") {
           console.log("Admin realtime subscribed");
           setRealtimeStatus("connected");
-        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+        } else if (
+          status === "CHANNEL_ERROR" ||
+          status === "TIMED_OUT" ||
+          status === "CLOSED"
+        ) {
           console.log("Admin realtime error:", status);
           setRealtimeStatus("error");
         }
@@ -351,6 +362,39 @@ export default function AdminDashboard() {
     return matchSearch && matchStatus;
   });
 
+  // ──────────────────────────────────────────────────────────────────────────────
+  // Toast Notification Helpers for New Bookings
+  // ──────────────────────────────────────────────────────────────────────────────
+
+  function formatNewBookingToast(booking: Booking): string {
+    const retreat = retreats.find((r) => r.id === booking.retreat_id);
+    const propertyName = retreat?.name || "Booking Received";
+
+    const dateStr = new Date(
+      booking.booking_date + "T00:00:00",
+    ).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+
+    const timeSlot = booking.time_slot
+      ? booking.time_slot.charAt(0).toUpperCase() + booking.time_slot.slice(1)
+      : "TBD";
+
+    const guestCount = booking.guests || booking.num_guests || 1;
+    const amount = formatPHP(booking.total_amount);
+
+    return `✨ New Booking: ${booking.full_name}\n${propertyName}\n${dateStr} • ${timeSlot} • ${guestCount} guest(s) • ${amount}`;
+  }
+
+  function showNewBookingNotification(booking: Booking): void {
+    toast.success(formatNewBookingToast(booking), {
+      duration: 5000,
+      icon: "🎉",
+    });
+  }
+
   const STATS = [
     ...(isOwner
       ? [
@@ -461,24 +505,29 @@ export default function AdminDashboard() {
             {NAV.find((n) => n.id === tab)?.label}
           </h1>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 text-[10px] text-[#8a8a7a]" style={{ fontFamily: "Jost, sans-serif" }}>
-              <span className={`h-2 w-2 rounded-full transition-colors ${
-                isSyncing
-                  ? "bg-yellow-400 animate-pulse"
-                  : realtimeStatus === "connected"
-                  ? "bg-green-500"
-                  : realtimeStatus === "error"
-                  ? "bg-red-400"
-                  : "bg-gray-300 animate-pulse"
-              }`} />
+            <div
+              className="flex items-center gap-1.5 text-[10px] text-[#8a8a7a]"
+              style={{ fontFamily: "Jost, sans-serif" }}
+            >
+              <span
+                className={`h-2 w-2 rounded-full transition-colors ${
+                  isSyncing
+                    ? "bg-yellow-400 animate-pulse"
+                    : realtimeStatus === "connected"
+                      ? "bg-green-500"
+                      : realtimeStatus === "error"
+                        ? "bg-red-400"
+                        : "bg-gray-300 animate-pulse"
+                }`}
+              />
               <span className="hidden sm:inline">
                 {isSyncing
                   ? "Syncing..."
                   : realtimeStatus === "connected"
-                  ? "Live"
-                  : realtimeStatus === "error"
-                  ? "Reconnecting..."
-                  : "Connecting..."}
+                    ? "Live"
+                    : realtimeStatus === "error"
+                      ? "Reconnecting..."
+                      : "Connecting..."}
               </span>
             </div>
             <button
