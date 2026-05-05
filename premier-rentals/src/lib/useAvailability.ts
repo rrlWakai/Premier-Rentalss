@@ -15,21 +15,38 @@ export function useAvailability(
 
   const fetchMonth = useCallback(async () => {
     setLoading(true)
+    const daysInMonth = new Date(year, month, 0).getDate()
     const from = `${year}-${pad(month)}-01`
-    const to   = new Date(year, month, 0).toISOString().slice(0, 10)
+    const to = `${year}-${pad(month)}-${pad(daysInMonth)}`
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('availability_public')
       .select('date,status')
       .eq('property_id', propertySlug)
       .gte('date', from)
       .lte('date', to)
 
-    // Build a map; days with no row = available
-    const map = new Map((data as AvailabilityRow[])
-      ?.map(r => [r.date, r.status]) ?? [])
+    if (error) {
+      console.error('useAvailability.fetchMonth:', error)
+      setDays(
+        Array.from({ length: daysInMonth }, (_, i) => ({
+          date: `${year}-${pad(month)}-${pad(i + 1)}`,
+          status: 'available',
+        })),
+      )
+      setLoading(false)
+      return
+    }
 
-    const daysInMonth = new Date(year, month, 0).getDate()
+    // Build a per-day status map with priority: unavailable > pending > available.
+    const map = new Map<string, CalendarDay['status']>()
+    for (const row of (data as AvailabilityRow[]) ?? []) {
+      const existing = map.get(row.date)
+      if (row.status === 'unavailable' || !existing) {
+        map.set(row.date, row.status)
+      }
+    }
+
     setDays(
       Array.from({ length: daysInMonth }, (_, i) => {
         const d = `${year}-${pad(month)}-${pad(i + 1)}`
