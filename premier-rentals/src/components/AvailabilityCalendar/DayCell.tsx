@@ -9,12 +9,12 @@ export default function DayCell({ day }: DayCellProps) {
   const date = parseISO(day.date);
   const dayNumber = parseInt(day.date.split("-")[2]);
   const isCurrentDay = dateIsToday(date);
-  const unavailable = day.status === "unavailable";
+  const reserved = day.status !== "available"; // Show RESERVED for any non-available day
   const pending = day.status === "pending";
 
-  const numberColor = unavailable ? "#d4a853" : "#1a1612";
+  const numberColor = reserved ? "#d4a853" : "#1a1612";
   const numberColorToday = isCurrentDay ? "#d4a853" : numberColor;
-  const dotColor = unavailable ? "#d4a853" : pending ? "#d4a853" : "#8a8a7a";
+  const dotColor = reserved ? "#d4a853" : "#8a8a7a";
   const borderStyle = isCurrentDay
     ? "1px solid #d4a85366"
     : "1px solid transparent";
@@ -25,14 +25,14 @@ export default function DayCell({ day }: DayCellProps) {
         aspectRatio: "1",
         border: borderStyle,
         borderRadius: "4px",
-        backgroundColor: "#ffffff",
+        backgroundColor: reserved ? "#f7f3e8" : "#ffffff",
         padding: "6px 4px",
         textAlign: "center",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        gap: "2px",
+        gap: "4px",
       }}
     >
       <span
@@ -40,32 +40,35 @@ export default function DayCell({ day }: DayCellProps) {
           fontFamily: "Jost, sans-serif",
           fontSize: "13px",
           color: numberColorToday,
-          fontWeight: "500",
+          fontWeight: "700",
           lineHeight: "1",
         }}
       >
         {dayNumber}
       </span>
-      {unavailable && (
+      {reserved ? (
         <span
           style={{
             fontFamily: "Jost, sans-serif",
-            fontSize: "7px",
-            color: "#d4a853",
-            fontWeight: "600",
-            letterSpacing: "0.05em",
+            fontSize: "8px",
+            color: "#854d00",
+            fontWeight: "700",
+            letterSpacing: "0.08em",
             lineHeight: "1",
+            textTransform: "uppercase",
+            padding: "2px 6px",
+            borderRadius: "999px",
+            backgroundColor: "#fff2d3",
           }}
         >
           RESERVED
         </span>
-      )}
-      {!unavailable && day.status !== "available" && (
+      ) : (
         <span
           style={{
             display: "inline-block",
-            width: "4px",
-            height: "4px",
+            width: "6px",
+            height: "6px",
             borderRadius: "50%",
             backgroundColor: dotColor,
           }}
