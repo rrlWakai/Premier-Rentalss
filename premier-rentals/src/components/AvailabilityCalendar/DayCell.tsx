@@ -9,7 +9,7 @@ export default function DayCell({ day }: DayCellProps) {
   const date = parseISO(day.date);
   const dayNumber = parseInt(day.date.split("-")[2]);
   const isCurrentDay = dateIsToday(date);
-  const reserved = day.status !== "available"; // Show RESERVED for any non-available day
+  const reserved = day.status !== "available"; // Pending and unavailable both show as RESERVED on client
 
   const numberColor = reserved ? "#d4a853" : "#1a1612";
   const numberColorToday = isCurrentDay ? "#d4a853" : numberColor;

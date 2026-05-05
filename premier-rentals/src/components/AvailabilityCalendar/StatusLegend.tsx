@@ -1,8 +1,7 @@
 export default function StatusLegend() {
   const statuses = [
-    { color: "#d4a853", label: "Available" },
-    { color: "#d4a853", label: "Pending" },
-    { color: "#e5e2dc", label: "Unavailable" },
+    { color: "#8a8a7a", label: "Available" },
+    { color: "#d4a853", label: "Reserved" },
   ];
 
   return (
