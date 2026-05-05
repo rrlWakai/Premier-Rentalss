@@ -1,23 +1,61 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { addMonths, subMonths, format } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useAvailability } from "../../lib/useAvailability";
+import { fetchRetreats } from "../../lib/supabase";
 import type { PropertySlug } from "../../types/availability";
 import CalendarGrid from "./CalendarGrid";
 import StatusLegend from "./StatusLegend";
 
-const PROPERTIES: { slug: PropertySlug; name: string }[] = [
-  { slug: "premier-patio", name: "Premier Patio" },
-  { slug: "premier-pool-house", name: "Premier Pool House" },
-];
+interface PropertyOption {
+  slug: PropertySlug;
+  name: string;
+}
 
 export default function AvailabilityCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedProperty, setSelectedProperty] =
     useState<PropertySlug>("premier-patio");
+  const [properties, setProperties] = useState<PropertyOption[]>([
+    { slug: "premier-patio", name: "Premier Patio" },
+    { slug: "premier-pool-house", name: "Premier Pool House" },
+  ]);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth() + 1; // 1-based
+
+  useEffect(() => {
+    let mounted = true;
+
+    fetchRetreats()
+      .then((rows) => {
+        if (!mounted) return;
+
+        const next = rows
+          .filter((retreat) =>
+            retreat.slug === "premier-patio" ||
+            retreat.slug === "premier-pool-house",
+          )
+          .map((retreat) => ({
+            slug: retreat.slug as PropertySlug,
+            name: retreat.name,
+          }));
+
+        if (next.length > 0) {
+          setProperties(next);
+          setSelectedProperty((prev) =>
+            next.some((p) => p.slug === prev) ? prev : next[0].slug,
+          );
+        }
+      })
+      .catch((error) => {
+        console.error("AvailabilityCalendar.fetchRetreats:", error);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const { days, live, loading } = useAvailability(
     selectedProperty,
@@ -68,7 +106,7 @@ export default function AvailabilityCalendar() {
                     color: "#1a1612",
                   }}
                 >
-                  {PROPERTIES.map((prop) => (
+                  {properties.map((prop) => (
                     <option key={prop.slug} value={prop.slug}>
                       {prop.name}
                     </option>
