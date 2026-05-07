@@ -55,6 +55,38 @@ export default async function handler(request: Request) {
   try {
     const dbSlot = toDbTimeSlot(time_slot);
 
+    const { data: retreat, error: retreatError } = await supabaseAdmin
+      .from("retreats")
+      .select("id")
+      .eq("slug", property_id)
+      .maybeSingle();
+
+    if (retreatError || !retreat) {
+      return json({ error: "Property not found" }, { status: 404 });
+    }
+
+    const { data: blockedDate, error: blockedError } = await supabaseAdmin
+      .from("blocked_dates")
+      .select("id")
+      .eq("retreat_id", retreat.id)
+      .eq("date", booking_date)
+      .maybeSingle();
+
+    if (blockedError) {
+      console.error("Blocked date check error:", blockedError);
+      return json({ error: "Internal server error", detail: blockedError.message }, { status: 500 });
+    }
+
+    if (blockedDate) {
+      return json(
+        {
+          available: false,
+          reason: "This date is blocked by admin. Please choose a different date.",
+        },
+        { status: 200 }
+      );
+    }
+
     const { data, error } = await supabaseAdmin
       .from("bookings")
       .select("id, status, time_slot, rate_tier")

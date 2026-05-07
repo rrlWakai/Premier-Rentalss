@@ -95,8 +95,7 @@ export type AvailabilityStatus = "available" | "pending" | "unavailable";
 
 export interface AvailabilitySlot {
   property_id: string;
-  start_date: string;
-  end_date: string;
+  date: string;
   status: AvailabilityStatus;
 }
 
@@ -133,18 +132,18 @@ export async function fetchAvailability(
 ): Promise<AvailabilitySlot[]> {
   let query = supabase
     .from("availability_public")
-    .select("property_id, start_date, end_date, status");
+    .select("property_id, date, status");
 
   if (propertyId) {
     query = query.eq("property_id", propertyId);
   }
 
   if (startDate) {
-    query = query.gte("start_date", startDate);
+    query = query.gte("date", startDate);
   }
 
   if (endDate) {
-    query = query.lte("end_date", endDate);
+    query = query.lte("date", endDate);
   }
 
   const { data, error } = await query;
