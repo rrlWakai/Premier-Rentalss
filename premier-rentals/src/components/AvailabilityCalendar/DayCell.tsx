@@ -49,7 +49,7 @@ export default function DayCell({ day }: DayCellProps) {
           style={{
             fontFamily: "Jost, sans-serif",
             fontSize: "7px",
-            color: "#7f7260",
+            color: "#b58a3c",
             fontWeight: "500",
             letterSpacing: "0.16em",
             lineHeight: "1",
