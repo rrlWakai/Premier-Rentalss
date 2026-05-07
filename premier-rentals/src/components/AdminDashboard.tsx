@@ -368,30 +368,14 @@ export default function AdminDashboard() {
 
   function formatNewBookingToast(booking: Booking): string {
     const retreat = retreats.find((r) => r.id === booking.retreat_id);
-    const propertyName = retreat?.name || "Booking Received";
-
-    const dateStr = new Date(
-      booking.booking_date + "T00:00:00",
-    ).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-
-    const timeSlot = booking.time_slot
-      ? booking.time_slot.charAt(0).toUpperCase() + booking.time_slot.slice(1)
-      : "TBD";
-
-    const guestCount = booking.guests || booking.num_guests || 1;
-    const amount = formatPHP(booking.total_amount);
-
-    return `✨ New Booking: ${booking.full_name}\n${propertyName}\n${dateStr} • ${timeSlot} • ${guestCount} guest(s) • ${amount}`;
+    const propertyName = retreat?.name || "Selected Property";
+    return `New booking request received.\n${propertyName}\nPlease review details in the dashboard.`;
   }
 
   function showNewBookingNotification(booking: Booking): void {
     toast.success(formatNewBookingToast(booking), {
       duration: 5000,
-      icon: "🎉",
+      icon: "🔔",
     });
   }
 
