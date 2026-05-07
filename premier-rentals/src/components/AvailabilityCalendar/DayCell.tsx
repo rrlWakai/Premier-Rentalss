@@ -10,9 +10,9 @@ export default function DayCell({ day }: DayCellProps) {
   const dayNumber = parseInt(day.date.split("-")[2]);
   const isCurrentDay = dateIsToday(date);
   const reserved = day.status !== "available"; // Pending and unavailable both show as RESERVED on client
-  const numberColor = reserved ? "#d4a853" : "#1a1612";
+  const numberColor = reserved ? "#8a7f6e" : "#1a1612";
   const numberColorToday = isCurrentDay ? "#d4a853" : numberColor;
-  const dotColor = reserved ? "#d4a853" : "#8a8a7a";
+  const dotColor = reserved ? "#b8ac9b" : "#8a8a7a";
   const borderStyle = isCurrentDay
     ? "1px solid #d4a85366"
     : "1px solid transparent";
@@ -23,7 +23,7 @@ export default function DayCell({ day }: DayCellProps) {
         aspectRatio: "1",
         border: borderStyle,
         borderRadius: "4px",
-        backgroundColor: reserved ? "#f7f3e8" : "#ffffff",
+        backgroundColor: reserved ? "#fbf8f2" : "#ffffff",
         padding: "6px 4px",
         textAlign: "center",
         display: "flex",
@@ -48,15 +48,15 @@ export default function DayCell({ day }: DayCellProps) {
         <span
           style={{
             fontFamily: "Jost, sans-serif",
-            fontSize: "8px",
-            color: "#854d00",
-            fontWeight: "700",
-            letterSpacing: "0.08em",
+            fontSize: "7px",
+            color: "#7f7260",
+            fontWeight: "500",
+            letterSpacing: "0.16em",
             lineHeight: "1",
             textTransform: "uppercase",
-            padding: "2px 6px",
-            borderRadius: "999px",
-            backgroundColor: "#fff2d3",
+            padding: "0",
+            borderRadius: "0",
+            backgroundColor: "transparent",
           }}
         >
           RESERVED
