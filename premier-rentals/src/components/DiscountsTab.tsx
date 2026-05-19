@@ -613,7 +613,6 @@ function DiscountFormModal({
               </p>
             </div>
             <button
-              title="sa"
               type="button"
               role="switch"
               aria-checked={form.active}

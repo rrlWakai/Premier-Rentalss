@@ -157,6 +157,7 @@ export default async function handler(request: Request) {
       const payload = session.booking_payload as Record<string, any>;
 
       const insertData = {
+        booking_id: session.booking_id || metadataBookingId || payload.booking_id || null,
         property_id: payload.property_id,
         retreat_id: payload.retreat_id,
         booking_date: payload.booking_date,

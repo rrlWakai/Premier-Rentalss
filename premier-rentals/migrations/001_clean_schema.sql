@@ -170,6 +170,10 @@ create unique index unique_booking_slot
   on public.bookings (property_id, booking_date, time_slot)
   where status in ('pending','confirmed');
 
+create unique index idx_bookings_checkout_session_id
+  on public.bookings (checkout_session_id)
+  where checkout_session_id is not null;
+
 create index idx_booking_lookup
   on public.bookings (property_id, booking_date, time_slot);
 
@@ -369,6 +373,11 @@ declare
   v_session    checkout_sessions%rowtype;
   v_booking_id uuid;
 begin
+  -- Validate that booking_id is provided in p_insert_data to enforce consistency
+  if p_insert_data->>'booking_id' is null or p_insert_data->>'booking_id' = '' then
+    raise exception 'booking_id is required in booking payload to prevent key mismatches';
+  end if;
+
   select * into v_session
   from checkout_sessions
   where id = p_session_id
@@ -383,6 +392,7 @@ begin
   end if;
 
   insert into bookings (
+    id, -- Explicitly controlled single source of truth
     property_id, retreat_id, booking_date, time_slot,
     full_name, email, phone, address,
     guests, num_guests, num_cars,
@@ -390,6 +400,7 @@ begin
     status, payment_status, checkout_session_id,
     booking_type, special_requests, rate_tier, mode_of_payment
   ) values (
+    (p_insert_data->>'booking_id')::uuid,
     nullif(p_insert_data->>'property_id', ''),
     nullif(p_insert_data->>'retreat_id', '')::uuid,
     (p_insert_data->>'booking_date')::date,

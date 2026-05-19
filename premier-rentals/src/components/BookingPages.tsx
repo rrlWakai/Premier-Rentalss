@@ -175,7 +175,7 @@ function BookingMeta({
 function useResolvedBooking() {
   const [params] = useSearchParams();
   const fallbackBooking = getPendingBooking();
-  const bookingId = params.get("booking_id") || fallbackBooking?.bookingId || "";
+  const bookingId = params.get("booking_id") || params.get("session_id") || fallbackBooking?.bookingId || "";
 
   const [booking, setBooking] = useState<BookingStatusResponse | null>(null);
   const [loading, setLoading] = useState(Boolean(bookingId));
@@ -190,6 +190,7 @@ function useResolvedBooking() {
 
     let cancelled = false;
     let pollTimeout: number | null = null;
+    let delay = 2000; // Start with a 2-second initial delay
 
     const loadStatus = async (allowPolling = true) => {
       try {
@@ -200,7 +201,7 @@ function useResolvedBooking() {
         setError("");
         setLoading(false);
 
-        if (status.payment_status === "paid" && status.status === "confirmed") {
+        if (status.status === "confirmed") {
           clearPendingBooking();
           return;
         }
@@ -212,7 +213,9 @@ function useResolvedBooking() {
         ) {
           pollTimeout = window.setTimeout(() => {
             void loadStatus(status.payment_status === "paid");
-          }, status.payment_status === "paid" ? 2500 : 4000);
+          }, delay);
+          // Exponential backoff: increase delay by 1.5x up to an 8-second cap
+          delay = Math.min(delay * 1.5, 8000);
         }
       } catch (fetchError) {
         if (cancelled) return;
@@ -267,7 +270,7 @@ function useResolvedBooking() {
 export function BookingSuccess() {
   const [params] = useSearchParams();
   const fallbackBooking = getPendingBooking();
-  const bookingId = params.get("booking_id") || fallbackBooking?.bookingId || "";
+  const bookingId = params.get("booking_id") || params.get("session_id") || fallbackBooking?.bookingId || "";
   const [booking, setBooking] = useState<BookingStatusResponse | null>(null);
   const [loading, setLoading] = useState(Boolean(bookingId));
   const [message, setMessage] = useState("");
@@ -282,6 +285,7 @@ export function BookingSuccess() {
     let attempts = 0;
     const MAX_ATTEMPTS = 10;
     let pollTimeout: number | null = null;
+    let delay = 1500; // Start with a 1.5-second polling delay
 
     const poll = async () => {
       attempts++;
@@ -313,7 +317,9 @@ export function BookingSuccess() {
       } catch (_) {}
 
       if (attempts < MAX_ATTEMPTS) {
-        pollTimeout = window.setTimeout(poll, 2000);
+        pollTimeout = window.setTimeout(poll, delay);
+        // Exponential backoff: increase delay by 1.5x up to a 6-second cap
+        delay = Math.min(delay * 1.5, 6000);
       } else {
         setLoading(false);
         setMessage("Your booking is being confirmed. You'll receive an email shortly.");
