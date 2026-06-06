@@ -323,16 +323,20 @@ export default function AdminDashboard() {
     date: string,
     retreatId: string,
     reason?: string,
+    timeSlot?: "daytime" | "nighttime" | "overnight" | null,
   ) {
     if (!retreatId) {
       toast.error("Select a property first");
       return;
     }
     try {
-      const ok = await addBlockedDate(retreatId, date, reason);
+      const ok = await addBlockedDate(retreatId, date, reason, timeSlot);
       if (ok) {
         queryClient.invalidateQueries({ queryKey: ['admin-blocked-dates'] });
-        toast.success(`${date} blocked`);
+        const slotLabel = timeSlot
+          ? timeSlot === "daytime" ? "Daytime" : timeSlot === "nighttime" ? "Nighttime" : "Overnight"
+          : "";
+        toast.success(`${slotLabel ? slotLabel + " " : ""}${date} blocked`);
       } else {
         toast.error("Failed to block date");
       }

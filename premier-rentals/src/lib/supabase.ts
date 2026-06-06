@@ -88,6 +88,7 @@ export interface BlockedDate {
   id: string;
   retreat_id: string;
   date: string;
+  time_slot?: "daytime" | "nighttime" | "overnight" | null;
   reason?: string;
 }
 
@@ -369,7 +370,8 @@ export async function fetchBlockedDates(
 export async function addBlockedDate(
   retreatId: string,
   date: string,
-  reason?: string
+  reason?: string,
+  timeSlot?: "daytime" | "nighttime" | "overnight" | null
 ): Promise<boolean> {
   try {
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -387,6 +389,7 @@ export async function addBlockedDate(
       body: JSON.stringify({
         retreatId,
         date,
+        timeSlot,
         reason,
       }),
     });

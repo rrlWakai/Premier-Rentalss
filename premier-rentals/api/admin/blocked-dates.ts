@@ -52,18 +52,22 @@ export default async function handler(request: Request) {
       );
     }
 
-    let body: { retreatId?: unknown; date?: unknown; reason?: unknown };
+    let body: { retreatId?: unknown; date?: unknown; timeSlot?: unknown; reason?: unknown };
     try {
       body = await request.json();
     } catch {
       return json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
-    const { retreatId, date, reason } = body;
+    const { retreatId, date, timeSlot, reason } = body;
 
     if (!retreatId || !date) {
       return json({ error: "Missing required fields: retreatId, date" }, { status: 400 });
     }
+
+    const dbTimeSlot = timeSlot && typeof timeSlot === "string"
+      ? (timeSlot === "daytime" || timeSlot === "nighttime" || timeSlot === "overnight" ? timeSlot : null)
+      : null;
 
     // Validate retreat exists
     const { data: retreat, error: retreatError } = await supabaseAdmin
@@ -77,21 +81,40 @@ export default async function handler(request: Request) {
       return json({ error: "Retreat not found" }, { status: 404 });
     }
 
-    // Check for duplicate blocked date
-    const { data: existingBlock } = await supabaseAdmin
+    // Check for duplicate or conflicting blocked date
+    let existingQuery = supabaseAdmin
       .from("blocked_dates")
-      .select("id")
+      .select("id, time_slot")
       .eq("retreat_id", retreatId)
-      .eq("date", date)
-      .maybeSingle();
+      .eq("date", date);
 
-    if (existingBlock) {
-      return json({ error: "This date is already blocked" }, { status: 409 });
+    if (dbTimeSlot) {
+      // Adding a per-slot block: conflict if whole-day block OR same slot exists
+      existingQuery = existingQuery.or(`time_slot.is.null,time_slot.eq.${dbTimeSlot}`);
+    } else {
+      // Adding a whole-day block: conflict if any block exists for this date
+      existingQuery = existingQuery.is("time_slot", null);
     }
+
+    const { data: existing } = await existingQuery.maybeSingle();
+
+    if (existing) {
+      const msg = existing.time_slot
+        ? `This time slot is already blocked`
+        : "This date is already blocked";
+      return json({ error: msg }, { status: 409 });
+    }
+
+    const insertPayload: Record<string, unknown> = {
+      retreat_id: retreatId,
+      date,
+      reason: reason || (dbTimeSlot ? `Blocked: ${dbTimeSlot}` : "Blocked by admin"),
+    };
+    if (dbTimeSlot) insertPayload.time_slot = dbTimeSlot;
 
     const { data: blockedDate, error: insertError } = await supabaseAdmin
       .from("blocked_dates")
-      .insert([{ retreat_id: retreatId, date, reason: reason || "Blocked by admin" }])
+      .insert([insertPayload])
       .select()
       .single();
 

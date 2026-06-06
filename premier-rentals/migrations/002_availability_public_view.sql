@@ -22,7 +22,7 @@ union all
 select
   r.slug           as property_id,
   bd.date          as date,
-  null::time_slot_enum as time_slot,
+  bd.time_slot,
   'unavailable'    as status
 from  public.blocked_dates bd
 join  public.retreats r on r.id = bd.retreat_id;

@@ -65,23 +65,24 @@ export default async function handler(request: Request) {
       return json({ error: "Property not found" }, { status: 404 });
     }
 
-    const { data: blockedDate, error: blockedError } = await supabaseAdmin
+    const { data: blockedDates, error: blockedError } = await supabaseAdmin
       .from("blocked_dates")
-      .select("id")
+      .select("id, time_slot")
       .eq("retreat_id", retreat.id)
-      .eq("date", booking_date)
-      .maybeSingle();
+      .eq("date", booking_date);
 
     if (blockedError) {
       console.error("Blocked date check error:", blockedError);
       return json({ error: "Internal server error", detail: blockedError.message }, { status: 500 });
     }
 
-    if (blockedDate) {
+    const blocked = (blockedDates ?? []).some(b => !b.time_slot || b.time_slot === dbSlot);
+
+    if (blocked) {
       return json(
         {
           available: false,
-          reason: "This date is blocked by admin. Please choose a different date.",
+          reason: "This date or time slot is blocked by admin. Please choose a different date.",
         },
         { status: 200 }
       );

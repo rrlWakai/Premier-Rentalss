@@ -219,21 +219,22 @@ export default async function handler(request: Request) {
       return json({ error: "Retreat not found" }, { status: 404 });
     }
 
-    const { data: blockedDate, error: blockedError } = await supabaseAdmin
+    const { data: blockedDates, error: blockedError } = await supabaseAdmin
       .from("blocked_dates")
-      .select("id")
+      .select("id, time_slot")
       .eq("retreat_id", retreat.id)
-      .eq("date", booking_date)
-      .maybeSingle();
+      .eq("date", booking_date);
 
     if (blockedError) {
       console.error("[CHECKOUT] Blocked date check error:", blockedError.message);
       return json({ error: "Failed to verify blocked dates" }, { status: 500 });
     }
 
-    if (blockedDate) {
+    const blocked = (blockedDates ?? []).some(b => !b.time_slot || b.time_slot === dbTimeSlot);
+
+    if (blocked) {
       return json(
-        { error: "⚠️ This date is blocked by admin. Please choose another date." },
+        { error: "⚠️ This date or time slot is blocked by admin. Please choose another date." },
         { status: 409 }
       );
     }

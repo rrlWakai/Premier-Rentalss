@@ -36,7 +36,7 @@ interface Props {
   onSelectRetreat: (retreatId: string) => void;
   bookings: Booking[];
   blockedDates: BlockedDate[];
-  onAddBlock: (date: string, retreatId: string, reason?: string) => void;
+  onAddBlock: (date: string, retreatId: string, reason?: string, timeSlot?: "daytime" | "nighttime" | "overnight" | null) => void;
   onRemoveBlock: (id: string) => void;
 }
 
@@ -68,25 +68,27 @@ export default function AdminCalendarView({
     });
   }
 
-  function getDayBlocked(date: Date): BlockedDate | undefined {
-    return blockedDates.find(
-      (b) =>
-        b.retreat_id === selectedRetreatId &&
-        b.date === format(date, "yyyy-MM-dd"),
+  function getDayBlockedDates(date: Date): BlockedDate[] {
+    const dateStr = format(date, "yyyy-MM-dd");
+    return blockedDates.filter(
+      (b) => b.retreat_id === selectedRetreatId && b.date === dateStr,
     );
   }
 
-  function computeSlotStates(dayBookings: Booking[], blocked: boolean): Record<string, SlotState> {
+  function computeSlotStates(dayBookings: Booking[], dayBlockedDates: BlockedDate[]): Record<string, SlotState> {
     const slots: Record<string, SlotState> = {
       daytime: "available",
       nighttime: "available",
       overnight: "available",
     };
-    if (blocked) {
-      slots.daytime = "blocked";
-      slots.nighttime = "blocked";
-      slots.overnight = "blocked";
-      return slots;
+    for (const bd of dayBlockedDates) {
+      if (!bd.time_slot) {
+        slots.daytime = "blocked";
+        slots.nighttime = "blocked";
+        slots.overnight = "blocked";
+        return slots;
+      }
+      slots[bd.time_slot] = "blocked";
     }
     for (const b of dayBookings) {
       if (b.status === "cancelled" || !b.time_slot) continue;
@@ -107,7 +109,8 @@ export default function AdminCalendarView({
   }
 
   const selectedBookings = selectedDay ? getDayBookings(selectedDay) : [];
-  const selectedBlocked = selectedDay ? getDayBlocked(selectedDay) : undefined;
+  const selectedBlockedDates = selectedDay ? getDayBlockedDates(selectedDay) : [];
+  const selectedBlocked = selectedBlockedDates.find(b => !b.time_slot); // whole-day block for legacy banner
 
   return (
     <div className="bg-white rounded-xl border border-#ede8df] overflow-hidden">
@@ -172,10 +175,11 @@ export default function AdminCalendarView({
             ))}
             {days.map((day) => {
               const dayBookings = getDayBookings(day);
-              const blocked = getDayBlocked(day);
+              const dayBlockedDates = getDayBlockedDates(day);
+              const isDayBlocked = dayBlockedDates.length > 0;
               const isSelected = selectedDay && isSameDay(day, selectedDay);
               const todayDay = isToday(day);
-              const slotStates = computeSlotStates(dayBookings, !!blocked);
+              const slotStates = computeSlotStates(dayBookings, dayBlockedDates);
 
               return (
                 <button
@@ -189,7 +193,7 @@ export default function AdminCalendarView({
                     relative min-h-[60px] p-1 rounded-lg border text-left transition-all duration-150 sm:min-h-[74px] sm:p-1.5
                     ${isSelected ? "border-[#c9a96e] bg-[#faf6ef]" : "border-transparent hover:border-[#ede8df] hover:bg-[#faf8f5]"}
                     ${todayDay ? "ring-1 ring-[#c9a96e]" : ""}
-                    ${blocked ? "bg-red-50" : ""}
+                    ${isDayBlocked ? "bg-red-50" : ""}
                   `}
                 >
                   <span
@@ -233,7 +237,7 @@ export default function AdminCalendarView({
                         +{dayBookings.length - 2} more
                       </div>
                     )}
-                    {blocked && (
+                    {isDayBlocked && (
                       <div
                         className="text-[8px] text-red-400 font-medium"
                         style={{ fontFamily: "Jost, sans-serif" }}
@@ -321,34 +325,69 @@ export default function AdminCalendarView({
                     {format(selectedDay, "EEEE, MMM d")}
                   </p>
                 </div>
-                {isOwner &&
-                  (!selectedBlocked ? (
-                    <button
-                      onClick={() => {
-                        const reason =
-                          window.prompt(
-                            "Reason for blocking this date (optional):",
-                          ) ?? undefined;
-                        onAddBlock(
-                          format(selectedDay, "yyyy-MM-dd"),
-                          selectedRetreatId,
-                          reason,
+                {isOwner && (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {!selectedBlocked ? (
+                        <button
+                          onClick={() => {
+                            const reason =
+                              window.prompt(
+                                "Reason for blocking this date (optional):",
+                              ) ?? undefined;
+                            onAddBlock(
+                              format(selectedDay, "yyyy-MM-dd"),
+                              selectedRetreatId,
+                              reason,
+                              null,
+                            );
+                          }}
+                          className="flex items-center gap-1 text-[10px] text-red-400 hover:text-red-600 border border-red-200 hover:border-red-400 px-2 py-1.5 rounded transition-colors"
+                          style={{ fontFamily: "Jost, sans-serif" }}
+                        >
+                          <Plus size={11} /> All
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => onRemoveBlock(selectedBlocked.id)}
+                          className="flex items-center gap-1 text-[10px] text-green-500 hover:text-green-700 border border-green-200 hover:border-green-400 px-2 py-1.5 rounded transition-colors"
+                          style={{ fontFamily: "Jost, sans-serif" }}
+                        >
+                          <X size={11} /> Unblock
+                        </button>
+                      )}
+                      {SLOT_NAMES.map(({ key, label }) => {
+                        const slotBlock = selectedBlockedDates.find(
+                          b => b.time_slot === key
                         );
-                      }}
-                      className="flex items-center gap-1.5 text-[10px] text-red-400 hover:text-red-600 border border-red-200 hover:border-red-400 px-2 py-1.5 rounded transition-colors"
-                      style={{ fontFamily: "Jost, sans-serif" }}
-                    >
-                      <Plus size={11} /> Block
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => onRemoveBlock(selectedBlocked.id)}
-                      className="flex items-center gap-1.5 text-[10px] text-green-500 hover:text-green-700 border border-green-200 hover:border-green-400 px-2 py-1.5 rounded transition-colors"
-                      style={{ fontFamily: "Jost, sans-serif" }}
-                    >
-                      <X size={11} /> Unblock
-                    </button>
-                  ))}
+                        return slotBlock ? (
+                          <button
+                            key={key}
+                            onClick={() => onRemoveBlock(slotBlock.id)}
+                            className="flex items-center gap-1 text-[10px] text-green-500 hover:text-green-700 border border-green-200 hover:border-green-400 px-2 py-1.5 rounded transition-colors"
+                            style={{ fontFamily: "Jost, sans-serif" }}
+                          >
+                            <X size={11} /> {label}
+                          </button>
+                        ) : (
+                          <button
+                            key={key}
+                            onClick={() =>
+                              onAddBlock(
+                                format(selectedDay, "yyyy-MM-dd"),
+                                selectedRetreatId,
+                                undefined,
+                                key,
+                              )
+                            }
+                            className="flex items-center gap-1 text-[10px] text-red-400 hover:text-red-600 border border-red-200 hover:border-red-400 px-2 py-1.5 rounded transition-colors"
+                            style={{ fontFamily: "Jost, sans-serif" }}
+                          >
+                            <Plus size={11} /> {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
               </div>
 
               {selectedBlocked && (
