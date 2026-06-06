@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Plus,
@@ -770,8 +771,13 @@ function DiscountRow({
 // ─── DiscountsTab (main export) ───────────────────────────────────────────────
 
 export default function DiscountsTab() {
-  const [discounts, setDiscounts] = useState<Discount[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const queryKey = ["discounts"];
+  const { data: discounts = [], isLoading } = useQuery({
+    queryKey,
+    queryFn: fetchDiscounts,
+    staleTime: 5 * 60 * 1000,
+  });
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Discount | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | DiscountStatus>(
@@ -779,17 +785,6 @@ export default function DiscountsTab() {
   );
   const [showExpired, setShowExpired] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
-
-  useEffect(() => {
-    load();
-  }, []);
-
-  async function load() {
-    setLoading(true);
-    const data = await fetchDiscounts();
-    setDiscounts(data);
-    setLoading(false);
-  }
 
   function openCreate() {
     setEditing(null);
@@ -805,20 +800,18 @@ export default function DiscountsTab() {
     if (editing) {
       const ok = await updateDiscount(editing.id, payload);
       if (ok) {
-        setDiscounts((prev) =>
-          prev.map((d) => (d.id === editing.id ? { ...d, ...payload } : d)),
-        );
         toast.success("Discount updated");
         setModalOpen(false);
+        queryClient.invalidateQueries({ queryKey });
       } else {
         toast.error("Failed to update discount");
       }
     } else {
       const created = await createDiscount(payload);
       if (created) {
-        setDiscounts((prev) => [created, ...prev]);
         toast.success("Discount created");
         setModalOpen(false);
+        queryClient.invalidateQueries({ queryKey });
       } else {
         toast.error("Failed to create discount");
       }
@@ -829,10 +822,8 @@ export default function DiscountsTab() {
     setTogglingId(d.id);
     const ok = await updateDiscount(d.id, { active: !d.active });
     if (ok) {
-      setDiscounts((prev) =>
-        prev.map((x) => (x.id === d.id ? { ...x, active: !d.active } : x)),
-      );
       toast.success(d.active ? "Discount deactivated" : "Discount activated");
+      queryClient.invalidateQueries({ queryKey });
     } else {
       toast.error("Failed to update discount");
     }
@@ -843,8 +834,8 @@ export default function DiscountsTab() {
     if (!window.confirm(`Delete "${d.name}"? This cannot be undone.`)) return;
     const ok = await deleteDiscount(d.id);
     if (ok) {
-      setDiscounts((prev) => prev.filter((x) => x.id !== d.id));
       toast.success("Discount deleted");
+      queryClient.invalidateQueries({ queryKey });
     } else {
       toast.error("Failed to delete discount");
     }
@@ -928,7 +919,7 @@ export default function DiscountsTab() {
 
       {/* Main table */}
       <div className="overflow-hidden rounded-xl border border-[#ede8df] bg-white">
-        {loading ? (
+        {isLoading ? (
           <div className="flex items-center justify-center py-16">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#c9a96e] border-t-transparent" />
           </div>

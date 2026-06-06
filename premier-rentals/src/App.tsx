@@ -1,23 +1,45 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { motion } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
-import AdminLogin from './components/AdminLogin'
-import AdminDashboard from './components/AdminDashboard'
-import PropertyPage from './components/PropertyPage'
-import { BookingSuccess, BookingFailed } from './components/BookingPages'
 import HomePage from './components/HomePage'
-import LegalPage from './components/LegalPage'
 import ErrorBoundary from './components/ErrorBoundary'
-import AuthCallback from './components/AuthCallback'
-import AdminSignup from './components/AdminSignup'
 import IntroLoader from './components/IntroLoader'
+import PageSkeleton from './components/PageSkeleton'
+import DashboardSkeleton from './components/DashboardSkeleton'
+
+const AdminLogin = lazy(() => import('./components/AdminLogin'))
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'))
+const AdminSignup = lazy(() => import('./components/AdminSignup'))
+const PropertyPage = lazy(() => import('./components/PropertyPage'))
+const LegalPage = lazy(() => import('./components/LegalPage'))
+const AuthCallback = lazy(() => import('./components/AuthCallback'))
+const BookingSuccess = lazy(() => import('./components/BookingPages').then(m => ({ default: m.BookingSuccess })))
+const BookingFailed = lazy(() => import('./components/BookingPages').then(m => ({ default: m.BookingFailed })))
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30 * 1000,
+      gcTime: 5 * 60 * 1000,
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+})
 
 export default function App() {
   const [isPageReady, setIsPageReady] = useState(false)
-  const [showLoader, setShowLoader] = useState(true)
+
+  const shouldSkipLoader = ['/admin', '/auth', '/booking'].some(p =>
+    window.location.pathname.startsWith(p),
+  )
+  const [showLoader, setShowLoader] = useState(
+    !shouldSkipLoader && !sessionStorage.getItem('pr_intro_seen'),
+  )
 
   useEffect(() => {
     const markReady = () => setIsPageReady(true)
@@ -37,10 +59,19 @@ export default function App() {
   }, [])
 
   return (
+    <QueryClientProvider client={queryClient}>
     <ErrorBoundary>
       <BrowserRouter>
         <AuthProvider>
-          {showLoader && <IntroLoader shouldClose={isPageReady} onComplete={() => setShowLoader(false)} />}
+          {showLoader && (
+            <IntroLoader
+              shouldClose={isPageReady}
+              onComplete={() => {
+                sessionStorage.setItem('pr_intro_seen', '1')
+                setShowLoader(false)
+              }}
+            />
+          )}
           <motion.div
             initial={{ opacity: 0.92 }}
             animate={{ opacity: showLoader ? 0.92 : 1 }}
@@ -67,20 +98,36 @@ export default function App() {
             <Routes>
               {/* Public */}
               <Route path="/" element={<HomePage />} />
-              <Route path="/property/:slug" element={<PropertyPage />} />
-              <Route path="/booking/success" element={<BookingSuccess />} />
-              <Route path="/booking/failed" element={<BookingFailed />} />
-              <Route path="/legal/:type" element={<LegalPage />} />
-              <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/property/:slug" element={
+                <Suspense fallback={<PageSkeleton />}><PropertyPage /></Suspense>
+              } />
+              <Route path="/booking/success" element={
+                <Suspense fallback={<PageSkeleton />}><BookingSuccess /></Suspense>
+              } />
+              <Route path="/booking/failed" element={
+                <Suspense fallback={<PageSkeleton />}><BookingFailed /></Suspense>
+              } />
+              <Route path="/legal/:type" element={
+                <Suspense fallback={<PageSkeleton />}><LegalPage /></Suspense>
+              } />
+              <Route path="/auth/callback" element={
+                <Suspense fallback={<PageSkeleton />}><AuthCallback /></Suspense>
+              } />
               {/* Admin */}
-              <Route path="/admin" element={<AdminLogin />} />
-              <Route path="/admin/signup-secret" element={<AdminSignup />} />
+              <Route path="/admin" element={
+                <Suspense fallback={<PageSkeleton />}><AdminLogin /></Suspense>
+              } />
+              <Route path="/admin/signup-secret" element={
+                <Suspense fallback={<PageSkeleton />}><AdminSignup /></Suspense>
+              } />
               <Route
                 path="/admin/dashboard"
                 element={
-                  <ProtectedRoute>
-                    <AdminDashboard />
-                  </ProtectedRoute>
+                  <Suspense fallback={<DashboardSkeleton />}>
+                    <ProtectedRoute>
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  </Suspense>
                 }
               />
             </Routes>
@@ -88,5 +135,6 @@ export default function App() {
         </AuthProvider>
       </BrowserRouter>
     </ErrorBoundary>
+    </QueryClientProvider>
   )
 }

@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import {
   format, addMonths, subMonths, startOfMonth, endOfMonth,
   eachDayOfInterval, isSameMonth, isSameDay, isToday,
   isBefore, startOfDay, getDay,
 } from 'date-fns'
-import { fetchBlockedDates, type BlockedDate } from '../lib/supabase'
+import { fetchBlockedDates } from '../lib/supabase'
 
 interface Props {
   retreatId: string
@@ -17,13 +18,15 @@ interface Props {
 
 export default function BookingCalendar({ retreatId, checkIn, checkOut, onSelectDates, singleDate }: Props) {
   const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([])
   const [selecting, setSelecting] = useState<'start' | 'end'>('start')
   const [hoverDate, setHoverDate] = useState<Date | null>(null)
 
-  useEffect(() => {
-    fetchBlockedDates(retreatId).then(setBlockedDates)
-  }, [retreatId])
+  const { data: blockedDates = [] } = useQuery({
+    queryKey: ['blocked-dates', retreatId],
+    queryFn: () => fetchBlockedDates(retreatId),
+    staleTime: 30000,
+    gcTime: 300000,
+  })
 
   const blocked = blockedDates.map(b => b.date)
 

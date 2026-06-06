@@ -198,15 +198,10 @@ export async function fetchBookings(
     const raw: Booking[] = data.bookings ?? [];
     const total: number = data.total ?? raw.length;
 
-    // Attach retreat records
-    const retreats = await fetchRetreats();
-    const retreatMap = new Map(retreats.map((r) => [r.id, r]));
-
-    const resultBookings = raw.map((b) => ({ ...b, retreat: retreatMap.get(b.retreat_id) }));
-    console.log("ADMIN BOOKINGS:", resultBookings);
+    console.log("ADMIN BOOKINGS:", raw);
 
     return {
-      bookings: resultBookings,
+      bookings: raw,
       total,
     };
   } catch (error) {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { addMonths, subMonths, format } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useAvailability } from "../../lib/useAvailability";
@@ -12,50 +13,43 @@ interface PropertyOption {
   name: string;
 }
 
+const DEFAULT_PROPERTIES: PropertyOption[] = [
+  { slug: "premier-patio", name: "Premier Patio" },
+  { slug: "premier-pool-house", name: "Premier Pool House" },
+];
+
 export default function AvailabilityCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedProperty, setSelectedProperty] =
     useState<PropertySlug>("premier-patio");
-  const [properties, setProperties] = useState<PropertyOption[]>([
-    { slug: "premier-patio", name: "Premier Patio" },
-    { slug: "premier-pool-house", name: "Premier Pool House" },
-  ]);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth() + 1; // 1-based
 
+  const { data: retreats } = useQuery({
+    queryKey: ['retreats'],
+    queryFn: fetchRetreats,
+    staleTime: 300000,
+    gcTime: 600000,
+  });
+
+  const properties: PropertyOption[] = retreats
+    ? retreats
+        .filter((retreat) =>
+          retreat.slug === "premier-patio" ||
+          retreat.slug === "premier-pool-house",
+        )
+        .map((retreat) => ({
+          slug: retreat.slug as PropertySlug,
+          name: retreat.name,
+        }))
+    : DEFAULT_PROPERTIES;
+
   useEffect(() => {
-    let mounted = true;
-
-    fetchRetreats()
-      .then((rows) => {
-        if (!mounted) return;
-
-        const next = rows
-          .filter((retreat) =>
-            retreat.slug === "premier-patio" ||
-            retreat.slug === "premier-pool-house",
-          )
-          .map((retreat) => ({
-            slug: retreat.slug as PropertySlug,
-            name: retreat.name,
-          }));
-
-        if (next.length > 0) {
-          setProperties(next);
-          setSelectedProperty((prev) =>
-            next.some((p) => p.slug === prev) ? prev : next[0].slug,
-          );
-        }
-      })
-      .catch((error) => {
-        console.error("AvailabilityCalendar.fetchRetreats:", error);
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    setSelectedProperty((prev) =>
+      properties.some((p) => p.slug === prev) ? prev : properties[0]?.slug ?? prev,
+    );
+  }, [properties]);
 
   const { days, live, loading } = useAvailability(
     selectedProperty,

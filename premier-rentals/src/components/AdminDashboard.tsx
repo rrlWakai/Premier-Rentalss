@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, Link } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -41,12 +42,8 @@ import {
   inviteStaff,
   removeStaff,
   type Booking,
-  type BlockedDate,
-  type Retreat,
   type BookingStatus,
   type PaymentStatus,
-  type AdminStats,
-  type StaffUser,
   supabase,
 } from "../lib/supabase";
 import {
@@ -73,23 +70,15 @@ const PAGE_SIZE = 50;
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { session, isOwner } = useAuth();
 
   const [tab, setTab] = useState<Tab>("overview");
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
-  const [retreats, setRetreats] = useState<Retreat[]>([]);
-  const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
-
   const [selectedRetreatId, setSelectedRetreatId] = useState("");
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
   const [page, setPage] = useState(1);
-  const [totalBookings, setTotalBookings] = useState(0);
-  const [isSyncing, setIsSyncing] = useState(false);
   const [realtimeStatus, setRealtimeStatus] = useState<
     "connecting" | "connected" | "error"
   >("connecting");
@@ -100,53 +89,105 @@ export default function AdminDashboard() {
     pageRef.current = page;
   }, [page]);
 
-  const handleRealtimeChange = useCallback(() => {
+  const bookingsQuery = useQuery({
+    queryKey: ['admin-bookings', page],
+    queryFn: () => fetchBookings(page, PAGE_SIZE),
+    staleTime: 30000,
+    gcTime: 300000,
+  });
+
+  const blockedDatesQuery = useQuery({
+    queryKey: ['admin-blocked-dates'],
+    queryFn: () => fetchBlockedDates(),
+    staleTime: 30000,
+    gcTime: 300000,
+  });
+
+  const retreatsQuery = useQuery({
+    queryKey: ['retreats'],
+    queryFn: fetchRetreats,
+    staleTime: 300000,
+    gcTime: 600000,
+  });
+
+  const statsQuery = useQuery({
+    queryKey: ['admin-stats'],
+    queryFn: fetchAdminStats,
+    staleTime: 30000,
+    gcTime: 300000,
+  });
+
+  const staffQuery = useQuery({
+    queryKey: ['admin-staff'],
+    queryFn: fetchStaff,
+    staleTime: 30000,
+    gcTime: 300000,
+    enabled: isOwner,
+  });
+
+  const bookingsData = bookingsQuery.data ?? { bookings: [], total: 0 };
+  const totalBookings = bookingsData.total;
+  const retreats = retreatsQuery.data ?? [];
+  const blockedDates = blockedDatesQuery.data ?? [];
+  const adminStats = statsQuery.data ?? null;
+  const staffUsers = staffQuery.data ?? [];
+
+  const bookings = useMemo(() => {
+    const retreatMap = new Map(retreats.map((r) => [r.id, r]));
+    return bookingsData.bookings.map((b) => ({ ...b, retreat: retreatMap.get(b.retreat_id) }));
+  }, [bookingsData, retreats]);
+
+  const loading = (
+    bookingsQuery.isLoading ||
+    blockedDatesQuery.isLoading ||
+    retreatsQuery.isLoading ||
+    statsQuery.isLoading ||
+    (isOwner && staffQuery.isLoading)
+  );
+
+  const isSyncing = !loading && (
+    bookingsQuery.isFetching ||
+    blockedDatesQuery.isFetching ||
+    retreatsQuery.isFetching ||
+    statsQuery.isFetching ||
+    (isOwner && staffQuery.isFetching)
+  );
+
+  const retreatsRef = useRef(retreats);
+  useEffect(() => { retreatsRef.current = retreats; }, [retreats]);
+
+  const selectedBookingRef = useRef(selectedBooking);
+  useEffect(() => { selectedBookingRef.current = selectedBooking; }, [selectedBooking]);
+
+  // Sync selectedBooking when bookings data refreshes
+  useEffect(() => {
+    if (!selectedBooking) return;
+    const updated = bookings.find((b) => b.id === selectedBooking.id);
+    if (updated) {
+      setSelectedBooking(updated);
+    } else {
+      setSelectedBooking(null);
+    }
+  }, [bookings]);
+
+  const handleBookingChange = useCallback(() => {
     if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
     refreshTimerRef.current = setTimeout(() => {
-      void refreshData(pageRef.current);
+      queryClient.invalidateQueries({ queryKey: ['admin-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
     }, 300);
-  }, []);
+  }, [queryClient]);
+
+  const handleBlockedDateChange = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['admin-blocked-dates'] });
+  }, [queryClient]);
 
   useEffect(() => {
-    const basePromise = Promise.all([
-      fetchBookings(page, PAGE_SIZE),
-      fetchBlockedDates(),
-      fetchRetreats(),
-      fetchAdminStats(),
-    ]);
-
-    const staffPromise = isOwner
-      ? fetchStaff()
-      : Promise.resolve([] as StaffUser[]);
-
-    Promise.all([basePromise, staffPromise])
-      .then(([[{ bookings: b, total }, bd, r, stats], staffList]) => {
-        setBookings(b);
-        setTotalBookings(total);
-        setBlockedDates(bd);
-        setRetreats(r);
-        if (isOwner) setStaffUsers(staffList);
-        setSelectedRetreatId(r[0]?.id ?? "");
-        setAdminStats(stats);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error("Failed to load admin data:", error);
-        setLoading(false);
-      });
-  }, [page, isOwner]);
-
-  useEffect(() => {
-    // Consolidated realtime channel for all tables
     const channel = supabase
       .channel("admin-realtime")
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "bookings",
-        },
+        { event: "*", schema: "public", table: "bookings" },
         (payload) => {
           console.log("Bookings realtime update", payload.eventType);
 
@@ -154,31 +195,15 @@ export default function AdminDashboard() {
             showNewBookingNotification(payload.new as Booking);
           }
 
-          handleRealtimeChange();
+          handleBookingChange();
         },
       )
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "blocked_dates",
-        },
+        { event: "*", schema: "public", table: "blocked_dates" },
         () => {
           console.log("Blocked dates realtime update");
-          handleRealtimeChange();
-        },
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "discounts",
-        },
-        () => {
-          console.log("Discounts realtime update");
-          handleRealtimeChange();
+          handleBlockedDateChange();
         },
       )
       .subscribe((status) => {
@@ -199,7 +224,7 @@ export default function AdminDashboard() {
       supabase.removeChannel(channel);
       if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
     };
-  }, [handleRealtimeChange]);
+  }, [handleBookingChange, handleBlockedDateChange]);
 
   async function handleSignOut() {
     await adminSignOut();
@@ -207,43 +232,13 @@ export default function AdminDashboard() {
     toast.success("Signed out");
   }
 
-  async function refreshData(targetPage = page) {
-    setIsSyncing(true);
-    try {
-      const basePromise = Promise.all([
-        fetchBookings(targetPage, PAGE_SIZE),
-        fetchBlockedDates(),
-        fetchRetreats(),
-        fetchAdminStats(),
-      ]);
-
-      const staffPromise = isOwner
-        ? fetchStaff()
-        : Promise.resolve([] as StaffUser[]);
-
-      const [[{ bookings: b, total }, bd, r, stats], staffList] =
-        await Promise.all([basePromise, staffPromise]);
-
-      setBookings(b);
-      setTotalBookings(total);
-      setBlockedDates(bd);
-      setRetreats(r);
-      if (isOwner) setStaffUsers(staffList);
-      setAdminStats(stats);
-
-      // Update selected booking if it exists
-      if (selectedBooking) {
-        const updated = b.find((booking) => booking.id === selectedBooking.id);
-        if (updated) {
-          setSelectedBooking(updated);
-        } else {
-          setSelectedBooking(null); // booking was deleted, clear ghost UI
-        }
-      }
-    } catch (error) {
-      console.error("Failed to refresh data:", error);
-    } finally {
-      setIsSyncing(false);
+  async function refreshData() {
+    queryClient.refetchQueries({ queryKey: ['admin-bookings'] });
+    queryClient.refetchQueries({ queryKey: ['admin-blocked-dates'] });
+    queryClient.refetchQueries({ queryKey: ['admin-stats'] });
+    queryClient.refetchQueries({ queryKey: ['retreats'] });
+    if (isOwner) {
+      queryClient.refetchQueries({ queryKey: ['admin-staff'] });
     }
   }
 
@@ -259,8 +254,12 @@ export default function AdminDashboard() {
     try {
       const ok = await updateBookingStatus(id, status);
       if (ok) {
-        setBookings((p) => p.map((b) => (b.id === id ? { ...b, status } : b)));
+        queryClient.setQueryData(['admin-bookings', page], (old: any) => {
+          if (!old) return old;
+          return { ...old, bookings: old.bookings.map((b: Booking) => b.id === id ? { ...b, status } : b) };
+        });
         setSelectedBooking((p) => (p?.id === id ? { ...p, status } : p));
+        queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
         toast.success(`Marked as ${status}`);
       } else {
         toast.error("Failed to update booking status");
@@ -278,12 +277,14 @@ export default function AdminDashboard() {
     try {
       const ok = await updateBookingPayment(id, payment_status);
       if (ok) {
-        setBookings((p) =>
-          p.map((b) => (b.id === id ? { ...b, payment_status } : b)),
-        );
+        queryClient.setQueryData(['admin-bookings', page], (old: any) => {
+          if (!old) return old;
+          return { ...old, bookings: old.bookings.map((b: Booking) => b.id === id ? { ...b, payment_status } : b) };
+        });
         setSelectedBooking((p) =>
           p?.id === id ? { ...p, payment_status } : p,
         );
+        queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
         toast.success(`Payment marked as ${payment_status}`);
       } else {
         toast.error("Failed to update payment status");
@@ -302,9 +303,12 @@ export default function AdminDashboard() {
     try {
       const ok = await deleteBooking(id);
       if (ok) {
-        setBookings((p) => p.filter((b) => b.id !== id));
-        setTotalBookings((p) => p - 1);
+        queryClient.setQueryData(['admin-bookings', page], (old: any) => {
+          if (!old) return old;
+          return { ...old, bookings: old.bookings.filter((b: Booking) => b.id !== id), total: old.total - 1 };
+        });
         setSelectedBooking(null);
+        queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
         toast.success("Booking deleted");
       } else {
         toast.error("Failed to delete booking");
@@ -327,8 +331,7 @@ export default function AdminDashboard() {
     try {
       const ok = await addBlockedDate(retreatId, date, reason);
       if (ok) {
-        const bd = await fetchBlockedDates();
-        setBlockedDates(bd);
+        queryClient.invalidateQueries({ queryKey: ['admin-blocked-dates'] });
         toast.success(`${date} blocked`);
       } else {
         toast.error("Failed to block date");
@@ -343,7 +346,7 @@ export default function AdminDashboard() {
     try {
       const ok = await removeBlockedDate(id);
       if (ok) {
-        setBlockedDates((p) => p.filter((b) => b.id !== id));
+        queryClient.invalidateQueries({ queryKey: ['admin-blocked-dates'] });
         toast.success("Date unblocked");
       } else {
         toast.error("Failed to unblock date");
@@ -366,14 +369,10 @@ export default function AdminDashboard() {
   // Toast Notification Helpers for New Bookings
   // ──────────────────────────────────────────────────────────────────────────────
 
-  function formatNewBookingToast(booking: Booking): string {
-    const retreat = retreats.find((r) => r.id === booking.retreat_id);
-    const propertyName = retreat?.name || "Selected Property";
-    return `New booking request received.\n${propertyName}\nPlease review details in the dashboard.`;
-  }
-
   function showNewBookingNotification(booking: Booking): void {
-    toast.success(formatNewBookingToast(booking), {
+    const retreat = retreatsRef.current.find((r) => r.id === booking.retreat_id);
+    const propertyName = retreat?.name || "Selected Property";
+    toast.success(`New booking request received.\n${propertyName}\nPlease review details in the dashboard.`, {
       duration: 5000,
       icon: "🔔",
     });
@@ -1177,7 +1176,7 @@ export default function AdminDashboard() {
                           toast.error(error, { id: t });
                         } else if (user) {
                           toast.success("Staff invited!", { id: t });
-                          setStaffUsers((prev) => [...prev, user]);
+                          queryClient.invalidateQueries({ queryKey: ['admin-staff'] });
                           form.reset();
                         }
                       }}
@@ -1247,9 +1246,7 @@ export default function AdminDashboard() {
                                   ) {
                                     const ok = await removeStaff(su.id);
                                     if (ok)
-                                      setStaffUsers((p) =>
-                                        p.filter((u) => u.id !== su.id),
-                                      );
+                                      queryClient.invalidateQueries({ queryKey: ['admin-staff'] });
                                   }
                                 }}
                                 className="text-red-400 hover:text-red-500 transition-colors px-2 py-1 border border-red-200 rounded text-[10px]"
