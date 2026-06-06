@@ -1,18 +1,29 @@
 import { parseISO, isToday as dateIsToday } from "date-fns";
-import type { CalendarDay } from "../../types/availability";
+import type { CalendarDay, SlotName, AvailabilityStatus } from "../../types/availability";
 
 interface DayCellProps {
   day: CalendarDay;
 }
 
+const SLOT_LABELS: { key: SlotName; label: string }[] = [
+  { key: "daytime",    label: "D" },
+  { key: "nighttime",  label: "N" },
+  { key: "overnight",  label: "O" },
+];
+
+const STATUS_COLORS: Record<AvailabilityStatus, string> = {
+  available:   "#5a9e6f",
+  pending:     "#d4a853",
+  unavailable: "#b8ac9b",
+};
+
 export default function DayCell({ day }: DayCellProps) {
   const date = parseISO(day.date);
   const dayNumber = parseInt(day.date.split("-")[2]);
   const isCurrentDay = dateIsToday(date);
-  const reserved = day.status !== "available"; // Pending and unavailable both show as RESERVED on client
+  const reserved = day.status !== "available";
   const numberColor = reserved ? "#dca827" : "#1a1612";
   const numberColorToday = isCurrentDay ? "#d4a853" : numberColor;
-  const dotColor = reserved ? "#b8ac9b" : "#8a8a7a";
   const borderStyle = isCurrentDay
     ? "1px solid #d4a85366"
     : "1px solid transparent";
@@ -24,13 +35,13 @@ export default function DayCell({ day }: DayCellProps) {
         border: borderStyle,
         borderRadius: "4px",
         backgroundColor: reserved ? "#fbf8f2" : "#ffffff",
-        padding: "6px 4px",
+        padding: "6px 2px",
         textAlign: "center",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        gap: "4px",
+        gap: "3px",
       }}
     >
       <span
@@ -44,34 +55,33 @@ export default function DayCell({ day }: DayCellProps) {
       >
         {dayNumber}
       </span>
-      {reserved ? (
-        <span
-          style={{
-            fontFamily: "Jost, sans-serif",
-            fontSize: "7px",
-            color: "#b58a3c",
-            fontWeight: "500",
-            letterSpacing: "0.16em",
-            lineHeight: "1",
-            textTransform: "uppercase",
-            padding: "0",
-            borderRadius: "0",
-            backgroundColor: "transparent",
-          }}
-        >
-          RESERVED
-        </span>
-      ) : (
-        <span
-          style={{
-            display: "inline-block",
-            width: "6px",
-            height: "6px",
-            borderRadius: "50%",
-            backgroundColor: dotColor,
-          }}
-        />
-      )}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "3px",
+        }}
+      >
+        {SLOT_LABELS.map(({ key, label }) => {
+          const slotStatus = day.slots?.[key] ?? "available";
+          return (
+            <span
+              key={key}
+              title={key}
+              style={{
+                fontFamily: "Jost, sans-serif",
+                fontSize: "7px",
+                fontWeight: "600",
+                lineHeight: "1",
+                color: STATUS_COLORS[slotStatus],
+              }}
+            >
+              {label}
+            </span>
+          );
+        })}
+      </div>
     </div>
   );
 }
