@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+﻿import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -274,6 +274,7 @@ export function BookingSuccess() {
   const [booking, setBooking] = useState<BookingStatusResponse | null>(null);
   const [loading, setLoading] = useState(Boolean(bookingId));
   const [message, setMessage] = useState("");
+  const [attempts, setAttempts] = useState(0);
 
   useEffect(() => {
     if (!bookingId) {
@@ -282,47 +283,36 @@ export function BookingSuccess() {
     }
 
     let cancelled = false;
-    let attempts = 0;
-    const MAX_ATTEMPTS = 10;
     let pollTimeout: number | null = null;
-    let delay = 1500; // Start with a 1.5-second polling delay
+    const pollDelays = [1000, 2000, 3000, 5000, 8000];
+    let step = 0;
+    let localAttempts = 0;
 
     const poll = async () => {
-      attempts++;
-      try {
-        const res = await fetch(`/api/bookings/status?booking_id=${bookingId}`);
-        const data = (await res.json()) as
-          | { status?: string; booking?: { id?: string; status?: string; payment_status?: string; full_name?: string; booking_date?: string; time_slot?: string } }
-          | undefined;
+      localAttempts++;
+      setAttempts(localAttempts);
 
+      try {
+        const status = await fetchBookingStatus(bookingId);
         if (cancelled) return;
 
-        if (data?.status === "confirmed" && data.booking) {
-          setBooking({
-            booking_id: data.booking.id ?? bookingId,
-            status: data.booking.status ?? "confirmed",
-            payment_status: data.booking.payment_status ?? "paid",
-            locked_until: null,
-            total_amount: 0,
-            downpayment_amount: 0,
-            property_id: null,
-            booking_date: data.booking.booking_date ?? null,
-            time_slot: data.booking.time_slot ?? null,
-            guest_name: data.booking.full_name ?? null,
-          });
+        if (status.status === "confirmed") {
+          setBooking(status);
           setLoading(false);
           clearPendingBooking();
           return;
         }
-      } catch (_) {}
+      } catch {
+        if (cancelled) return;
+      }
 
-      if (attempts < MAX_ATTEMPTS) {
-        pollTimeout = window.setTimeout(poll, delay);
-        // Exponential backoff: increase delay by 1.5x up to a 6-second cap
-        delay = Math.min(delay * 1.5, 6000);
+      if (localAttempts < 10) {
+        const nextDelay = pollDelays[Math.min(step, pollDelays.length - 1)];
+        step++;
+        pollTimeout = window.setTimeout(poll, nextDelay);
       } else {
         setLoading(false);
-        setMessage("Your booking is being confirmed. You'll receive an email shortly.");
+        setMessage("Your payment was successful. Booking confirmation is taking longer than expected.");
       }
     };
 
@@ -340,8 +330,12 @@ export function BookingSuccess() {
     return (
       <BookingStatusCard
         icon={<Loader2 size={36} color="#c9a96e" className="animate-spin" />}
-        title="Checking Your Booking"
-        description="We're verifying your payment and latest booking status. This usually only takes a moment."
+        title={attempts <= 3 ? "Verifying Payment" : "Finalizing Your Booking"}
+        description={
+          attempts <= 3
+            ? "We are confirming your payment and waiting for booking confirmation."
+            : "Your payment was received. We are creating your booking."
+        }
         accent="#c9a96e"
       />
     );
@@ -368,10 +362,10 @@ export function BookingSuccess() {
   return (
     <BookingStatusCard
       icon={<Clock3 size={36} color="#c9a96e" strokeWidth={1.5} />}
-      title="Payment Received, Confirming Booking"
+      title="Payment Received"
       description={
         message ||
-        "Your return was successful, but we’re still waiting for the latest confirmation from the payment provider."
+        "Your payment was successful. Booking confirmation is taking longer than expected."
       }
       accent="#c9a96e"
     >
@@ -383,7 +377,6 @@ export function BookingSuccess() {
     </BookingStatusCard>
   );
 }
-
 export function BookingFailed() {
   const { booking, loading, error, refresh, bookingId } = useResolvedBooking();
   const [resumingCheckout, setResumingCheckout] = useState(false);
