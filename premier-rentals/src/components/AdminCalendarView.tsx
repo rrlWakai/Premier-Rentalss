@@ -15,6 +15,21 @@ import type { Booking, BlockedDate } from "../lib/supabase";
 import { STATUS_HEX } from "../lib/constants";
 import { useAuth } from "../context/AuthContext";
 
+type SlotState = "available" | "pending" | "booked" | "blocked";
+
+const SLOT_NAMES: { key: "daytime" | "nighttime" | "overnight"; label: string }[] = [
+  { key: "daytime",    label: "D" },
+  { key: "nighttime",  label: "N" },
+  { key: "overnight",  label: "O" },
+];
+
+const SLOT_COLORS: Record<SlotState, string> = {
+  available: "#5a9e6f",
+  pending:   "#d4a853",
+  booked:    "#ef4444",
+  blocked:   "#9ca3af",
+};
+
 interface Props {
   retreats: { id: string; name: string }[];
   selectedRetreatId: string;
@@ -59,6 +74,36 @@ export default function AdminCalendarView({
         b.retreat_id === selectedRetreatId &&
         b.date === format(date, "yyyy-MM-dd"),
     );
+  }
+
+  function computeSlotStates(dayBookings: Booking[], blocked: boolean): Record<string, SlotState> {
+    const slots: Record<string, SlotState> = {
+      daytime: "available",
+      nighttime: "available",
+      overnight: "available",
+    };
+    if (blocked) {
+      slots.daytime = "blocked";
+      slots.nighttime = "blocked";
+      slots.overnight = "blocked";
+      return slots;
+    }
+    for (const b of dayBookings) {
+      if (b.status === "cancelled" || !b.time_slot) continue;
+      const state: SlotState = b.status === "pending" ? "pending" : "booked";
+      if (state === "booked" || slots[b.time_slot] === "available") {
+        slots[b.time_slot] = state;
+      }
+    }
+    return slots;
+  }
+
+  function slotTooltip(slot: string, state: SlotState, dayBookings: Booking[]): string {
+    if (state === "blocked") return "Blocked by admin";
+    if (state === "available") return "Available";
+    if (state === "pending") return "Pending confirmation";
+    const booking = dayBookings.find(b => b.time_slot === slot && b.status !== "cancelled");
+    return booking ? `Booked by ${booking.full_name}` : "Booked";
   }
 
   const selectedBookings = selectedDay ? getDayBookings(selectedDay) : [];
@@ -130,6 +175,7 @@ export default function AdminCalendarView({
               const blocked = getDayBlocked(day);
               const isSelected = selectedDay && isSameDay(day, selectedDay);
               const todayDay = isToday(day);
+              const slotStates = computeSlotStates(dayBookings, !!blocked);
 
               return (
                 <button
@@ -140,18 +186,32 @@ export default function AdminCalendarView({
                     )
                   }
                   className={`
-                    relative min-h-[52px] p-1 rounded-lg border text-left transition-all duration-150 sm:min-h-[62px] sm:p-1.5
+                    relative min-h-[60px] p-1 rounded-lg border text-left transition-all duration-150 sm:min-h-[74px] sm:p-1.5
                     ${isSelected ? "border-[#c9a96e] bg-[#faf6ef]" : "border-transparent hover:border-[#ede8df] hover:bg-[#faf8f5]"}
                     ${todayDay ? "ring-1 ring-[#c9a96e]" : ""}
                     ${blocked ? "bg-red-50" : ""}
                   `}
                 >
                   <span
-                    className={`mb-1 block text-[11px] font-medium sm:text-xs ${todayDay ? "text-[#c9a96e]" : "text-[#1a1a1a]"}`}
+                    className={`mb-0.5 block text-[11px] font-medium sm:text-xs ${todayDay ? "text-[#c9a96e]" : "text-[#1a1a1a]"}`}
                     style={{ fontFamily: "Jost, sans-serif" }}
                   >
                     {format(day, "d")}
                   </span>
+                  <div className="flex gap-1 mb-0.5 text-[9px] font-semibold leading-none">
+                    {SLOT_NAMES.map(({ key, label }) => {
+                      const state = slotStates[key];
+                      return (
+                        <span
+                          key={key}
+                          title={slotTooltip(key, state, dayBookings)}
+                          style={{ color: SLOT_COLORS[state] }}
+                        >
+                          {label}
+                        </span>
+                      );
+                    })}
+                  </div>
                   <div className="flex flex-col gap-0.5">
                     {dayBookings.slice(0, 2).map((b) => (
                       <div
@@ -211,6 +271,35 @@ export default function AdminCalendarView({
               >
                 Blocked
               </span>
+            </div>
+          </div>
+          {/* Slot legend */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 pt-2 border-t border-[#ede8df]">
+            <div className="flex items-center gap-2 text-[9px] text-[#8a8a7a] mr-1" style={{ fontFamily: "Jost, sans-serif" }}>
+              {SLOT_NAMES.map(({ key, label }) => (
+                <span key={key} className="font-semibold" style={{ color: "#4a4030" }}>{label}={key.charAt(0).toUpperCase() + key.slice(1)}</span>
+              ))}
+            </div>
+            <div className="flex items-center gap-3">
+              {([
+                { color: SLOT_COLORS.available, label: "Available" },
+                { color: SLOT_COLORS.pending,   label: "Pending" },
+                { color: SLOT_COLORS.booked,    label: "Booked" },
+                { color: SLOT_COLORS.blocked,   label: "Blocked" },
+              ] as const).map(({ color, label }) => (
+                <div key={label} className="flex items-center gap-1">
+                  <span
+                    className="inline-block w-2 h-2 rounded-full"
+                    style={{ backgroundColor: color }}
+                  />
+                  <span
+                    className="text-[9px] text-[#8a8a7a]"
+                    style={{ fontFamily: "Jost, sans-serif" }}
+                  >
+                    {label}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
