@@ -7,7 +7,7 @@ const SLOT_ITEMS = [
 const STATUS_ITEMS = [
   { color: "#5a9e6f", label: "Available" },
   { color: "#d4a853", label: "Pending" },
-  { color: "#b8ac9b", label: "Unavailable" },
+  { color: "#b8ac9b", label: "Booked" },
 ] as const;
 
 export default function StatusLegend() {
