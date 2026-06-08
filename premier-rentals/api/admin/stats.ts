@@ -29,18 +29,33 @@ export default async function handler(request: Request) {
 
   const { data: bookings, error: bookingsError } = await supabaseAdmin
     .from("bookings")
-    .select("id, status, payment_status, total_amount, full_name, booking_date, time_slot, created_at");
+    .select("id, status, payment_status, total_amount, downpayment_amount, full_name, booking_date, time_slot, created_at");
 
   if (bookingsError) {
     console.error("fetchStats error:", bookingsError);
     return json({ error: "Failed to fetch statistics" }, { status: 500 });
   }
 
-  const totalRevenue =
+  const collectedRevenue =
     role === "admin"
       ? (bookings
           ?.filter((b) => b.status === "pending" || b.status === "confirmed")
-          .reduce((sum, b) => sum + (b.total_amount || 0), 0) ?? 0)
+          .reduce((sum, b) => {
+            if (b.payment_status === "paid") return sum + (b.total_amount || 0);
+            if (b.payment_status === "partial") return sum + (b.downpayment_amount || 0);
+            return sum;
+          }, 0) ?? 0)
+      : 0;
+
+  const outstandingRevenue =
+    role === "admin"
+      ? (bookings
+          ?.filter((b) => b.status === "pending" || b.status === "confirmed")
+          .reduce((sum, b) => {
+            if (b.payment_status === "partial") return sum + ((b.total_amount || 0) - (b.downpayment_amount || 0));
+            if (b.payment_status === "unpaid") return sum + (b.total_amount || 0);
+            return sum;
+          }, 0) ?? 0)
       : 0;
 
   const totalBookings = bookings?.length ?? 0;
@@ -62,7 +77,8 @@ export default async function handler(request: Request) {
   return json({
     totalBookings,
     confirmedBookings,
-    totalRevenue,
+    collectedRevenue,
+    outstandingRevenue,
     pendingBookings,
     recentBookings,
     totalInquiries: inquiryCount ?? 0,

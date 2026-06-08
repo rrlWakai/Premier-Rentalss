@@ -439,7 +439,8 @@ export async function removeBlockedDate(id: string): Promise<boolean> {
 // ── ADMIN STATS ───────────────────────────────────────────────────────
 
 export interface AdminStats {
-  totalRevenue: number;
+  collectedRevenue: number;
+  outstandingRevenue: number;
   confirmed: number;
   pending: number;
   totalGuests: number;
@@ -470,7 +471,8 @@ export async function fetchAdminStats(): Promise<AdminStats | null> {
 
     const data = await response.json();
     return {
-      totalRevenue: data.totalRevenue ?? 0,
+      collectedRevenue: data.collectedRevenue ?? 0,
+      outstandingRevenue: data.outstandingRevenue ?? 0,
       confirmed: data.confirmedBookings ?? 0,
       pending: data.pendingBookings ?? 0,
       totalGuests: 0,

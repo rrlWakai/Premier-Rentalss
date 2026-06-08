@@ -66,6 +66,16 @@ const TIER_LABELS: Record<string, string> = {
   big_group: "Big Group",
 };
 
+function getAmountReceived(b: { payment_status: string; total_amount: number; downpayment_amount?: number | null }): number {
+  if (b.payment_status === "paid") return b.total_amount;
+  if (b.payment_status === "partial") return b.downpayment_amount ?? 0;
+  return 0;
+}
+
+function getRemainingBalance(b: { payment_status: string; total_amount: number; downpayment_amount?: number | null }): number {
+  return b.total_amount - getAmountReceived(b);
+}
+
 const PAGE_SIZE = 50;
 
 export default function AdminDashboard() {
@@ -386,10 +396,16 @@ export default function AdminDashboard() {
     ...(isOwner
       ? [
           {
-            label: "Total Revenue",
-            value: formatPHP(adminStats?.totalRevenue ?? 0),
+            label: "Collected Revenue",
+            value: formatPHP(adminStats?.collectedRevenue ?? 0),
             icon: TrendingUp,
-            color: "#c9a96e",
+            color: "#22c55e",
+          },
+          {
+            label: "Outstanding Revenue",
+            value: formatPHP(adminStats?.outstandingRevenue ?? 0),
+            icon: TrendingUp,
+            color: "#f59e0b",
           },
         ]
       : []),
@@ -632,6 +648,7 @@ export default function AdminDashboard() {
                               "Session",
                               "Date",
                               "Amount",
+                              "Payment",
                               "Status",
                             ].map((h) => (
                               <th
@@ -677,8 +694,23 @@ export default function AdminDashboard() {
                               <td className="px-4 py-3 text-[#4a4a4a] max-w-[100px] truncate">
                                 {b.booking_date}
                               </td>
-                              <td className="px-4 py-3 font-medium text-[#c9a96e]">
-                                {formatPHP(b.total_amount)}
+                              <td className="px-4 py-3 font-medium text-[#c9a96e] leading-tight">
+                                <div>{formatPHP(b.total_amount)}</div>
+                                <div className="text-[10px] text-[#8a8a7a] font-normal">
+                                  rec'd {formatPHP(getAmountReceived(b))}
+                                </div>
+                                <div className="text-[10px] text-[#8a8a7a] font-normal">
+                                  bal {formatPHP(getRemainingBalance(b))}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <span
+                                  className={`capitalize text-[10px] font-medium ${PAYMENT_TEXT_CLS[b.payment_status]}`}
+                                >
+                                  {b.payment_status === "partial"
+                                    ? "Half"
+                                    : b.payment_status}
+                                </span>
                               </td>
                               <td className="px-4 py-3">
                                 <span
@@ -692,7 +724,7 @@ export default function AdminDashboard() {
                           {bookings.length === 0 && (
                             <tr>
                               <td
-                                colSpan={6}
+                                colSpan={7}
                                 className="text-center py-12 text-[#8a8a7a]"
                               >
                                 No bookings yet
@@ -815,11 +847,14 @@ export default function AdminDashboard() {
                                 <td className="px-4 py-3 text-[#4a4a4a] max-w-[110px] truncate text-[10px]">
                                   {b.booking_date}
                                 </td>
-                                <td className="px-4 py-3 font-medium text-[#c9a96e]">
-                                  {b.payment_status === "partial" &&
-                                  b.downpayment_amount !== undefined
-                                    ? `${formatPHP(b.downpayment_amount)} / ${formatPHP(b.total_amount)}`
-                                    : formatPHP(b.total_amount)}
+                                <td className="px-4 py-3 font-medium text-[#c9a96e] leading-tight">
+                                  <div>{formatPHP(b.total_amount)}</div>
+                                  <div className="text-[10px] text-[#8a8a7a] font-normal">
+                                    rec'd {formatPHP(getAmountReceived(b))}
+                                  </div>
+                                  <div className="text-[10px] text-[#8a8a7a] font-normal">
+                                    bal {formatPHP(getRemainingBalance(b))}
+                                  </div>
                                 </td>
                                 <td className="px-4 py-3">
                                   <span
@@ -946,38 +981,24 @@ export default function AdminDashboard() {
                                 ],
                                 [
                                   Wallet,
-                                  "Payment",
+                                  "Mode of Payment",
                                   selectedBooking.mode_of_payment,
                                 ],
                                 [
                                   AlertCircle,
-                                  "Amount",
+                                  "Booking Value",
                                   formatPHP(selectedBooking.total_amount),
                                 ],
-                                ...(selectedBooking.payment_status === "partial"
-                                  ? [
-                                      [
-                                        AlertCircle,
-                                        "Half Payment",
-                                        formatPHP(
-                                          selectedBooking.downpayment_amount ??
-                                            0,
-                                        ),
-                                      ],
-                                      [
-                                        AlertCircle,
-                                        "Remaining",
-                                        formatPHP(
-                                          Math.max(
-                                            0,
-                                            selectedBooking.total_amount -
-                                              (selectedBooking.downpayment_amount ??
-                                                0),
-                                          ),
-                                        ),
-                                      ],
-                                    ]
-                                  : []),
+                                [
+                                  CheckCircle,
+                                  "Amount Received",
+                                  formatPHP(getAmountReceived(selectedBooking)),
+                                ],
+                                [
+                                  Clock,
+                                  "Remaining Balance",
+                                  formatPHP(getRemainingBalance(selectedBooking)),
+                                ],
                               ] as [typeof User | null, string, string][]
                             ).map(([Icon, label, value]) => (
                               <div
