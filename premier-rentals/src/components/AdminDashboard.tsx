@@ -89,6 +89,9 @@ export default function AdminDashboard() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [page, setPage] = useState(1);
+  const [confirmAction, setConfirmAction] = useState<"paid" | "refunded" | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const confirmBtnRef = useRef<HTMLButtonElement>(null);
   const [realtimeStatus, setRealtimeStatus] = useState<
     "connecting" | "connected" | "error"
   >("connecting");
@@ -236,6 +239,17 @@ export default function AdminDashboard() {
     };
   }, [handleBookingChange, handleBlockedDateChange]);
 
+  // Disable confirm button briefly after modal opens to prevent accidental double-tap
+  useEffect(() => {
+    if (!confirmAction) return;
+    const btn = confirmBtnRef.current;
+    if (btn) btn.disabled = true;
+    const timer = setTimeout(() => {
+      if (btn) btn.disabled = false;
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [confirmAction]);
+
   async function handleSignOut() {
     await adminSignOut();
     navigate("/admin");
@@ -282,20 +296,28 @@ export default function AdminDashboard() {
 
   async function handlePaymentUpdate(
     id: string,
-    payment_status: PaymentStatus,
+    targetStatus: PaymentStatus,
   ) {
+    const booking = bookings.find(b => b.id === id);
+    if (!booking) return;
+
+    let paidAmount: number | undefined;
+    if (targetStatus === "paid") {
+      paidAmount = booking.total_amount;
+    }
+
     try {
-      const ok = await updateBookingPayment(id, payment_status);
+      const ok = await updateBookingPayment(id, targetStatus, paidAmount);
       if (ok) {
         queryClient.setQueryData(['admin-bookings', page], (old: any) => {
           if (!old) return old;
-          return { ...old, bookings: old.bookings.map((b: Booking) => b.id === id ? { ...b, payment_status } : b) };
+          return { ...old, bookings: old.bookings.map((b: Booking) => b.id === id ? { ...b, payment_status: targetStatus } : b) };
         });
         setSelectedBooking((p) =>
-          p?.id === id ? { ...p, payment_status } : p,
+          p?.id === id ? { ...p, payment_status: targetStatus } : p,
         );
         queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
-        toast.success(`Payment marked as ${payment_status}`);
+        toast.success(targetStatus === "paid" ? "Booking marked as fully paid" : "Booking marked as refunded");
       } else {
         toast.error("Failed to update payment status");
       }
@@ -440,6 +462,7 @@ export default function AdminDashboard() {
   ];
 
   return (
+    <>
     <div className="min-h-screen bg-[#f8f4ee] lg:flex overflow-x-hidden">
       {/* Sidebar */}
       <aside className="w-64 bg-[#1a1a1a] flex-col shrink-0 hidden lg:flex">
@@ -1070,39 +1093,59 @@ export default function AdminDashboard() {
                           </div>
                           {isOwner && (
                             <>
+                              <div className="bg-[#faf8f5] rounded-lg p-3 mb-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <span
+                                    className={`inline-block px-2 py-0.5 rounded text-[10px] font-medium capitalize ${PAYMENT_ACTIVE_CLS[selectedBooking.payment_status] || "border border-[#ede8df] text-[#8a8a7a]"}`}
+                                    style={{ fontFamily: "Jost, sans-serif" }}
+                                  >
+                                    {selectedBooking.payment_status === "partial"
+                                      ? "Partial Payment Received"
+                                      : selectedBooking.payment_status}
+                                  </span>
+                                </div>
+                                <div className="space-y-1 text-xs" style={{ fontFamily: "Jost, sans-serif" }}>
+                                  <div className="flex justify-between text-[#4a4a4a]">
+                                    <span>Booking Value</span>
+                                    <span className="font-medium">{formatPHP(selectedBooking.total_amount)}</span>
+                                  </div>
+                                  <div className="flex justify-between text-[#4a4a4a]">
+                                    <span>Amount Received</span>
+                                    <span className="font-medium text-green-600">{formatPHP(getAmountReceived(selectedBooking))}</span>
+                                  </div>
+                                  <div className="flex justify-between text-[#4a4a4a] border-t border-[#ede8df] pt-1 mt-1">
+                                    <span>Outstanding Balance</span>
+                                    <span className={`font-medium ${getRemainingBalance(selectedBooking) > 0 ? "text-amber-600" : "text-green-600"}`}>
+                                      {formatPHP(getRemainingBalance(selectedBooking))}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
                               <p
                                 className="text-[10px] text-[#8a8a7a] mb-2 tracking-wider uppercase"
                                 style={{ fontFamily: "Jost, sans-serif" }}
                               >
-                                Payment Status
+                                Payment Actions
                               </p>
-                              <div className="grid grid-cols-2 gap-2">
-                                {(
-                                  [
-                                    "unpaid",
-                                    "partial",
-                                    "paid",
-                                    "refunded",
-                                    "failed",
-                                  ] as PaymentStatus[]
-                                ).map((s) => (
+                              <div className="flex flex-col gap-2">
+                                {selectedBooking.payment_status !== "paid" && selectedBooking.payment_status !== "refunded" && (
                                   <button
-                                    key={s}
-                                    onClick={() =>
-                                      handlePaymentUpdate(selectedBooking.id, s)
-                                    }
-                                    className={`text-[10px] py-2 px-3 rounded border capitalize transition-all font-medium
-                                      ${
-                                        selectedBooking.payment_status === s
-                                          ? (PAYMENT_ACTIVE_CLS[s] ??
-                                            "border-[#ede8df] text-[#8a8a7a]")
-                                          : "border-[#ede8df] text-[#8a8a7a] hover:border-[#c9a96e] hover:text-[#c9a96e]"
-                                      }`}
+                                    onClick={() => setConfirmAction("paid")}
+                                    className="w-full py-2 px-3 rounded border border-green-200 text-green-600 hover:bg-green-50 hover:border-green-400 transition-all text-[10px] font-medium"
                                     style={{ fontFamily: "Jost, sans-serif" }}
                                   >
-                                    {s === "partial" ? "Half" : s}
+                                    Mark Fully Paid
                                   </button>
-                                ))}
+                                )}
+                                {selectedBooking.payment_status !== "refunded" && (
+                                  <button
+                                    onClick={() => setConfirmAction("refunded")}
+                                    className="w-full py-2 px-3 rounded border border-blue-200 text-blue-500 hover:bg-blue-50 hover:border-blue-400 transition-all text-[10px] font-medium"
+                                    style={{ fontFamily: "Jost, sans-serif" }}
+                                  >
+                                    Mark Refunded
+                                  </button>
+                                )}
                               </div>
                               <div className="mt-5 pt-4 border-t border-[#ede8df]">
                                 <button
@@ -1298,8 +1341,88 @@ export default function AdminDashboard() {
               )}
             </>
           )}
-        </div>
-      </main>
+          </div>
+          </main>
     </div>
+
+    {/* Confirmation Modal */}
+    {confirmAction && selectedBooking && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => { if (!confirming) setConfirmAction(null); }}>
+        <div
+          className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+          style={{ fontFamily: "Jost, sans-serif" }}
+        >
+          <div className="p-5">
+            <h2
+              className="text-lg mb-4 text-[#1a1a1a]"
+              style={{ fontFamily: "Cormorant Garamond, serif", fontWeight: 400 }}
+            >
+              {confirmAction === "paid" ? "Confirm Full Payment" : "Confirm Refund"}
+            </h2>
+
+            <div className="bg-[#faf8f5] rounded-lg p-3 mb-4 space-y-1.5 text-xs">
+              <div className="flex justify-between text-[#4a4a4a]">
+                <span>Booking Value</span>
+                <span className="font-medium">{formatPHP(selectedBooking.total_amount)}</span>
+              </div>
+              <div className="flex justify-between text-[#4a4a4a]">
+                <span>Received So Far</span>
+                <span className="font-medium text-green-600">{formatPHP(getAmountReceived(selectedBooking))}</span>
+              </div>
+              {confirmAction === "paid" && (
+                <div className="flex justify-between text-[#4a4a4a] border-t border-[#ede8df] pt-1.5 mt-1.5">
+                  <span className="font-medium">To Confirm</span>
+                  <span className="font-medium text-amber-600">{formatPHP(getRemainingBalance(selectedBooking))}</span>
+                </div>
+              )}
+            </div>
+
+            <p className="text-xs text-[#8a8a7a] mb-5 leading-relaxed">
+              {confirmAction === "paid"
+                ? `Confirm that the remaining ${formatPHP(getRemainingBalance(selectedBooking))} has been received offline. This will mark the booking as fully paid.`
+                : "Confirm that this booking has been refunded. This action cannot be undone through the dashboard."}
+            </p>
+
+            <div className="flex flex-col-reverse sm:flex-row gap-2">
+              <button
+                onClick={() => setConfirmAction(null)}
+                disabled={confirming}
+                className="w-full py-2.5 px-4 rounded border border-[#ede8df] text-[#8a8a7a] hover:text-[#4a4a4a] hover:border-[#c9a96e] transition-all text-xs font-medium disabled:opacity-50"
+                style={{ fontFamily: "Jost, sans-serif" }}
+              >
+                Cancel
+              </button>
+              <button
+                ref={confirmBtnRef}
+                onClick={async () => {
+                  setConfirming(true);
+                  await handlePaymentUpdate(selectedBooking.id, confirmAction);
+                  setConfirming(false);
+                  setConfirmAction(null);
+                }}
+                disabled={confirming}
+                className={`w-full py-2.5 px-4 rounded border text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                  confirmAction === "paid"
+                    ? "border-green-200 text-green-600 hover:bg-green-50 hover:border-green-400"
+                    : "border-blue-200 text-blue-500 hover:bg-blue-50 hover:border-blue-400"
+                }`}
+                style={{ fontFamily: "Jost, sans-serif" }}
+              >
+                {confirming ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <RefreshCw size={12} className="animate-spin" />
+                    {confirmAction === "paid" ? "Confirming..." : "Refunding..."}
+                  </span>
+                ) : (
+                  confirmAction === "paid" ? "Confirm Full Payment" : "Confirm Refund"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

@@ -87,9 +87,9 @@ export default async function handler(request: Request) {
       // Owners can update everything
       ALLOWED_FIELDS = new Set([
         "status",
-        "payment_status",
         "special_requests",
         "mode_of_payment",
+        "mark_refunded",
       ]);
     } else {
       // Staff can only update basic booking status and remarks
@@ -112,6 +112,21 @@ export default async function handler(request: Request) {
         sanitized.payment_status =
           paidAmount >= existingBooking.total_amount ? "paid" : "partial";
       }
+    }
+
+    // mark_refunded is a virtual helper field — use it to set payment_status to refunded
+    if (updatesObj.mark_refunded === true) {
+      sanitized.payment_status = "refunded";
+    }
+
+    // Prevent regression: a fully paid booking cannot be set back to partial
+    if (sanitized.payment_status === "partial" && existingBooking.payment_status === "paid") {
+      return json({ error: "Cannot revert a fully paid booking to partial. Use refund instead." }, { status: 400 });
+    }
+
+    // Prevent regression: a refunded booking cannot change payment status
+    if (existingBooking.payment_status === "refunded" && sanitized.payment_status && sanitized.payment_status !== "refunded") {
+      return json({ error: "Cannot change payment of a refunded booking" }, { status: 400 });
     }
 
     if (Object.keys(sanitized).length === 0) {

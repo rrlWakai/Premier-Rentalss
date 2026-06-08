@@ -263,12 +263,12 @@ export async function updateBookingPayment(
       return false;
     }
 
-    const updates: Record<string, unknown> = {
-      payment_status,
-    };
+    // Do NOT send payment_status directly — backend derives it from paid_amount or mark_refunded
+    const updates: Record<string, unknown> = {};
 
-    // ✅ Send paid_amount to API for server-side calculation
-    if (paidAmount !== undefined) {
+    if (payment_status === "refunded") {
+      updates.mark_refunded = true;
+    } else if (paidAmount !== undefined) {
       updates.paid_amount = paidAmount;
     }
 
